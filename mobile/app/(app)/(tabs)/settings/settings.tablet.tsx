@@ -1,0 +1,283 @@
+// BizAssist_mobile
+// path: app/(app)/(tabs)/settings/settings.tablet.tsx
+
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
+import { useRouter } from "expo-router";
+import { useCallback, useMemo, useRef, useState } from "react";
+import { Pressable, StyleSheet, View } from "react-native";
+import { useTheme } from "react-native-paper";
+
+import { ConfirmActionModal } from "@/components/settings/ConfirmActionModal";
+import { BAIButton } from "@/components/ui/BAIButton";
+import { BAIScreen } from "@/components/ui/BAIScreen";
+import { BAISurface } from "@/components/ui/BAISurface";
+import { BAIText } from "@/components/ui/BAIText";
+
+import { useColorSchemeController } from "@/hooks/use-color-scheme";
+import { useAppBusy } from "@/hooks/useAppBusy";
+import { useAuth } from "@/modules/auth/AuthContext";
+
+type IconName = keyof typeof MaterialCommunityIcons.glyphMap;
+type IonIconName = keyof typeof Ionicons.glyphMap;
+
+type SettingsRowBase = {
+	key: string;
+	title: string;
+	subtitle?: string;
+	onPress?: () => void;
+	disabled?: boolean;
+};
+
+type SettingsRow =
+	| (SettingsRowBase & { iconFamily?: "material"; icon: IconName })
+	| (SettingsRowBase & { iconFamily: "ion"; icon: IonIconName });
+
+function Row({
+	item,
+	borderColor,
+	onSurface,
+	onSurfaceVariant,
+}: {
+	item: SettingsRow;
+	borderColor: string;
+	onSurface: string;
+	onSurfaceVariant: string;
+}) {
+	const chevronVisible = !!item.onPress && !item.disabled;
+
+	return (
+		<Pressable
+			onPress={item.onPress}
+			disabled={!item.onPress || item.disabled}
+			style={({ pressed }) => [
+				styles.row,
+				{ borderBottomColor: borderColor, opacity: item.disabled ? 0.55 : 1 },
+				pressed && item.onPress ? styles.rowPressed : null,
+			]}
+		>
+			<View style={styles.rowLeft}>
+				<View style={[styles.iconCircle, { borderColor }]}>
+					{item.iconFamily === "ion" ? (
+						<Ionicons name={item.icon} size={20} color={onSurface} />
+					) : (
+						<MaterialCommunityIcons name={item.icon} size={20} color={onSurface} />
+					)}
+				</View>
+
+				<View style={styles.rowText}>
+					<BAIText variant='body' style={{ color: onSurface }}>
+						{item.title}
+					</BAIText>
+
+					{item.subtitle ? (
+						<BAIText variant='caption' style={{ color: onSurfaceVariant }}>
+							{item.subtitle}
+						</BAIText>
+					) : null}
+				</View>
+			</View>
+
+			{chevronVisible ? (
+				<View style={styles.rowRight}>
+					<MaterialCommunityIcons name='chevron-right' size={30} color={onSurfaceVariant} />
+				</View>
+			) : null}
+		</Pressable>
+	);
+}
+
+function modeLabel(mode: "system" | "light" | "dark") {
+	if (mode === "system") return "System";
+	if (mode === "light") return "Light";
+	return "Dark";
+}
+
+export default function SettingsTabletScreen() {
+	const theme = useTheme();
+	const router = useRouter();
+	const { logout } = useAuth();
+	const { withBusy, busy } = useAppBusy();
+	const { mode } = useColorSchemeController();
+
+	const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+	const [logoutBusy, setLogoutBusy] = useState(false);
+
+	// Idempotency guard (prevents double confirms / re-entrancy)
+	const logoutInFlightRef = useRef(false);
+
+	const isBusy = busy.isBusy || logoutBusy;
+
+	// Border governance: visible + consistent
+	const borderColor = theme.colors.outlineVariant ?? theme.colors.outline;
+	const onSurface = theme.colors.onSurface;
+	const onSurfaceVariant = theme.colors.onSurfaceVariant;
+
+	const rows: SettingsRow[] = useMemo(
+		() => [
+			{
+				key: "displayMode",
+				title: "Display Mode",
+				subtitle: modeLabel(mode),
+				icon: "circle-half-full",
+				onPress: () => router.push("/(app)/(tabs)/settings/display-mode"),
+			},
+			{
+				key: "items",
+				title: "Items",
+				subtitle: "All items, services, and catalog definitions",
+				iconFamily: "ion",
+				icon: "cube-outline",
+				onPress: () => router.push("/(app)/(tabs)/settings/items"),
+			},
+			{
+				key: "devices",
+				title: "Devices",
+				subtitle: "Connected devices (v1: placeholder)",
+				icon: "cellphone",
+				onPress: () => {},
+				disabled: true,
+			},
+			{
+				key: "about",
+				title: "About",
+				subtitle: "Version, legal, and support",
+				icon: "information-outline",
+				onPress: () => {},
+				disabled: true,
+			},
+		],
+		[mode, router],
+	);
+
+	const handleLogoutPress = useCallback(() => {
+		if (isBusy) return;
+		setShowLogoutConfirm(true);
+	}, [isBusy]);
+
+	const handleDismissLogout = useCallback(() => {
+		if (isBusy) return;
+		setShowLogoutConfirm(false);
+	}, [isBusy]);
+
+	const handleConfirmLogout = useCallback(async () => {
+		if (logoutInFlightRef.current) return;
+
+		// Close modal immediately to avoid tap-through / race
+		setShowLogoutConfirm(false);
+
+		logoutInFlightRef.current = true;
+		setLogoutBusy(true);
+
+		try {
+			/**
+			 * Correct logout governance:
+			 * - Settings must NOT route to /(system)/bootstrap first (race condition).
+			 * - AuthContext.logout() is the single source of truth:
+			 *   clears tokens/state, then router.replace("/(auth)/index").
+			 */
+			await withBusy("Logging out…", async () => {
+				await Promise.resolve(logout());
+			});
+		} finally {
+			logoutInFlightRef.current = false;
+			setLogoutBusy(false);
+		}
+	}, [logout, withBusy]);
+
+	return (
+		<BAIScreen tabbed padded={false}>
+			<View style={styles.screen}>
+				<View style={styles.centerWrap}>
+					<View style={styles.column}>
+						<BAIText variant='title' style={styles.title}>
+							Settings
+						</BAIText>
+
+						<BAISurface style={[styles.card, { borderColor }]} padded={false} bordered>
+							{rows.map((item) => (
+								<Row
+									key={item.key}
+									item={item}
+									borderColor={borderColor}
+									onSurface={onSurface}
+									onSurfaceVariant={onSurfaceVariant}
+								/>
+							))}
+						</BAISurface>
+
+						<BAISurface style={[styles.footer, { borderColor }]} padded bordered>
+							<BAIButton
+								intent='neutral'
+								variant='outline'
+								onPress={handleLogoutPress}
+								disabled={isBusy}
+								borderRadius={999}
+								style={styles.logoutBtnWrap}
+							>
+								Log Out
+							</BAIButton>
+
+							<BAIText variant='caption' style={[styles.hint, { color: onSurfaceVariant }]}>
+								Settings are intentionally minimal in v1.
+							</BAIText>
+						</BAISurface>
+					</View>
+				</View>
+			</View>
+
+			<ConfirmActionModal
+				visible={showLogoutConfirm}
+				title='Log out?'
+				message='Are you sure you want to log out?'
+				confirmLabel='Log Out'
+				cancelLabel='Cancel'
+				confirmIntent='danger'
+				onDismiss={handleDismissLogout}
+				onConfirm={handleConfirmLogout}
+				disabled={isBusy}
+			/>
+		</BAIScreen>
+	);
+}
+
+const styles = StyleSheet.create({
+	// Deterministic tablet layout: centered, stable width, fixed density.
+	screen: { flex: 1, padding: 12 },
+	centerWrap: { flex: 1, alignItems: "center", justifyContent: "flex-start" },
+	column: { width: "100%", maxWidth: 560, gap: 12 },
+	title: { marginTop: 2 },
+
+	card: {
+		borderRadius: 18,
+		overflow: "hidden",
+		borderWidth: 1,
+	},
+
+	row: {
+		paddingHorizontal: 12,
+		paddingVertical: 12,
+		borderBottomWidth: 1,
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "space-between",
+	},
+	rowPressed: { opacity: 0.85 },
+
+	rowLeft: { flexDirection: "row", alignItems: "center", gap: 12, flex: 1, paddingRight: 10 },
+	iconCircle: {
+		width: 38,
+		height: 38,
+		borderRadius: 19,
+		alignItems: "center",
+		justifyContent: "center",
+		borderWidth: 1,
+	},
+	rowText: { flex: 1, gap: 2 },
+	rowRight: { alignItems: "center", justifyContent: "center" },
+
+	footer: { borderRadius: 18, gap: 10, borderWidth: 1 },
+	hint: { opacity: 0.9 },
+
+	logoutBtnWrap: { borderRadius: 999 },
+});

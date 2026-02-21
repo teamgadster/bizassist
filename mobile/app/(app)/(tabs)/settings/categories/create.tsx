@@ -1,0 +1,186 @@
+// BizAssist_mobile
+// path: app/(app)/(tabs)/settings/categories/create.tsx
+//
+// Header governance:
+// - This is a PROCESS screen (intent to create category).
+// - Exit cancels intent.
+// - If opened from picker flow, cancel returns to picker deterministically.
+
+import { useQueryClient } from "@tanstack/react-query";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import React, { useCallback, useMemo, useRef, useState } from "react";
+import { Keyboard, KeyboardAvoidingView, Platform, StyleSheet, TouchableWithoutFeedback, View } from "react-native";
+import { useTheme } from "react-native-paper";
+
+import { BAIScreen } from "@/components/ui/BAIScreen";
+import { BAISurface } from "@/components/ui/BAISurface";
+import { BAIText } from "@/components/ui/BAIText";
+
+import { useAppBusy } from "@/hooks/useAppBusy";
+import { categoriesApi } from "@/modules/categories/categories.api";
+import { syncCategoryCaches } from "@/modules/categories/categories.cache";
+import {
+	buildCategorySelectionParams,
+	CATEGORY_PICKER_ROUTE,
+	DRAFT_ID_KEY,
+	INITIAL_NAME_KEY,
+	normalizeReturnTo,
+	RETURN_TO_KEY,
+	type CategoryCreateInboundParams,
+} from "@/modules/categories/categoryPicker.contract";
+import { categoryKeys } from "@/modules/categories/categories.queryKeys";
+import { extractCategoryApiError, toSafeCategoryParamString } from "@/modules/categories/categories.validators";
+import { CategoryForm } from "@/modules/categories/components/CategoryForm";
+import { mapInventoryRouteToScope, resolveInventoryRouteScope } from "@/modules/inventory/navigation.scope";
+import { useAppHeader } from "@/modules/navigation/useAppHeader";
+import { useProcessExitGuard } from "@/modules/navigation/useProcessExitGuard";
+
+const SETTINGS_CATEGORIES_ROUTE = "/(app)/(tabs)/settings/categories" as const;
+const CATEGORY_LIMIT_FALLBACK = 200;
+
+export default function SettingsCategoryCreateScreen() {
+	const router = useRouter();
+	const theme = useTheme();
+	const qc = useQueryClient();
+	const { withBusy } = useAppBusy();
+	const params = useLocalSearchParams<CategoryCreateInboundParams>();
+
+	const returnTo = normalizeReturnTo(params[RETURN_TO_KEY]);
+	const initialName = toSafeCategoryParamString(params[INITIAL_NAME_KEY]).trim();
+	const draftId = toSafeCategoryParamString(params[DRAFT_ID_KEY]).trim();
+	const pickerRoute = useMemo(
+		() => mapInventoryRouteToScope(CATEGORY_PICKER_ROUTE, resolveInventoryRouteScope(returnTo)),
+		[returnTo],
+	);
+
+	const [error, setError] = useState<string | null>(null);
+	const [isSubmitting, setIsSubmitting] = useState(false);
+
+	const navLockRef = useRef(false);
+	const [isNavLocked, setIsNavLocked] = useState(false);
+	const lockNav = useCallback((ms = 650) => {
+		if (navLockRef.current) return false;
+		navLockRef.current = true;
+		setIsNavLocked(true);
+		setTimeout(() => {
+			navLockRef.current = false;
+			setIsNavLocked(false);
+		}, ms);
+		return true;
+	}, []);
+
+	const isHeaderDisabled = isSubmitting || isNavLocked;
+	const onExit = useCallback(() => {
+		if (isHeaderDisabled) return;
+		if (!lockNav()) return;
+
+		if (returnTo) {
+			router.replace({
+				pathname: pickerRoute as any,
+				params: {
+					[RETURN_TO_KEY]: returnTo,
+					[DRAFT_ID_KEY]: draftId || undefined,
+				} as any,
+			});
+			return;
+		}
+
+		router.replace(SETTINGS_CATEGORIES_ROUTE as any);
+	}, [draftId, isHeaderDisabled, lockNav, pickerRoute, returnTo, router]);
+	const guardedOnExit = useProcessExitGuard(onExit);
+
+	const submit = useCallback(
+		async (v: { name: string; color: string | null }) => {
+			if (isSubmitting || isNavLocked) return;
+			if (!lockNav()) return;
+
+			setError(null);
+			setIsSubmitting(true);
+
+			await withBusy("Creating Category...", async () => {
+				try {
+					const created = await categoriesApi.create({ name: v.name, color: v.color });
+					syncCategoryCaches(qc, created);
+					void qc.invalidateQueries({ queryKey: categoryKeys.root() });
+
+					if (returnTo) {
+						router.replace({
+							pathname: pickerRoute as any,
+							params: {
+								[RETURN_TO_KEY]: returnTo,
+								...buildCategorySelectionParams({
+									selectedCategoryId: created.id,
+									selectedCategoryName: created.name,
+									selectionSource: "created",
+									draftId: draftId || undefined,
+								}),
+							} as any,
+						});
+						return;
+					}
+
+					router.replace(`/(app)/(tabs)/settings/categories/${encodeURIComponent(created.id)}` as any);
+				} catch (e: any) {
+					const { code, message, limit } = extractCategoryApiError(e);
+					if (code === "CATEGORY_LIMIT_REACHED") {
+						const cap = limit ?? CATEGORY_LIMIT_FALLBACK;
+						setError(`You've Reached The Maximum Of ${cap} Categories.`);
+						return;
+					}
+					setError(message ?? "Failed To Create Category. Please Try Again.");
+				} finally {
+					setIsSubmitting(false);
+				}
+			});
+		},
+		[draftId, isNavLocked, isSubmitting, lockNav, pickerRoute, qc, returnTo, router, withBusy],
+	);
+
+	const dividerColor = theme.colors.outlineVariant ?? theme.colors.outline;
+	const headerOptions = useAppHeader("process", { title: "Create Category", disabled: isHeaderDisabled, onExit: guardedOnExit });
+
+	return (
+		<>
+			<Stack.Screen options={headerOptions} />
+			<BAIScreen tabbed padded={false} safeTop={false} style={styles.root}>
+				<KeyboardAvoidingView
+					style={styles.keyboardAvoider}
+					behavior={Platform.OS === "ios" ? "padding" : "height"}
+					keyboardVerticalOffset={0}
+				>
+					<TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+						<View style={styles.keyboardContent}>
+							<View style={[styles.screen, { backgroundColor: theme.colors.background }]}>
+								<BAISurface style={[styles.card, { borderColor: dividerColor }]} padded bordered>
+									<BAIText variant='caption' muted>
+										Add a category to organize items and services.
+									</BAIText>
+
+									<View style={{ height: 10 }} />
+
+									<CategoryForm
+										mode='create'
+										initial={{ name: initialName || "", color: null }}
+										onSubmit={submit}
+										submitLabel='Create'
+										onCancel={guardedOnExit}
+										disabled={isSubmitting || isNavLocked}
+										error={error}
+									/>
+								</BAISurface>
+							</View>
+						</View>
+					</TouchableWithoutFeedback>
+				</KeyboardAvoidingView>
+			</BAIScreen>
+		</>
+	);
+}
+
+const styles = StyleSheet.create({
+	root: { flex: 1 },
+	keyboardAvoider: { flex: 1 },
+	keyboardContent: { flex: 1 },
+	screen: { flex: 1, padding: 12 },
+	card: { borderRadius: 24 },
+});

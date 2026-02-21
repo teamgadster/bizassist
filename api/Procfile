@@ -1,0 +1,2 @@
+release: npm run prisma:deploy
+web: npm start
