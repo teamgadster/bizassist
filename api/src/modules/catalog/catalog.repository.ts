@@ -19,84 +19,8 @@ export type ProductWithRelations = Prisma.ProductGetPayload<{
 	include: typeof PRODUCT_INCLUDE;
 }>;
 
-export type ProductOptionSelectionCreateInput = {
-	optionSetId: string;
-	selectedValueIds: string[];
-	sortOrder: number;
-};
-
-export type ProductVariationCreateInput = {
-	label: string;
-	variationKey: string;
-	valueMap: Record<string, string>;
-	sortOrder: number;
-};
-
-export type ProductOptionsGraphCreateInput = {
-	optionSelections: ProductOptionSelectionCreateInput[];
-	variations: ProductVariationCreateInput[];
-};
-
 export class CatalogRepository {
 	constructor(private prisma: PrismaClient) {}
-
-	private async createProductOptionGraph(tx: Prisma.TransactionClient, params: {
-		businessId: string;
-		productId: string;
-		optionGraph?: ProductOptionsGraphCreateInput;
-	}): Promise<void> {
-		const { businessId, productId, optionGraph } = params;
-		if (!optionGraph) return;
-
-		for (const selection of optionGraph.optionSelections) {
-			const createdProductOptionSet = await tx.productOptionSet.create({
-				data: {
-					businessId,
-					productId,
-					optionSetId: selection.optionSetId,
-					sortOrder: selection.sortOrder,
-				},
-			});
-
-			for (let valueIndex = 0; valueIndex < selection.selectedValueIds.length; valueIndex += 1) {
-				await tx.productOptionSetValue.create({
-					data: {
-						businessId,
-						productOptionSetId: createdProductOptionSet.id,
-						optionValueId: selection.selectedValueIds[valueIndex],
-						sortOrder: valueIndex,
-					},
-				});
-			}
-		}
-
-		for (const variation of optionGraph.variations) {
-			const createdVariation = await tx.productVariation.create({
-				data: {
-					businessId,
-					productId,
-					name: variation.label,
-					variationKey: variation.variationKey,
-					sortOrder: variation.sortOrder,
-					isActive: true,
-				},
-			});
-
-			const entries = Object.entries(variation.valueMap).sort(([a], [b]) => a.localeCompare(b));
-			for (let valueIndex = 0; valueIndex < entries.length; valueIndex += 1) {
-				const [optionSetId, optionValueId] = entries[valueIndex];
-				await tx.productVariationValue.create({
-					data: {
-						businessId,
-						productVariationId: createdVariation.id,
-						optionSetId,
-						optionValueId,
-						sortOrder: valueIndex,
-					},
-				});
-			}
-		}
-	}
 
 	async listProducts(params: {
 		businessId: string;
@@ -234,19 +158,12 @@ export class CatalogRepository {
 	async createProductWithInitialStock(params: {
 		product: Prisma.ProductUncheckedCreateInput;
 		initialOnHand: string | null; // decimal string
-		optionGraph?: ProductOptionsGraphCreateInput;
 	}): Promise<ProductWithRelations> {
 		return this.prisma.$transaction(async (tx) => {
 			const created = await tx.product.create({
 				data: params.product,
 				// NOTE: we intentionally DO NOT rely on include here; we refetch after stock movement.
 					select: { id: true, businessId: true, storeId: true },
-			});
-
-			await this.createProductOptionGraph(tx, {
-				businessId: created.businessId,
-				productId: created.id,
-				optionGraph: params.optionGraph,
 			});
 
 			if (params.initialOnHand && params.initialOnHand !== "0") {
@@ -293,7 +210,6 @@ export class CatalogRepository {
 		product: Omit<Prisma.ProductUncheckedCreateInput, "sku">;
 		initialOnHand: string | null; // decimal string
 		skuPrefix: string;
-		optionGraph?: ProductOptionsGraphCreateInput;
 	}): Promise<ProductWithRelations | null> {
 		return this.prisma.$transaction(async (tx) => {
 			// Business-scoped counter (deterministic SKU generation)
@@ -315,12 +231,6 @@ export class CatalogRepository {
 					sku,
 				},
 				select: { id: true, businessId: true, storeId: true },
-			});
-
-			await this.createProductOptionGraph(tx, {
-				businessId: created.businessId,
-				productId: created.id,
-				optionGraph: params.optionGraph,
 			});
 
 			if (params.initialOnHand && params.initialOnHand !== "0") {

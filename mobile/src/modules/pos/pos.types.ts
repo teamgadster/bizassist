@@ -4,6 +4,8 @@ export type CheckoutCartItemInput = {
 	productName?: string;
 	quantity: string; // decimal string (UDQI)
 	unitPrice: string; // decimal string
+	selectedModifierOptionIds?: string[];
+	totalModifiersDeltaMinor?: string;
 };
 
 export type CheckoutPaymentInput = {
@@ -36,6 +38,8 @@ export type CheckoutResult = {
 			quantity: string; // decimal string
 			unitPrice: string;
 			lineTotal: string;
+			selectedModifierOptionIds: string[];
+			totalModifiersDeltaMinor: string;
 		}[];
 		payments: {
 			id: string;

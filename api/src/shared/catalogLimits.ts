@@ -11,8 +11,5 @@ export const CATALOG_USAGE_WARNING_THRESHOLD = 0.8;
 
 export const MAX_PRODUCT_IMAGES = 10;
 
-// Variation/option guardrails (schema exists; enforcement points are TODO until modules are shipped).
-export const MAX_VARIANTS_PER_PRODUCT = 50;
-export const MAX_MODIFIERS_PER_PRODUCT = 20;
-// TODO(catalog-variants): enforce MAX_VARIANTS_PER_PRODUCT in variant create/update flows when module lands.
-// TODO(catalog-modifiers): enforce MAX_MODIFIERS_PER_PRODUCT in option/modifier assignment flows when module lands.
+export const MAX_MODIFIER_GROUPS_PER_PRODUCT = 5;
+export const MAX_MODIFIER_OPTIONS_PER_GROUP = 10;

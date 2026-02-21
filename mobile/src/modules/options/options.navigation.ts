@@ -1,21 +1,15 @@
 // BizAssist_mobile
 // path: src/modules/options/options.navigation.ts
 
-export const SETTINGS_OPTIONS_LEDGER_ROUTE = "/(app)/(tabs)/settings/options" as const;
-export const SETTINGS_OPTIONS_CREATE_ROUTE = "/(app)/(tabs)/settings/options/create" as const;
+export const SETTINGS_OPTIONS_LEDGER_ROUTE = "/(app)/(tabs)/settings/modifiers" as const;
+export const SETTINGS_OPTIONS_CREATE_ROUTE = "/(app)/(tabs)/settings/modifiers/create" as const;
 
-export const INVENTORY_OPTIONS_LEDGER_ROUTE = "/(app)/(tabs)/inventory/options" as const;
-export const INVENTORY_OPTIONS_CREATE_ROUTE = "/(app)/(tabs)/inventory/options/create" as const;
+export const INVENTORY_OPTIONS_LEDGER_ROUTE = "/(app)/(tabs)/inventory/modifiers" as const;
+export const INVENTORY_OPTIONS_CREATE_ROUTE = "/(app)/(tabs)/inventory/modifiers/create" as const;
 
 export const INVENTORY_PRODUCT_CREATE_ROUTE = "/(app)/(tabs)/inventory/products/create" as const;
-export const INVENTORY_PRODUCT_OPTIONS_SELECT_ROUTE = "/(app)/(tabs)/inventory/products/options/select" as const;
-export const INVENTORY_PRODUCT_OPTIONS_VALUES_ROUTE = "/(app)/(tabs)/inventory/products/options/values" as const;
-export const INVENTORY_PRODUCT_OPTIONS_CREATE_VARIATIONS_ROUTE =
-	"/(app)/(tabs)/inventory/products/options/create-variations" as const;
-export const INVENTORY_PRODUCT_OPTIONS_ADD_VARIATION_ROUTE =
-	"/(app)/(tabs)/inventory/products/options/add-variation" as const;
-export const INVENTORY_PRODUCT_OPTIONS_STOCK_RECEIVED_ROUTE =
-	"/(app)/(tabs)/inventory/products/options/stock-received" as const;
+export const INVENTORY_PRODUCT_OPTIONS_SELECT_ROUTE = "/(app)/(tabs)/inventory/products/modifiers/select" as const;
+export const INVENTORY_PRODUCT_OPTIONS_VALUES_ROUTE = "/(app)/(tabs)/inventory/products/modifiers/values" as const;
 
 export function appendReturnToQuery(route: string, returnTo: string | null): string {
 	if (!returnTo) return route;
@@ -34,49 +28,49 @@ export function normalizeReturnTo(raw: unknown): string | null {
 export function buildSettingsOptionDetailsRoute(optionSetId: string, returnTo: string | null = null): string {
 	const id = String(optionSetId ?? "").trim();
 	if (!id) return SETTINGS_OPTIONS_LEDGER_ROUTE;
-	return appendReturnToQuery(`/(app)/(tabs)/settings/options/${encodeURIComponent(id)}`, returnTo);
+	return appendReturnToQuery(`/(app)/(tabs)/settings/modifiers/${encodeURIComponent(id)}`, returnTo);
 }
 
 export function buildSettingsOptionEditRoute(optionSetId: string, returnTo: string | null = null): string {
 	const id = String(optionSetId ?? "").trim();
 	if (!id) return SETTINGS_OPTIONS_LEDGER_ROUTE;
-	return appendReturnToQuery(`/(app)/(tabs)/settings/options/${encodeURIComponent(id)}/edit`, returnTo);
+	return appendReturnToQuery(`/(app)/(tabs)/settings/modifiers/${encodeURIComponent(id)}/edit`, returnTo);
 }
 
 export function buildSettingsOptionArchiveRoute(optionSetId: string, returnTo: string | null = null): string {
 	const id = String(optionSetId ?? "").trim();
 	if (!id) return SETTINGS_OPTIONS_LEDGER_ROUTE;
-	return appendReturnToQuery(`/(app)/(tabs)/settings/options/${encodeURIComponent(id)}/archive`, returnTo);
+	return appendReturnToQuery(`/(app)/(tabs)/settings/modifiers/${encodeURIComponent(id)}/archive`, returnTo);
 }
 
 export function buildSettingsOptionRestoreRoute(optionSetId: string, returnTo: string | null = null): string {
 	const id = String(optionSetId ?? "").trim();
 	if (!id) return SETTINGS_OPTIONS_LEDGER_ROUTE;
-	return appendReturnToQuery(`/(app)/(tabs)/settings/options/${encodeURIComponent(id)}/restore`, returnTo);
+	return appendReturnToQuery(`/(app)/(tabs)/settings/modifiers/${encodeURIComponent(id)}/restore`, returnTo);
 }
 
 export function buildInventoryOptionDetailsRoute(optionSetId: string, returnTo: string | null = null): string {
 	const id = String(optionSetId ?? "").trim();
 	if (!id) return INVENTORY_OPTIONS_LEDGER_ROUTE;
-	return appendReturnToQuery(`/(app)/(tabs)/inventory/options/${encodeURIComponent(id)}`, returnTo);
+	return appendReturnToQuery(`/(app)/(tabs)/inventory/modifiers/${encodeURIComponent(id)}`, returnTo);
 }
 
 export function buildInventoryOptionEditRoute(optionSetId: string, returnTo: string | null = null): string {
 	const id = String(optionSetId ?? "").trim();
 	if (!id) return INVENTORY_OPTIONS_LEDGER_ROUTE;
-	return appendReturnToQuery(`/(app)/(tabs)/inventory/options/${encodeURIComponent(id)}/edit`, returnTo);
+	return appendReturnToQuery(`/(app)/(tabs)/inventory/modifiers/${encodeURIComponent(id)}/edit`, returnTo);
 }
 
 export function buildInventoryOptionArchiveRoute(optionSetId: string, returnTo: string | null = null): string {
 	const id = String(optionSetId ?? "").trim();
 	if (!id) return INVENTORY_OPTIONS_LEDGER_ROUTE;
-	return appendReturnToQuery(`/(app)/(tabs)/inventory/options/${encodeURIComponent(id)}/archive`, returnTo);
+	return appendReturnToQuery(`/(app)/(tabs)/inventory/modifiers/${encodeURIComponent(id)}/archive`, returnTo);
 }
 
 export function buildInventoryOptionRestoreRoute(optionSetId: string, returnTo: string | null = null): string {
 	const id = String(optionSetId ?? "").trim();
 	if (!id) return INVENTORY_OPTIONS_LEDGER_ROUTE;
-	return appendReturnToQuery(`/(app)/(tabs)/inventory/options/${encodeURIComponent(id)}/restore`, returnTo);
+	return appendReturnToQuery(`/(app)/(tabs)/inventory/modifiers/${encodeURIComponent(id)}/restore`, returnTo);
 }
 
 export function resolveSettingsOptionFlowExitRoute(returnTo: string | null): string {

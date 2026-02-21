@@ -129,11 +129,11 @@ export default function SettingsItemsScreen() {
 				onPress: () => router.push("/(app)/(tabs)/settings/discounts" as any),
 			},
 			{
-				key: "options",
-				title: "Options",
-				subtitle: "Set default item options",
+				key: "modifiers",
+				title: "Modifiers",
+				subtitle: "Set default item modifiers",
 				icon: "view-grid-outline",
-				onPress: () => router.push("/(app)/(tabs)/settings/options" as any),
+				onPress: () => router.push("/(app)/(tabs)/settings/modifiers" as any),
 			},
 			{
 				key: "units",

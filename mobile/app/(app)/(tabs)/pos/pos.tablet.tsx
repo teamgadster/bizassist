@@ -44,6 +44,8 @@ import {
 	toScaledInt,
 } from "@/modules/pos/pos.quantity";
 import { posApi } from "@/modules/pos/pos.api";
+import { PosModifiersPickerSheet } from "@/modules/pos/components/PosModifiersPickerSheet";
+import type { ProductModifierGroup } from "@/modules/pos/pos.api";
 import { unitDisplayToken } from "@/modules/units/units.format";
 import { useNavLock } from "@/shared/hooks/useNavLock";
 import { formatMoney } from "@/shared/money/money.format";
@@ -54,6 +56,9 @@ type CartLine = {
 	unitPrice: string;
 	quantity: string; // decimal string (UDQI)
 	precisionScale: number; // 0..5
+	selectedModifierOptionIds?: string[];
+	totalModifiersDeltaMinor?: string;
+	modifierSummary?: string;
 
 	unitId?: string;
 	unitName?: string;
@@ -84,6 +89,18 @@ function formatMoneyCompact(currencyCode: string, amountRaw: string): string {
 
 function makeIdempotencyKey(): string {
 	return `pos-tablet-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function decimalToMinorUnits(raw: string): bigint {
+	const value = String(raw ?? "0").trim();
+	if (!value) return 0n;
+	const neg = value.startsWith("-");
+	const clean = neg ? value.slice(1) : value;
+	const [wholeRaw, fracRaw = ""] = clean.split(".");
+	const whole = wholeRaw.replace(/^0+(?=\d)/, "") || "0";
+	const frac = fracRaw.replace(/\D/g, "").padEnd(2, "0").slice(0, 2);
+	const minor = BigInt(`${whole}${frac}`);
+	return neg ? -minor : minor;
 }
 
 function resolveCartLinePrecisionScale(product: CatalogProduct): number {
@@ -276,6 +293,10 @@ export default function PosTablet() {
 	const trimmedQ = q.trim();
 
 	const [cart, setCart] = useState<Record<string, CartLine>>({});
+	const [modifierPickerVisible, setModifierPickerVisible] = useState(false);
+	const [modifierPickerProduct, setModifierPickerProduct] = useState<CatalogProduct | null>(null);
+	const [modifierPickerGroups, setModifierPickerGroups] = useState<ProductModifierGroup[]>([]);
+	const [loadingModifierProductId, setLoadingModifierProductId] = useState<string | null>(null);
 
 	const productsQuery = useQuery({
 		queryKey: ["pos", "catalog", "products", trimmedQ],
@@ -294,7 +315,10 @@ export default function PosTablet() {
 
 	const subtotalMinor = useMemo(() => {
 		return cartLines.reduce((sum, l) => {
-			return sum + lineTotalMinor({ unitPrice: l.unitPrice, quantity: l.quantity, precisionScale: l.precisionScale });
+			const baseMinor = decimalToMinorUnits(l.unitPrice ?? "0.00");
+			const deltaMinor = BigInt(l.totalModifiersDeltaMinor ?? "0");
+			const effectiveUnitPrice = minorToDecimalString(baseMinor + deltaMinor, 2);
+			return sum + lineTotalMinor({ unitPrice: effectiveUnitPrice, quantity: l.quantity, precisionScale: l.precisionScale });
 		}, 0n as bigint);
 	}, [cartLines]);
 
@@ -310,6 +334,8 @@ export default function PosTablet() {
 					productId: l.productId,
 					quantity: l.quantity,
 					unitPrice: l.unitPrice,
+					selectedModifierOptionIds: l.selectedModifierOptionIds ?? [],
+					totalModifiersDeltaMinor: l.totalModifiersDeltaMinor ?? "0",
 				})),
 				payments: [{ method: "CASH" as const, amount: total }],
 			};
@@ -338,7 +364,12 @@ export default function PosTablet() {
 		[disabled, lockNav, router, safeReplace],
 	);
 
-	function addToCart(p: CatalogProduct) {
+	function addToCartResolved(
+		p: CatalogProduct,
+		selectedModifierOptionIds: string[] = [],
+		totalModifiersDeltaMinor: bigint = 0n,
+		modifierSummary = "",
+	) {
 		if (disabled) return;
 		const existing = cart[p.id];
 		if (resolvePosStatus(p).disabled && !existing) return;
@@ -371,6 +402,9 @@ export default function PosTablet() {
 					unitPrice,
 					quantity: qty,
 					precisionScale,
+					selectedModifierOptionIds: existing?.selectedModifierOptionIds ?? selectedModifierOptionIds,
+					totalModifiersDeltaMinor: existing?.totalModifiersDeltaMinor ?? totalModifiersDeltaMinor.toString(),
+					modifierSummary: existing?.modifierSummary ?? modifierSummary,
 					unitId,
 					unitName,
 					unitAbbreviation,
@@ -379,6 +413,31 @@ export default function PosTablet() {
 				},
 			};
 		});
+	}
+
+	async function addToCart(p: CatalogProduct) {
+		if (disabled) return;
+		const existing = cart[p.id];
+		if (existing) {
+			addToCartResolved(p);
+			return;
+		}
+
+		setLoadingModifierProductId(p.id);
+		try {
+			const groups = await posApi.getProductModifiers(p.id);
+			const available = (groups ?? []).filter((group) => (group.options ?? []).length > 0);
+			if (available.length === 0) {
+				addToCartResolved(p);
+				return;
+			}
+
+			setModifierPickerProduct(p);
+			setModifierPickerGroups(available);
+			setModifierPickerVisible(true);
+		} finally {
+			setLoadingModifierProductId(null);
+		}
 	}
 
 	const setQty = useCallback(
@@ -543,12 +602,12 @@ export default function PosTablet() {
 									return (
 										<Pressable
 											onPress={() => addToCart(item)}
-											disabled={rowDisabled}
+											disabled={rowDisabled || loadingModifierProductId === item.id}
 											style={({ pressed }) => [
 												styles.row,
 												isOutOfStockRow && { backgroundColor: theme.colors.surfaceVariant ?? theme.colors.surface },
-												pressed && !rowDisabled && { opacity: 0.78 },
-												rowDisabled && { opacity: 0.55 },
+												pressed && !rowDisabled && loadingModifierProductId !== item.id && { opacity: 0.78 },
+												(rowDisabled || loadingModifierProductId === item.id) && { opacity: 0.55 },
 											]}
 										>
 											<View style={styles.rowLeft}>
@@ -575,7 +634,7 @@ export default function PosTablet() {
 																variant='caption'
 																style={[styles.cartBadgeText, { color: theme.colors.onPrimary }]}
 															>
-																{String(inCartQty)}
+																{formatQtyDisplay(String(inCartQty), 2, false)}
 															</BAIText>
 														</View>
 													) : null}
@@ -636,7 +695,7 @@ export default function PosTablet() {
 								) : (
 									<FlatList
 										data={cartLines}
-										keyExtractor={(l) => l.productId}
+										keyExtractor={(l) => `${l.productId}:${(l.selectedModifierOptionIds ?? []).slice().sort().join(",")}`}
 										contentContainerStyle={styles.cartList}
 										showsVerticalScrollIndicator={false}
 										ItemSeparatorComponent={() => <View style={[styles.sep, { backgroundColor: borderColor }]} />}
@@ -645,9 +704,12 @@ export default function PosTablet() {
 											const qtyCompact = formatQtyDisplay(l.quantity, 2, false);
 											const qtyLabel = qtyToken ? `${qtyCompact} ${qtyToken}` : qtyCompact;
 
-											const unitPriceLabel = formatMoney({ currencyCode, amount: l.unitPrice ?? "0.00" });
+											const baseMinor = decimalToMinorUnits(l.unitPrice ?? "0.00");
+											const deltaMinor = BigInt(l.totalModifiersDeltaMinor ?? "0");
+											const effectiveUnitPrice = minorToDecimalString(baseMinor + deltaMinor, 2);
+											const unitPriceLabel = formatMoney({ currencyCode, amount: effectiveUnitPrice });
 											const lineMinor = lineTotalMinor({
-												unitPrice: l.unitPrice,
+												unitPrice: effectiveUnitPrice,
 												quantity: l.quantity,
 												precisionScale: l.precisionScale,
 											});
@@ -686,6 +748,7 @@ export default function PosTablet() {
 
 														<BAIText variant='caption' muted>
 															{unitPriceLabel} • Qty {qtyLabel} • {lineTotalLabel}
+															{l.modifierSummary ? ` • ${l.modifierSummary}` : ""}
 															{stockLabel ? (
 																<BAIText
 																	variant='caption'
@@ -776,6 +839,30 @@ export default function PosTablet() {
 						</View>
 					</View>
 				</View>
+				<PosModifiersPickerSheet
+					visible={modifierPickerVisible}
+					groups={modifierPickerGroups}
+					currencyCode={currencyCode}
+					onClose={() => {
+						setModifierPickerVisible(false);
+						setModifierPickerProduct(null);
+						setModifierPickerGroups([]);
+					}}
+					onConfirm={(selectionMap, selectedModifierOptionIds, totalDeltaMinor) => {
+						const product = modifierPickerProduct;
+						if (!product) return;
+						const parts: string[] = [];
+						for (const group of modifierPickerGroups) {
+							const selected = new Set(selectionMap[group.id] ?? []);
+							const names = group.options.filter((o) => selected.has(o.id)).map((o) => o.name);
+							if (names.length > 0) parts.push(`${group.name}: ${names.join(", ")}`);
+						}
+						addToCartResolved(product, selectedModifierOptionIds, totalDeltaMinor, parts.join(" | "));
+						setModifierPickerVisible(false);
+						setModifierPickerProduct(null);
+						setModifierPickerGroups([]);
+					}}
+				/>
 			</BAISurface>
 		</BAIScreen>
 	);

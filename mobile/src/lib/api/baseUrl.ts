@@ -8,16 +8,20 @@ import { Platform } from "react-native";
 type ExtraConfig = {
 	API_BASE_URL?: string; // app.json extra (optional legacy)
 	EXPO_PUBLIC_API_BASE_URL?: string; // optional extra fallback
+
 	API_BASE_URL_DEV?: string;
 	API_BASE_URL_PROD?: string;
+
 	EXPO_PUBLIC_API_BASE_URL_DEV?: string;
 	EXPO_PUBLIC_API_BASE_URL_PROD?: string;
+
 	APP_ENV?: string;
 	EXPO_PUBLIC_APP_ENV?: string;
 };
 
 const API_PORT = 4000;
 const API_BASE_PATH = "/api/v1";
+
 type RuntimeEnvironment = "development" | "production";
 
 function readExpoExtraConfig(): ExtraConfig {
@@ -65,6 +69,7 @@ function readEnvBaseUrl(env: RuntimeEnvironment, extra: ExtraConfig): string {
 
 		const fromExtraLegacy = normalizeBaseUrl(extra.API_BASE_URL_PROD ?? "");
 		if (fromExtraLegacy) return fromExtraLegacy;
+
 		return "";
 	}
 
@@ -95,8 +100,7 @@ export function resolveRuntimeEnvironment(): RuntimeEnvironment {
 	);
 	if (explicitBaseUrl) {
 		const lower = explicitBaseUrl.toLowerCase();
-		const isLocal =
-			lower.includes("://localhost") || lower.includes("://127.0.0.1") || lower.includes("://10.0.2.2");
+		const isLocal = lower.includes("://localhost") || lower.includes("://127.0.0.1") || lower.includes("://10.0.2.2");
 		return isLocal ? "development" : "production";
 	}
 
@@ -108,17 +112,20 @@ export function resolveRuntimeEnvironment(): RuntimeEnvironment {
  * - dev-client
  * - EAS builds
  * - production
+ *
+ * Determinism rules:
+ * - If EXPO_PUBLIC_APP_ENV=production => MUST resolve to a prod base URL (or explicit override).
+ * - In production mode, NEVER fall back to hostUri-derived IP.
  */
-function getConfiguredBaseUrl(): string {
+function getConfiguredBaseUrl(runtimeEnv: RuntimeEnvironment): string {
 	const extra = readExpoExtraConfig();
-	const runtimeEnv = resolveRuntimeEnvironment();
 
-	// 1) single explicit URL (legacy + hard override)
-	// Use this first so scripts like start:env:prod remain deterministic.
-	const env = normalizeBaseUrl(process.env.EXPO_PUBLIC_API_BASE_URL ?? "");
-	if (env) return env;
+	// 1) single explicit URL (hard override)
+	// If set, it wins in both dev and prod. Use sparingly.
+	const hardOverride = normalizeBaseUrl(process.env.EXPO_PUBLIC_API_BASE_URL ?? "");
+	if (hardOverride) return hardOverride;
 
-	// 2) environment-aware URLs (quick dev/prod switch)
+	// 2) env-aware URLs (dev/prod switch)
 	const fromRuntimeEnv = readEnvBaseUrl(runtimeEnv, extra);
 	if (fromRuntimeEnv) return fromRuntimeEnv;
 
@@ -171,16 +178,32 @@ function deviceBaseUrl(configured: string): string {
 }
 
 export function resolveBaseUrl(): string {
-	const configured = getConfiguredBaseUrl();
-
-	// If a non-localhost URL is explicitly configured, always prefer it.
+	const runtimeEnv = resolveRuntimeEnvironment();
+	const configured = getConfiguredBaseUrl(runtimeEnv);
 	const configuredWithPath = withBasePath(configured);
+
+	// A) If a non-localhost URL is explicitly configured, always prefer it.
+	// Works for prod AND dev device testing.
 	if (configuredWithPath && !isSimulatorOnlyHost(configuredWithPath)) {
 		return configuredWithPath;
 	}
 
+	// B) Production mode must be explicit + stable.
+	// If we are in prod mode but only have simulator-only hosts, we must still return
+	// the configured (with base path) if present, otherwise fall back to PROD env var.
+	// DO NOT use hostUri IP in production mode.
+	if (runtimeEnv === "production") {
+		if (configuredWithPath) return configuredWithPath;
+
+		// Absolute last fallback: attempt prod env var again (defensive)
+		const prod = normalizeBaseUrl(process.env.EXPO_PUBLIC_API_BASE_URL_PROD ?? "");
+		return withBasePath(prod);
+	}
+
+	// C) Development mode behavior:
+	// - physical device may use hostUri IP
+	// - simulators use deterministic localhost/10.0.2.2 mapping
 	if (Device.isDevice) return deviceBaseUrl(configured);
 
-	// simulator/emulator: always deterministic
 	return simulatorBaseUrl();
 }

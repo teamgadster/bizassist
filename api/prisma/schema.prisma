@@ -387,128 +387,43 @@ model Discount {
   @@index([businessId, name])
 }
 
-model OptionSet {
-  id                     String                  @id @default(uuid())
-  businessId             String
-  name                   String                  @db.VarChar(120)
-  nameNormalized         String                  @db.VarChar(120)
-  displayName            String                  @db.VarChar(120)
-  sortOrder              Int                     @default(0)
-  isActive               Boolean                 @default(true)
-  archivedAt             DateTime?
-  createdAt              DateTime                @default(now())
-  updatedAt              DateTime                @updatedAt
-  Business               Business                @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  values                 OptionValue[]
-  productOptionSets      ProductOptionSet[]
-  productVariationValues ProductVariationValue[]
+model ModifierGroup {
+  id            String                  @id @default(uuid())
+  businessId    String
+  productId     String
+  name          String                  @db.VarChar(120)
+  selectionType ModifierSelectionType
+  isRequired    Boolean                 @default(false)
+  minSelected   Int                     @default(0)
+  maxSelected   Int                     @default(1)
+  sortOrder     Int                     @default(0)
+  isArchived    Boolean                 @default(false)
+  createdAt     DateTime                @default(now())
+  updatedAt     DateTime                @updatedAt
+  Business      Business                @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  Product       Product                 @relation(fields: [productId], references: [id], onDelete: Cascade)
+  options       ModifierOption[]
 
-  @@unique([businessId, nameNormalized])
-  @@index([businessId, archivedAt, sortOrder])
-  @@index([businessId, isActive, sortOrder])
+  @@index([businessId, productId, isArchived, sortOrder])
   @@index([businessId, createdAt])
 }
 
-model OptionValue {
-  id                     String                  @id @default(uuid())
-  businessId             String
-  optionSetId            String
-  name                   String                  @db.VarChar(120)
-  nameNormalized         String                  @db.VarChar(120)
-  sortOrder              Int                     @default(0)
-  isActive               Boolean                 @default(true)
-  archivedAt             DateTime?
-  createdAt              DateTime                @default(now())
-  updatedAt              DateTime                @updatedAt
-  Business               Business                @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  OptionSet              OptionSet               @relation(fields: [optionSetId], references: [id], onDelete: Cascade)
-  productOptionSetValues ProductOptionSetValue[]
-  productVariationValues ProductVariationValue[]
+model ModifierOption {
+  id                    String                 @id @default(uuid())
+  businessId            String
+  modifierGroupId       String
+  name                  String                 @db.VarChar(120)
+  priceDeltaMinor       BigInt                 @default(0)
+  sortOrder             Int                    @default(0)
+  isArchived            Boolean                @default(false)
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  Business              Business               @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  ModifierGroup         ModifierGroup          @relation(fields: [modifierGroupId], references: [id], onDelete: Cascade)
+  SaleLineItemModifiers SaleLineItemModifier[]
 
-  @@unique([optionSetId, nameNormalized])
-  @@index([businessId, optionSetId, archivedAt, sortOrder])
-  @@index([businessId, optionSetId, isActive, sortOrder])
+  @@index([businessId, modifierGroupId, isArchived, sortOrder])
   @@index([businessId, createdAt])
-}
-
-model ProductOptionSet {
-  id             String                  @id @default(uuid())
-  businessId     String
-  productId      String
-  optionSetId    String
-  sortOrder      Int                     @default(0)
-  createdAt      DateTime                @default(now())
-  updatedAt      DateTime                @updatedAt
-  Business       Business                @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  OptionSet      OptionSet               @relation(fields: [optionSetId], references: [id], onDelete: Cascade)
-  Product        Product                 @relation(fields: [productId], references: [id], onDelete: Cascade)
-  selectedValues ProductOptionSetValue[]
-
-  @@unique([productId, optionSetId])
-  @@index([businessId, productId, sortOrder])
-  @@index([businessId, optionSetId])
-}
-
-model ProductOptionSetValue {
-  id                 String           @id @default(uuid())
-  businessId         String
-  productOptionSetId String
-  optionValueId      String
-  sortOrder          Int              @default(0)
-  createdAt          DateTime         @default(now())
-  updatedAt          DateTime         @updatedAt
-  Business           Business         @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  OptionValue        OptionValue      @relation(fields: [optionValueId], references: [id], onDelete: Cascade)
-  ProductOptionSet   ProductOptionSet @relation(fields: [productOptionSetId], references: [id], onDelete: Cascade)
-
-  @@unique([productOptionSetId, optionValueId])
-  @@index([businessId, productOptionSetId, sortOrder])
-  @@index([businessId, optionValueId])
-}
-
-model ProductVariation {
-  id           String                  @id @default(uuid())
-  businessId   String
-  productId    String
-  name         String                  @db.VarChar(160)
-  variationKey String                  @db.VarChar(255)
-  price        Decimal?                @db.Decimal(12, 2)
-  cost         Decimal?                @db.Decimal(12, 2)
-  reorderPoint Decimal?                @db.Decimal(18, 5)
-  onHandCached Decimal                 @default(0) @db.Decimal(18, 5)
-  isActive     Boolean                 @default(true)
-  sortOrder    Int                     @default(0)
-  createdAt    DateTime                @default(now())
-  updatedAt    DateTime                @updatedAt
-  movements    InventoryMovement[]
-  Business     Business                @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  Product      Product                 @relation(fields: [productId], references: [id], onDelete: Cascade)
-  values       ProductVariationValue[]
-
-  @@unique([productId, variationKey])
-  @@index([businessId, productId, isActive, sortOrder])
-  @@index([businessId, createdAt])
-}
-
-model ProductVariationValue {
-  id                 String           @id @default(uuid())
-  businessId         String
-  productVariationId String
-  optionSetId        String
-  optionValueId      String
-  sortOrder          Int              @default(0)
-  createdAt          DateTime         @default(now())
-  updatedAt          DateTime         @updatedAt
-  Business           Business         @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  OptionSet          OptionSet        @relation(fields: [optionSetId], references: [id], onDelete: Cascade)
-  OptionValue        OptionValue      @relation(fields: [optionValueId], references: [id], onDelete: Cascade)
-  ProductVariation   ProductVariation @relation(fields: [productVariationId], references: [id], onDelete: Cascade)
-
-  @@unique([productVariationId, optionSetId])
-  @@unique([productVariationId, optionValueId])
-  @@index([businessId, productVariationId, sortOrder])
-  @@index([businessId, optionSetId])
-  @@index([businessId, optionValueId])
 }
 
 model Sale {
@@ -547,12 +462,31 @@ model SaleLineItem {
   quantityV2  Decimal?       @db.Decimal(18, 5)
   unitPrice   Decimal        @db.Decimal(12, 2)
   lineTotal   Decimal        @db.Decimal(12, 2)
+  selectedModifierOptionIds Json?
+  totalModifiersDeltaMinor  BigInt?
   discounts   SaleDiscount[]
+  modifiers   SaleLineItemModifier[]
   product     Product        @relation(fields: [productId], references: [id])
   sale        Sale           @relation(fields: [saleId], references: [id], onDelete: Cascade)
 
   @@index([saleId])
   @@index([productId])
+}
+
+model SaleLineItemModifier {
+  id               String         @id @default(cuid())
+  businessId       String
+  saleLineItemId   String
+  modifierOptionId String
+  optionName       String         @db.VarChar(120)
+  priceDeltaMinor  BigInt
+  createdAt        DateTime       @default(now())
+  Business         Business       @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  SaleLineItem     SaleLineItem   @relation(fields: [saleLineItemId], references: [id], onDelete: Cascade)
+  ModifierOption   ModifierOption @relation(fields: [modifierOptionId], references: [id], onDelete: Restrict)
+
+  @@index([businessId, saleLineItemId])
+  @@index([businessId, modifierOptionId])
 }
 
 model SaleDiscount {
@@ -601,16 +535,13 @@ model InventoryMovement {
   idempotencyKey     String?                 @db.VarChar(80)
   relatedSaleId      String?
   createdAt          DateTime                @default(now())
-  productVariationId String?
   Business           Business                @relation(fields: [businessId], references: [id], onDelete: Cascade)
   Product            Product                 @relation(fields: [productId], references: [id], onDelete: Cascade)
-  ProductVariation   ProductVariation?       @relation(fields: [productVariationId], references: [id], onDelete: SetNull)
   RelatedSale        Sale?                   @relation(fields: [relatedSaleId], references: [id])
   Store              Store?                  @relation(fields: [storeId], references: [id])
 
   @@unique([businessId, idempotencyKey])
   @@index([businessId, productId, createdAt])
-  @@index([businessId, productVariationId, createdAt])
   @@index([storeId])
   @@index([relatedSaleId])
 }
@@ -728,6 +659,11 @@ enum InventoryMovementReason {
   ADJUSTMENT
 }
 
+enum ModifierSelectionType {
+  SINGLE
+  MULTI
+}
+
 enum ProductType {
   PHYSICAL
   SERVICE
@@ -761,7 +697,6 @@ enum ProductImageStatus {
 enum ProductImageKind {
   PRIMARY_POS_TILE
   SECONDARY_GALLERY
-  VARIANT_SWATCH
   LIFESTYLE
 }
 

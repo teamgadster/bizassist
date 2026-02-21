@@ -52,11 +52,13 @@ function resolveActiveBusinessId(): string {
 const baseURL = resolveBaseUrl();
 const runtimeEnv = resolveRuntimeEnvironment();
 console.log("[httpClient] env/baseURL =", runtimeEnv, baseURL);
-const API_TIMEOUT_MS = Number(process.env.EXPO_PUBLIC_API_TIMEOUT_MS ?? "70000");
+
+const API_TIMEOUT_MS_RAW = process.env.EXPO_PUBLIC_API_TIMEOUT_MS ?? "30000";
+const API_TIMEOUT_MS = Number(API_TIMEOUT_MS_RAW);
 
 const httpClient = axios.create({
 	baseURL,
-	timeout: Number.isFinite(API_TIMEOUT_MS) ? API_TIMEOUT_MS : 70000,
+	timeout: Number.isFinite(API_TIMEOUT_MS) ? API_TIMEOUT_MS : 30000,
 	headers: { "Content-Type": "application/json" },
 });
 

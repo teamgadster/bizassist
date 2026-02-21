@@ -78,22 +78,19 @@ export default function InventoryStackLayout() {
 			<Stack.Screen name='discounts/create' options={{ title: "Create Discount" }} />
 			<Stack.Screen name='discounts/[id]/index' options={{ title: "Discount" }} />
 			<Stack.Screen name='discounts/[id]/edit' options={{ title: "Edit Discount" }} />
-			<Stack.Screen name='options/index' options={{ title: "Options" }} />
-			<Stack.Screen name='options/create' options={{ title: "Create Option" }} />
-			<Stack.Screen name='options/[id]/index' options={{ title: "Option Details" }} />
-			<Stack.Screen name='options/[id]/edit' options={{ title: "Edit Option" }} />
-			<Stack.Screen name='options/[id]/archive' options={{ title: "Archive Option" }} />
-			<Stack.Screen name='options/[id]/restore' options={{ title: "Restore Option" }} />
+			<Stack.Screen name='modifiers/index' options={{ title: "Modifiers" }} />
+			<Stack.Screen name='modifiers/create' options={{ title: "Create Modifier" }} />
+			<Stack.Screen name='modifiers/[id]/index' options={{ title: "Modifier Details" }} />
+			<Stack.Screen name='modifiers/[id]/edit' options={{ title: "Edit Modifier" }} />
+			<Stack.Screen name='modifiers/[id]/archive' options={{ title: "Archive Modifier" }} />
+			<Stack.Screen name='modifiers/[id]/restore' options={{ title: "Restore Modifier" }} />
 			<Stack.Screen name='units/add' options={{ title: "Unit Category", headerBackTitle: "Unit Type" }} />
 			<Stack.Screen name='units/select' options={{ title: "Add Unit", headerBackTitle: "Add Unit" }} />
 			<Stack.Screen name='units/custom-create' options={{ title: "Create Custom Unit", headerBackTitle: "Custom Unit" }} />
 			<Stack.Screen name='units/[id]/archive' options={{ title: "Archive Unit" }} />
 			<Stack.Screen name='units/[id]/restore' options={{ title: "Restore Unit" }} />
-			<Stack.Screen name='products/options/select' options={{ title: "Select Options" }} />
-			<Stack.Screen name='products/options/values' options={{ title: "Option Values" }} />
-			<Stack.Screen name='products/options/create-variations' options={{ title: "Create Variations" }} />
-			<Stack.Screen name='products/options/add-variation' options={{ title: "Adjust Stock" }} />
-			<Stack.Screen name='products/options/stock-received' options={{ title: "Stock received" }} />
+			<Stack.Screen name='products/modifiers/select' options={{ title: "Select Modifiers" }} />
+			<Stack.Screen name='products/modifiers/values' options={{ title: "Modifier Values" }} />
 
 			{/* ✅ Item Details Overview — explicit back title */}
 			<Stack.Screen

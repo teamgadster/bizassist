@@ -39,20 +39,12 @@ export type ProductCreateDraft = {
 	posTileLabel: string;
 	posTileLabelTouched: boolean;
 
-	// options + variations
+	// options
 	optionSelections: {
 		optionSetId: string;
 		optionSetName: string;
 		displayName: string;
 		selectedValueIds: string[];
-	}[];
-	variations: {
-		id: string;
-		label: string;
-		valueMap: Record<string, string>;
-		stockStatus: "VARIABLE" | "SOLD_OUT";
-		stockReason: string | null;
-		stockReceived: string;
 	}[];
 };
 
@@ -98,7 +90,6 @@ export function createProductDraft(forcedDraftId?: string): ProductCreateDraft {
 		posTileLabelTouched: false,
 
 		optionSelections: [],
-		variations: [],
 	};
 
 	drafts.set(draftId, draft);

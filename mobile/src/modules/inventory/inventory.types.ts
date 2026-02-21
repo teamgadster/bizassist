@@ -225,11 +225,6 @@ export type CreateProductInput = {
 		selectedValueIds: string[];
 		sortOrder?: number;
 	}[];
-	variations?: {
-		label?: string;
-		valueMap: Record<string, string>;
-		sortOrder?: number;
-	}[];
 
 	/**
 	 * UDQI Phase-1 (Compatibility Mode):

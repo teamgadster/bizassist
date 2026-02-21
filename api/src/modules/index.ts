@@ -17,6 +17,7 @@ import { discountsRoutes } from "@/modules/discounts/discounts.routes";
 // Media (Supabase Storage)
 import { mediaRoutes } from "@/modules/media/media.routes";
 import unitsRoutes from "@/modules/units/units.routes";
+import { modifiersRoutes } from "@/modules/modifiers/modifiers.routes";
 
 export const apiRouter = Router();
 
@@ -58,3 +59,4 @@ apiRouter.use("/discounts", discountsRoutes);
 // Unit of measures
 // ─────────────────────────────────────────────────────────────
 apiRouter.use("/units", unitsRoutes);
+apiRouter.use("/modifiers", modifiersRoutes);

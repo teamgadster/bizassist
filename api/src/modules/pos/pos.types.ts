@@ -7,6 +7,8 @@ export type CheckoutCartItemInput = {
 	quantity: string; // UDQI decimal string
 	unitPriceMinor?: string; // canonical
 	unitPrice?: string; // legacy decimal major units (compatibility)
+	selectedModifierOptionIds?: string[];
+	totalModifiersDeltaMinor?: string;
 };
 
 export type CheckoutPaymentInput = {
@@ -49,6 +51,8 @@ export type CheckoutResult = {
 			quantity: string;
 			unitPriceMinor: string;
 			lineTotalMinor: string;
+			selectedModifierOptionIds: string[];
+			totalModifiersDeltaMinor: string;
 			unitPrice: string; // compatibility decimal major units
 			lineTotal: string; // compatibility decimal major units
 		}>;

@@ -31,10 +31,7 @@ import {
 	normalizeRoutePath,
 	normalizeString,
 	OPTION_SET_ID_KEY,
-	OPTION_VALUES_MODE_KEY,
-	parseSelectionMode,
 	RETURN_TO_KEY,
-	VARIATION_ID_KEY,
 } from "@/modules/options/options.contract";
 import { useOptionSetById, useUpdateOptionSet } from "@/modules/options/options.queries";
 import { FIELD_LIMITS } from "@/shared/fieldLimits";
@@ -43,8 +40,6 @@ import { sanitizeEntityNameDraftInput, sanitizeEntityNameInput, sanitizeSearchIn
 type RouteParams = {
 	draftId?: string;
 	optionSetId?: string;
-	selectionMode?: string;
-	variationId?: string;
 	returnTo?: string;
 };
 
@@ -71,9 +66,7 @@ export default function ProductOptionValuesScreen({
 	const { withBusy, busy } = useAppBusy();
 	const toScopedRoute = useCallback((route: string) => mapInventoryRouteToScope(route, routeScope), [routeScope]);
 
-	const mode = parseSelectionMode(params[OPTION_VALUES_MODE_KEY]);
 	const optionSetId = normalizeString(params[OPTION_SET_ID_KEY]);
-	const variationId = normalizeString(params[VARIATION_ID_KEY]);
 	const returnTo = useMemo(() => normalizeRoutePath(params[RETURN_TO_KEY]), [params]);
 
 	const { draft, draftId, patch } = useProductCreateDraft(normalizeString(params[DRAFT_ID_KEY]) || undefined);
@@ -97,22 +90,13 @@ export default function ProductOptionValuesScreen({
 		if (!optionSet) return;
 		if (initialIdsRef.current) return;
 
-		if (mode === "SINGLE") {
-			const existingVariation = draft.variations.find((variation) => variation.id === variationId);
-			const existing = existingVariation?.valueMap?.[optionSet.id];
-			const fallback = existing || activeValues[0]?.id || "";
-			initialIdsRef.current = fallback ? [fallback] : [];
-			setSelectedValueIds(initialIdsRef.current);
-			return;
-		}
-
 		const existingSelection = draft.optionSelections.find((selection) => selection.optionSetId === optionSet.id);
 		const fromDraft = existingSelection?.selectedValueIds ?? [];
 		const filtered = fromDraft.filter((id) => activeValues.some((value) => value.id === id));
 		const fallback = filtered.length > 0 ? filtered : activeValues.map((value) => value.id);
 		initialIdsRef.current = fallback;
 		setSelectedValueIds(fallback);
-	}, [activeValues, draft.optionSelections, draft.variations, mode, optionSet, variationId]);
+	}, [activeValues, draft.optionSelections, optionSet]);
 
 	const navLockRef = useRef(false);
 	const [isNavLocked, setIsNavLocked] = useState(false);
@@ -132,24 +116,6 @@ export default function ProductOptionValuesScreen({
 
 	const commitSelection = useCallback(() => {
 		if (!optionSet) return;
-		if (mode === "SINGLE") {
-			if (!variationId) return;
-			const selected = selectedValueIds[0] ?? "";
-			patch({
-				variations: draft.variations.map((variation) =>
-					variation.id === variationId
-						? {
-								...variation,
-								valueMap: {
-									...variation.valueMap,
-									[optionSet.id]: selected,
-								},
-							}
-						: variation,
-				),
-			});
-			return;
-		}
 
 		const nextSelection = {
 			optionSetId: optionSet.id,
@@ -164,7 +130,7 @@ export default function ProductOptionValuesScreen({
 				nextSelection,
 			],
 		});
-	}, [draft.optionSelections, draft.variations, mode, optionSet, patch, selectedValueIds, variationId]);
+	}, [draft.optionSelections, optionSet, patch, selectedValueIds]);
 
 	const navigateBack = useCallback(() => {
 		if (returnTo) {
@@ -172,7 +138,7 @@ export default function ProductOptionValuesScreen({
 			return;
 		}
 		router.replace({
-			pathname: toScopedRoute("/(app)/(tabs)/inventory/products/options/select") as any,
+			pathname: toScopedRoute("/(app)/(tabs)/inventory/products/modifiers/select") as any,
 			params: {
 				[DRAFT_ID_KEY]: draftId,
 			},
@@ -185,20 +151,13 @@ export default function ProductOptionValuesScreen({
 		navigateBack();
 	}, [isUiDisabled, lockNav, navigateBack]);
 
-	const onBack = useCallback(() => {
-		if (isUiDisabled) return;
-		if (!lockNav()) return;
-		commitSelection();
-		navigateBack();
-	}, [commitSelection, isUiDisabled, lockNav, navigateBack]);
-
 	const onDone = useCallback(() => {
 		if (isUiDisabled || !canDone) return;
 		if (!lockNav()) return;
 		commitSelection();
 		navigateBack();
 	}, [canDone, commitSelection, isUiDisabled, lockNav, navigateBack]);
-	const guardedOnNavAction = useProcessExitGuard(mode === "SINGLE" ? onBack : onExit);
+	const guardedOnNavAction = useProcessExitGuard(onExit);
 
 	const onAddOptionValue = useCallback(async () => {
 		if (!optionSet || isUiDisabled) return;
@@ -231,7 +190,7 @@ export default function ProductOptionValuesScreen({
 					updated.values.find((value) => value.name.toLowerCase() === name.toLowerCase()) ??
 					updated.values[updated.values.length - 1];
 				if (createdValue) {
-					setSelectedValueIds((prev) => (mode === "SINGLE" ? [createdValue.id] : toggleInList(prev, createdValue.id, true)));
+					setSelectedValueIds((prev) => toggleInList(prev, createdValue.id, true));
 				}
 
 				setNewValueText("");
@@ -241,7 +200,7 @@ export default function ProductOptionValuesScreen({
 				setError(String(message));
 			}
 		});
-	}, [hasReachedOptionCap, isUiDisabled, mode, newValueText, optionSet, updateOptionSet, withBusy]);
+	}, [hasReachedOptionCap, isUiDisabled, newValueText, optionSet, updateOptionSet, withBusy]);
 
 	const filteredValues = useMemo(() => {
 		const q = qText.trim().toLowerCase();
@@ -261,23 +220,16 @@ export default function ProductOptionValuesScreen({
 	);
 
 	const onToggleAll = useCallback(() => {
-		if (isUiDisabled || mode === "SINGLE") return;
+		if (isUiDisabled) return;
 		setSelectedValueIds(allSelected ? [] : activeValues.map((value) => value.id));
-	}, [activeValues, allSelected, isUiDisabled, mode]);
+	}, [activeValues, allSelected, isUiDisabled]);
 
 	const headerTitle = optionSet?.name || "Option Values";
-	const headerOptions =
-		mode === "SINGLE"
-			? useInventoryHeader("detail", {
-					title: headerTitle,
-					disabled: isUiDisabled,
-					onBack: guardedOnNavAction,
-				})
-			: useInventoryHeader("process", {
-					title: headerTitle,
-					disabled: isUiDisabled,
-					onExit: guardedOnNavAction,
-				});
+	const headerOptions = useInventoryHeader("process", {
+		title: headerTitle,
+		disabled: isUiDisabled,
+		onExit: guardedOnNavAction,
+	});
 
 	return (
 		<>
@@ -302,24 +254,22 @@ export default function ProductOptionValuesScreen({
 									{`${optionSet?.displayName || "Options"} (${activeValues.length}/${FIELD_LIMITS.optionValuesPerSet})`}
 								</BAIText>
 
-								{mode === "MULTI" ? (
-									<Pressable onPress={onToggleAll} disabled={isUiDisabled}>
-										{({ pressed }) => (
-											<BAISurface
-												style={[styles.valueRow, surfaceInteractive, pressed ? styles.rowPressed : undefined]}
-												padded
-												bordered
-											>
-												<BAIText variant='subtitle'>All options</BAIText>
-												<MaterialCommunityIcons
-													name={allSelected ? "check-circle" : "checkbox-blank-circle-outline"}
-													size={30}
-													color={allSelected ? theme.colors.primary : theme.colors.onSurfaceVariant}
-												/>
-											</BAISurface>
-										)}
-									</Pressable>
-								) : null}
+								<Pressable onPress={onToggleAll} disabled={isUiDisabled}>
+									{({ pressed }) => (
+										<BAISurface
+											style={[styles.valueRow, surfaceInteractive, pressed ? styles.rowPressed : undefined]}
+											padded
+											bordered
+										>
+											<BAIText variant='subtitle'>All options</BAIText>
+											<MaterialCommunityIcons
+												name={allSelected ? "check-circle" : "checkbox-blank-circle-outline"}
+												size={30}
+												color={allSelected ? theme.colors.primary : theme.colors.onSurfaceVariant}
+											/>
+										</BAISurface>
+									)}
+								</Pressable>
 
 								<View style={styles.valuesWrap}>
 									{filteredValues.map((value) => {

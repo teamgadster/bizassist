@@ -27,6 +27,7 @@ import {
 	percentStringToBasisPoints,
 } from "@/shared/money/percentMath";
 import { normalizeDecimalString } from "@/shared/quantity/quantityDecimal";
+import { ModifiersService } from "@/modules/modifiers/modifiers.service";
 
 import type { CheckoutInput, CheckoutResult } from "./pos.types";
 import {
@@ -52,8 +53,13 @@ type CartComputed = {
 	quantityDecimal: Prisma.Decimal;
 	quantityLegacyInt: number;
 	unitPriceMinor: bigint;
+	selectedModifierOptionIds: string[];
+	totalModifiersDeltaMinor: bigint;
+	modifierRows: Array<{ modifierOptionId: string; optionName: string; priceDeltaMinor: bigint }>;
 	lineTotalMinor: bigint;
 };
+
+const modifiersService = new ModifiersService(prisma);
 
 function movementIdempotencyKey(baseKey: string, productId: string): string {
 	return crypto.createHash("sha256").update(`${baseKey}:${productId}`).digest("hex");
@@ -113,34 +119,63 @@ export async function checkout(args: CheckoutArgs): Promise<CheckoutResult> {
 	const products = await getProductsByIds({ prisma }, businessId, productIds);
 	const productById = new Map(products.map((p) => [p.id, p]));
 
-	const cartComputed: CartComputed[] = input.cart.map((item) => {
+	const cartComputed: CartComputed[] = [];
+	for (const item of input.cart) {
 		const product = productById.get(item.productId);
 		if (!product) throw new AppError(StatusCodes.NOT_FOUND, "Product not found.", "PRODUCT_NOT_FOUND");
 		if (!product.isActive) throw new AppError(StatusCodes.CONFLICT, "Product is inactive.", "PRODUCT_INACTIVE");
 
 		const qty = parseQuantityDecimal(item.quantity);
-		const unitPriceMinor = parseMinorOrLegacyMoney(
+		const baseUnitPriceMinor = parseMinorOrLegacyMoney(
 			{
 				minor: item.unitPriceMinor ?? undefined,
 				legacyDecimal: item.unitPrice ?? undefined,
 			},
 			"unitPriceMinor",
 		);
-		if (unitPriceMinor < 0n) {
+		if (baseUnitPriceMinor < 0n) {
 			throw new AppError(StatusCodes.BAD_REQUEST, "Invalid unit price.", "INVALID_PRICE");
 		}
 
+		const selectedModifierOptionIds = Array.isArray(item.selectedModifierOptionIds)
+			? item.selectedModifierOptionIds.map((v) => String(v)).filter(Boolean)
+			: [];
+		const selectionValidation = await modifiersService.validateSelectionsForCheckout(
+			businessId,
+			item.productId,
+			selectedModifierOptionIds,
+		);
+		const expectedDeltaMinor = selectionValidation.deltaMinor;
+		const providedDeltaMinor = item.totalModifiersDeltaMinor
+			? parseMinorUnitsStringToBigInt(item.totalModifiersDeltaMinor, "totalModifiersDeltaMinor")
+			: expectedDeltaMinor;
+		if (providedDeltaMinor !== expectedDeltaMinor) {
+			throw new AppError(
+				StatusCodes.BAD_REQUEST,
+				"Modifier totals are out of sync.",
+				"MODIFIER_TOTAL_MISMATCH",
+			);
+		}
+
+		const unitPriceMinor = baseUnitPriceMinor + expectedDeltaMinor;
 		const lineTotalMinor = multiplyMinorByQuantityDecimal(unitPriceMinor, qty.raw, 5);
-		return {
+		cartComputed.push({
 			productId: item.productId,
 			productName: product.name,
 			quantityDecimalString: qty.raw,
 			quantityDecimal: qty.decimal,
 			quantityLegacyInt: qty.legacyInt,
 			unitPriceMinor,
+			selectedModifierOptionIds,
+			totalModifiersDeltaMinor: expectedDeltaMinor,
+			modifierRows: selectionValidation.selectedOptionRows.map((m) => ({
+				modifierOptionId: m.id,
+				optionName: m.name,
+				priceDeltaMinor: m.priceDeltaMinor,
+			})),
 			lineTotalMinor,
-		};
-	});
+		});
+	}
 
 	// Aggregate requested quantities for stock checks/movements.
 	const requestedQtyMap = new Map<string, Prisma.Decimal>();
@@ -287,6 +322,9 @@ export async function checkout(args: CheckoutArgs): Promise<CheckoutResult> {
 				quantityLegacyInt: li.quantityLegacyInt,
 				unitPriceMinor: li.unitPriceMinor,
 				lineTotalMinor: li.lineTotalMinor,
+				selectedModifierOptionIds: li.selectedModifierOptionIds,
+				totalModifiersDeltaMinor: li.totalModifiersDeltaMinor,
+				modifiers: li.modifierRows,
 			})),
 			payments,
 			discounts: discountSnapshots,
@@ -336,6 +374,8 @@ function shapeCheckoutResult(sale: any): CheckoutResult {
 					quantity: quantityString,
 					unitPriceMinor: formatBigIntToMinorUnitsString(unitPriceMinor),
 					lineTotalMinor: formatBigIntToMinorUnitsString(lineTotalMinor),
+					selectedModifierOptionIds: Array.isArray(li.selectedModifierOptionIds) ? li.selectedModifierOptionIds : [],
+					totalModifiersDeltaMinor: formatBigIntToMinorUnitsString(BigInt(li.totalModifiersDeltaMinor ?? 0)),
 					unitPrice: minorUnitsToDecimalString(unitPriceMinor),
 					lineTotal: minorUnitsToDecimalString(lineTotalMinor),
 				};

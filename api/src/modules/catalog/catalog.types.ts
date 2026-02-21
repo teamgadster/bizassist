@@ -93,8 +93,6 @@ export type CreateProductInput = {
 	price?: string | number | null;
 	cost?: string | number | null;
 
-	optionSelections?: ProductOptionSelectionInput[];
-	variations?: ProductVariationCreateInput[];
 
 	trackInventory?: boolean;
 	processingEnabled?: boolean;
@@ -114,19 +112,7 @@ export type CreateProductInput = {
 	posTileLabel?: string | null;
 };
 
-export type ProductOptionSelectionInput = {
-	optionSetId: string;
-	selectedValueIds: string[];
-	sortOrder?: number;
-};
-
-export type ProductVariationCreateInput = {
-	label?: string;
-	valueMap: Record<string, string>;
-	sortOrder?: number;
-};
-
-export type UpdateProductInput = Partial<Omit<CreateProductInput, "initialOnHand" | "optionSelections" | "variations">> & {
+export type UpdateProductInput = Partial<Omit<CreateProductInput, "initialOnHand">> & {
 	isActive?: boolean;
 	primaryImageUrl?: string | null;
 

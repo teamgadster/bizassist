@@ -19,12 +19,11 @@ import { mapInventoryRouteToScope, type InventoryRouteScope } from "@/modules/in
 import { useInventoryHeader } from "@/modules/inventory/useInventoryHeader";
 import { useProcessExitGuard } from "@/modules/navigation/useProcessExitGuard";
 import { useProductCreateDraft } from "@/modules/inventory/drafts/useProductCreateDraft";
-import { DRAFT_ID_KEY, OPTION_SET_ID_KEY, OPTION_VALUES_MODE_KEY, normalizeRoutePath } from "@/modules/options/options.contract";
+import { DRAFT_ID_KEY, OPTION_SET_ID_KEY, normalizeRoutePath } from "@/modules/options/options.contract";
 import {
 	appendReturnToQuery,
 	INVENTORY_OPTIONS_CREATE_ROUTE,
 	INVENTORY_PRODUCT_CREATE_ROUTE,
-	INVENTORY_PRODUCT_OPTIONS_CREATE_VARIATIONS_ROUTE,
 	INVENTORY_PRODUCT_OPTIONS_SELECT_ROUTE,
 	INVENTORY_PRODUCT_OPTIONS_VALUES_ROUTE,
 	SETTINGS_OPTIONS_CREATE_ROUTE,
@@ -70,10 +69,6 @@ export default function ProductSelectOptionsScreen({
 	const initialSelectionsRef = useRef<OptionSelectionDraft[] | null>(null);
 	if (!initialSelectionsRef.current) {
 		initialSelectionsRef.current = draft.optionSelections;
-	}
-	const initialVariationsRef = useRef<typeof draft.variations | null>(null);
-	if (!initialVariationsRef.current) {
-		initialVariationsRef.current = draft.variations;
 	}
 
 	const [qText, setQText] = useState("");
@@ -127,7 +122,6 @@ export default function ProductSelectOptionsScreen({
 		if (!lockNav()) return;
 		patch({
 			optionSelections: initialSelectionsRef.current ?? [],
-			variations: initialVariationsRef.current ?? [],
 		});
 		router.replace(fallbackRoute as any);
 	}, [fallbackRoute, isUiDisabled, lockNav, patch, router]);
@@ -149,8 +143,6 @@ export default function ProductSelectOptionsScreen({
 				: selections.filter((selection) => selection.optionSetId !== optionSet.id);
 			patch({
 				optionSelections: nextSelections,
-				// Option graph changed; invalidate generated variations to avoid stale payloads.
-				variations: [],
 			});
 		},
 		[isUiDisabled, patch, selections],
@@ -165,7 +157,6 @@ export default function ProductSelectOptionsScreen({
 				params: {
 					[DRAFT_ID_KEY]: draftId,
 					[OPTION_SET_ID_KEY]: optionSetId,
-					[OPTION_VALUES_MODE_KEY]: "MULTI",
 				},
 			});
 		},
@@ -185,16 +176,11 @@ export default function ProductSelectOptionsScreen({
 	const onNext = useCallback(() => {
 		if (isUiDisabled || !canContinue) return;
 		if (!lockNav()) return;
-		router.push({
-			pathname: toScopedRoute(INVENTORY_PRODUCT_OPTIONS_CREATE_VARIATIONS_ROUTE) as any,
-			params: {
-				[DRAFT_ID_KEY]: draftId,
-			},
-		});
-	}, [canContinue, draftId, isUiDisabled, lockNav, router, toScopedRoute]);
+		router.replace(fallbackRoute as any);
+	}, [canContinue, fallbackRoute, isUiDisabled, lockNav, router]);
 
 	const headerOptions = useInventoryHeader("process", {
-		title: "Select Options",
+		title: "Select Modifiers",
 		disabled: isUiDisabled,
 		onExit: guardedOnExit,
 	});
@@ -212,7 +198,7 @@ export default function ProductSelectOptionsScreen({
 									const cleaned = sanitizeSearchInput(value);
 									setQText(cleaned.length > FIELD_LIMITS.search ? cleaned.slice(0, FIELD_LIMITS.search) : cleaned);
 								}}
-								placeholder='Search options'
+								placeholder='Search modifiers'
 								onClear={hasSearch ? () => setQText("") : undefined}
 								disabled={isUiDisabled}
 							/>
@@ -225,7 +211,7 @@ export default function ProductSelectOptionsScreen({
 								shape='pill'
 								widthPreset='standard'
 							>
-								Create Option
+								Create Modifier
 							</BAIButton>
 
 							{hasSelectedSets ? (
@@ -252,7 +238,7 @@ export default function ProductSelectOptionsScreen({
 														<View style={styles.selectedRowLeft}>
 															<BAIText variant='subtitle'>{selection.optionSetName}</BAIText>
 															<BAIText variant='caption' muted numberOfLines={1}>
-																{preview || "No options selected."}
+																{preview || "No modifiers selected."}
 															</BAIText>
 														</View>
 														<MaterialCommunityIcons
@@ -268,7 +254,7 @@ export default function ProductSelectOptionsScreen({
 								</>
 							) : null}
 
-							<BAIText variant='subtitle'>Options</BAIText>
+							<BAIText variant='subtitle'>Modifiers</BAIText>
 
 							{query.isLoading ? (
 								<View style={styles.stateWrap}>
@@ -284,9 +270,9 @@ export default function ProductSelectOptionsScreen({
 								</View>
 							) : optionSets.length === 0 ? (
 								<View style={styles.stateWrap}>
-									<BAIText variant='subtitle'>No options yet.</BAIText>
+									<BAIText variant='subtitle'>No modifiers yet.</BAIText>
 									<BAIText variant='caption' muted>
-										Create an option set to continue.
+										Create a modifier set to continue.
 									</BAIText>
 								</View>
 							) : (

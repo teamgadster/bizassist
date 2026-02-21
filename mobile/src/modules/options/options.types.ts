@@ -56,12 +56,3 @@ export type OptionSelectionDraft = {
 	displayName: string;
 	selectedValueIds: string[];
 };
-
-export type ProductVariationDraft = {
-	id: string;
-	label: string;
-	valueMap: Record<string, string>;
-	stockStatus: "VARIABLE" | "SOLD_OUT";
-	stockReason: string | null;
-	stockReceived: string;
-};

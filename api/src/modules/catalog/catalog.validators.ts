@@ -14,7 +14,7 @@ import {
 	zSanitizedString,
 } from "@/shared/validators/zod.shared";
 import { FIELD_LIMITS } from "@/shared/fieldLimits.server";
-import { CATALOG_LIST_MAX_LIMIT, MAX_VARIANTS_PER_PRODUCT } from "@/shared/catalogLimits";
+import { CATALOG_LIST_MAX_LIMIT } from "@/shared/catalogLimits";
 
 const nonNegativeDecimalString = zSanitizedString(
 	z
@@ -73,43 +73,6 @@ const serviceDurationMinutesSchema = z.coerce
 	.optional()
 	.nullable();
 
-const optionSelectionSchema = z.object({
-	optionSetId: uuidSchema,
-	selectedValueIds: z.array(uuidSchema).min(1, "Select at least one option value."),
-	sortOrder: z.number().int().min(0).max(10_000).optional(),
-});
-
-const variationValueMapSchema = z.record(z.string(), uuidSchema).superRefine((valueMap, ctx) => {
-	const keys = Object.keys(valueMap);
-	if (keys.length === 0) {
-		ctx.addIssue({
-			code: z.ZodIssueCode.custom,
-			message: "Variation valueMap must include at least one option set/value pair.",
-		});
-		return;
-	}
-
-	for (const optionSetId of keys) {
-		const parsed = uuidSchema.safeParse(optionSetId);
-		if (!parsed.success) {
-			ctx.addIssue({
-				code: z.ZodIssueCode.custom,
-				path: [optionSetId],
-				message: "Variation optionSetId must be a valid UUID.",
-			});
-		}
-	}
-});
-
-const variationSchema = z.object({
-	label: nullishTrimmedString({ collapseWhitespace: true })
-		.optional()
-		.refine((value) => value == null || value.length <= 160, {
-			message: "Variation label must be 160 characters or less.",
-		}),
-	valueMap: variationValueMapSchema,
-	sortOrder: z.number().int().min(0).max(10_000).optional(),
-});
 
 type ServiceValidationInput = {
 	type?: ProductType;
@@ -267,12 +230,6 @@ const createProductBodyBase = z.object({
 	posTileColor: HEX_COLOR.optional().nullable(),
 	posTileLabel: posTileLabelSchema.optional(),
 	initialOnHand: nonNegativeDecimalString.optional().nullable(),
-	optionSelections: z.array(optionSelectionSchema).min(1, "Select at least one option set.").optional(),
-	variations: z
-		.array(variationSchema)
-		.min(1, "Add at least one variation.")
-		.max(MAX_VARIANTS_PER_PRODUCT, `You can add up to ${MAX_VARIANTS_PER_PRODUCT} variations.`)
-		.optional(),
 });
 
 export const createProductSchema = createProductBodyBase.superRefine((val, ctx) => {
@@ -282,26 +239,11 @@ export const createProductSchema = createProductBodyBase.superRefine((val, ctx) 
 		validateServiceDurationRules(val, ctx, { isCreate: true });
 	}
 
-	if (val.optionSelections && val.optionSelections.length > 0 && (!val.variations || val.variations.length === 0)) {
-		ctx.addIssue({
-			code: z.ZodIssueCode.custom,
-			path: ["variations"],
-			message: "Variations are required when option selections are provided.",
-		});
-	}
-
-	if ((!val.optionSelections || val.optionSelections.length === 0) && val.variations && val.variations.length > 0) {
-		ctx.addIssue({
-			code: z.ZodIssueCode.custom,
-			path: ["optionSelections"],
-			message: "Option selections are required when variations are provided.",
-		});
-	}
 });
 
 const updateProductBodyBase = createProductBodyBase
 	.partial()
-	.omit({ initialOnHand: true, optionSelections: true, variations: true })
+	.omit({ initialOnHand: true })
 	.extend({
 		isActive: z.boolean().optional(),
 		primaryImageUrl: zSanitizedString(trimmedStringBase().url("primaryImageUrl must be a valid URL."), {

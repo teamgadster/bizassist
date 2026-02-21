@@ -15,9 +15,6 @@ import {
 
 import {
 	CatalogRepository,
-	type ProductOptionSelectionCreateInput,
-	type ProductOptionsGraphCreateInput,
-	type ProductVariationCreateInput,
 } from "./catalog.repository";
 import { UnitsRepository } from "@/modules/units/units.repository";
 import { resolveProductImageUrl } from "@/modules/media/media.resolve";
@@ -32,7 +29,6 @@ import {
 	CATALOG_LIST_DEFAULT_LIMIT,
 	CATALOG_LIST_MAX_LIMIT,
 	CATALOG_USAGE_WARNING_THRESHOLD,
-	MAX_VARIANTS_PER_PRODUCT,
 	MAX_PRODUCTS_PER_BUSINESS,
 } from "@/shared/catalogLimits";
 
@@ -266,178 +262,6 @@ function maybeLogCatalogUsageWarning(args: { businessId: string; count: number }
 	});
 }
 
-function buildCanonicalVariationKey(valueMap: Record<string, string>): string {
-	const optionSetIds = Object.keys(valueMap).sort();
-	return optionSetIds.map((optionSetId) => `${optionSetId}:${valueMap[optionSetId]}`).join("|");
-}
-
-function normalizeVariationLabel(rawLabel: string | undefined, fallbackParts: string[]): string {
-	const trimmed = String(rawLabel ?? "")
-		.trim()
-		.replace(/\s+/g, " ");
-	if (trimmed) return trimmed.slice(0, 160);
-
-	const fallback = fallbackParts.join(" / ").trim();
-	if (!fallback) return "Variation";
-	return fallback.slice(0, 160);
-}
-
-async function buildProductOptionGraph(
-	businessId: string,
-	input: Pick<CreateProductInput, "optionSelections" | "variations">,
-): Promise<ProductOptionsGraphCreateInput | null> {
-	const incomingSelections = Array.isArray(input.optionSelections) ? input.optionSelections : [];
-	const incomingVariations = Array.isArray(input.variations) ? input.variations : [];
-
-	if (incomingSelections.length === 0 && incomingVariations.length === 0) return null;
-	if (incomingSelections.length === 0 || incomingVariations.length === 0) {
-		throw AppError.badRequest(
-			"Option selections and variations are required together.",
-			"OPTION_VARIATION_PAYLOAD_INVALID",
-		);
-	}
-
-	const sortedSelections = [...incomingSelections]
-		.map((selection, index) => ({
-			...selection,
-			sortOrder: Number.isFinite(selection.sortOrder) ? Number(selection.sortOrder) : index,
-			_index: index,
-		}))
-		.sort((a, b) => (a.sortOrder === b.sortOrder ? a._index - b._index : a.sortOrder - b.sortOrder));
-
-	const normalizedSelections: ProductOptionSelectionCreateInput[] = [];
-	const seenOptionSetIds = new Set<string>();
-	for (const selection of sortedSelections) {
-		const optionSetId = String(selection.optionSetId ?? "").trim();
-		if (!optionSetId) continue;
-		if (seenOptionSetIds.has(optionSetId)) continue;
-
-		const selectedValueIds = Array.from(
-			new Set((selection.selectedValueIds ?? []).map((valueId) => String(valueId ?? "").trim()).filter(Boolean)),
-		);
-		if (selectedValueIds.length === 0) {
-			throw AppError.badRequest("Each option set requires at least one value.", "OPTION_SELECTION_VALUES_REQUIRED");
-		}
-
-		seenOptionSetIds.add(optionSetId);
-		normalizedSelections.push({
-			optionSetId,
-			selectedValueIds,
-			sortOrder: normalizedSelections.length,
-		});
-	}
-
-	if (normalizedSelections.length === 0) {
-		throw AppError.badRequest("Select at least one option set.", "OPTION_SELECTIONS_REQUIRED");
-	}
-
-	const optionSets = await prisma.optionSet.findMany({
-		where: {
-			businessId,
-			id: { in: normalizedSelections.map((selection) => selection.optionSetId) },
-			isActive: true,
-		},
-		include: {
-			values: {
-				where: { isActive: true },
-				orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-			},
-		},
-	});
-
-	if (optionSets.length !== normalizedSelections.length) {
-		throw AppError.badRequest("One or more option sets are invalid.", "OPTION_SET_INVALID");
-	}
-
-	const optionSetById = new Map(optionSets.map((optionSet) => [optionSet.id, optionSet]));
-	for (const selection of normalizedSelections) {
-		const optionSet = optionSetById.get(selection.optionSetId);
-		if (!optionSet) {
-			throw AppError.badRequest("One or more option sets are invalid.", "OPTION_SET_INVALID");
-		}
-
-		const optionValueIds = new Set(optionSet.values.map((value) => value.id));
-		for (const valueId of selection.selectedValueIds) {
-			if (!optionValueIds.has(valueId)) {
-				throw AppError.badRequest("One or more selected option values are invalid.", "OPTION_VALUE_INVALID");
-			}
-		}
-	}
-
-	const sortedVariations = [...incomingVariations]
-		.map((variation, index) => ({
-			...variation,
-			sortOrder: Number.isFinite(variation.sortOrder) ? Number(variation.sortOrder) : index,
-			_index: index,
-		}))
-		.sort((a, b) => (a.sortOrder === b.sortOrder ? a._index - b._index : a.sortOrder - b.sortOrder));
-
-	const selectionOrder = normalizedSelections.map((selection) => selection.optionSetId);
-	const selectedValueIdsBySetId = new Map(
-		normalizedSelections.map((selection) => [selection.optionSetId, new Set(selection.selectedValueIds)]),
-	);
-
-	const variationByKey = new Map<string, ProductVariationCreateInput>();
-	for (const variation of sortedVariations) {
-		const rawValueMap = variation.valueMap ?? {};
-		const unknownOptionSetIds = Object.keys(rawValueMap).filter((optionSetId) => !selectedValueIdsBySetId.has(optionSetId));
-		if (unknownOptionSetIds.length > 0) {
-			throw AppError.badRequest("Variation includes an unknown option set.", "VARIATION_OPTION_SET_INVALID");
-		}
-
-		const valueMap: Record<string, string> = {};
-		const labelParts: string[] = [];
-		for (const optionSetId of selectionOrder) {
-			const valueId = String(rawValueMap[optionSetId] ?? "").trim();
-			if (!valueId) {
-				throw AppError.badRequest("Variation must include all selected option sets.", "VARIATION_VALUE_MAP_INCOMPLETE");
-			}
-
-			const allowedValues = selectedValueIdsBySetId.get(optionSetId);
-			if (!allowedValues || !allowedValues.has(valueId)) {
-				throw AppError.badRequest(
-					"Variation references an option value that is not selected for the option set.",
-					"VARIATION_VALUE_INVALID",
-				);
-			}
-
-			valueMap[optionSetId] = valueId;
-			const optionSet = optionSetById.get(optionSetId);
-			const valueName = optionSet?.values.find((value) => value.id === valueId)?.name;
-			if (valueName) labelParts.push(valueName);
-		}
-
-		const key = buildCanonicalVariationKey(valueMap);
-		if (!key) {
-			throw AppError.badRequest("Variation valueMap is required.", "VARIATION_VALUE_MAP_REQUIRED");
-		}
-		if (variationByKey.has(key)) continue;
-
-		variationByKey.set(key, {
-			label: normalizeVariationLabel(variation.label, labelParts),
-			variationKey: key,
-			valueMap,
-			sortOrder: variationByKey.size,
-		});
-	}
-
-	const normalizedVariations = [...variationByKey.values()];
-	if (normalizedVariations.length === 0) {
-		throw AppError.badRequest("At least one variation is required.", "VARIATIONS_REQUIRED");
-	}
-	if (normalizedVariations.length > MAX_VARIANTS_PER_PRODUCT) {
-		throw AppError.badRequest(
-			`You can add up to ${MAX_VARIANTS_PER_PRODUCT} variations.`,
-			"VARIATIONS_LIMIT_REACHED",
-		);
-	}
-
-	return {
-		optionSelections: normalizedSelections,
-		variations: normalizedVariations,
-	};
-}
-
 async function toCatalogProduct(p: any): Promise<CatalogProduct> {
 	const primaryImageUrl = await resolveProductImageUrl(p.primaryImageUrl ?? null);
 	const priceMinor = resolveMoneyMinor(p.priceMinor, p.price);
@@ -544,7 +368,6 @@ export class CatalogService {
 			minorInput: input.costMinor,
 			legacyInput: input.cost,
 		});
-		const optionGraph = await buildProductOptionGraph(businessId, input);
 
 		if (type === ProductType.SERVICE) {
 			serviceDuration = normalizeServiceDurationForCreate({
@@ -658,7 +481,6 @@ export class CatalogService {
 				const created = await this.repo.createProductWithInitialStock({
 					product: productData,
 					initialOnHand: initialOnHandRaw,
-					optionGraph: optionGraph ?? undefined,
 				});
 
 				return await toCatalogProduct(created);
@@ -687,7 +509,6 @@ export class CatalogService {
 					product: productBase,
 					initialOnHand: initialOnHandRaw,
 					skuPrefix: SKU_PREFIX,
-					optionGraph: optionGraph ?? undefined,
 				});
 
 				if (created) return await toCatalogProduct(created);

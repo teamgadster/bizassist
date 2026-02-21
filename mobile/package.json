@@ -2,6 +2,7 @@
 	"name": "mobile",
 	"main": "expo-router/entry",
 	"version": "1.0.0",
+	"private": true,
 	"scripts": {
 		"start": "expo start",
 		"start:lan": "expo start",
@@ -26,11 +27,25 @@
 		"reset-project": "node ./scripts/reset-project.js",
 		"lint": "expo lint",
 		"start:ios": "expo start --dev-client --ios --lan",
-		"start:ios:clear": "expo start --dev-client --ios --lan -c"
+		"start:ios:clear": "expo start --dev-client --ios --lan -c",
+		"//": "──────────── Env Mode Scripts (DEV vs PROD) ────────────",
+		"start:env:dev": "cross-env EXPO_PUBLIC_APP_ENV=development expo start --dev-client",
+		"start:env:dev:clear": "cross-env EXPO_PUBLIC_APP_ENV=development expo start --dev-client -c",
+		"start:env:prod": "cross-env EXPO_PUBLIC_APP_ENV=production expo start --dev-client",
+		"start:env:prod:clear": "cross-env EXPO_PUBLIC_APP_ENV=production expo start --dev-client -c",
+		"start:env:dev:android": "cross-env EXPO_PUBLIC_APP_ENV=development npm run android:reverse && expo start --dev-client --android --localhost",
+		"start:env:dev:android:clear": "cross-env EXPO_PUBLIC_APP_ENV=development npm run android:reverse && expo start --dev-client --android --localhost -c",
+		"start:env:prod:android": "cross-env EXPO_PUBLIC_APP_ENV=production npm run android:reverse && expo start --dev-client --android --localhost",
+		"start:env:prod:android:clear": "cross-env EXPO_PUBLIC_APP_ENV=production npm run android:reverse && expo start --dev-client --android --localhost -c",
+		"start:env:dev:ios": "cross-env EXPO_PUBLIC_APP_ENV=development expo start --dev-client --ios --lan",
+		"start:env:dev:ios:clear": "cross-env EXPO_PUBLIC_APP_ENV=development expo start --dev-client --ios --lan -c",
+		"start:env:prod:ios": "cross-env EXPO_PUBLIC_APP_ENV=production expo start --dev-client --ios --lan",
+		"start:env:prod:ios:clear": "cross-env EXPO_PUBLIC_APP_ENV=production expo start --dev-client --ios --lan -c"
 	},
 	"dependencies": {
 		"@expo/vector-icons": "^15.0.3",
 		"@gorhom/bottom-sheet": "^5.2.8",
+		"@quidone/react-native-wheel-picker": "^1.6.1",
 		"@react-native-async-storage/async-storage": "2.2.0",
 		"@react-navigation/bottom-tabs": "^7.10.0",
 		"@react-navigation/elements": "^2.6.3",
@@ -85,10 +100,10 @@
 	"devDependencies": {
 		"@types/node": "^25.2.0",
 		"@types/react": "~19.1.0",
+		"cross-env": "^10.1.0",
 		"eslint": "^9.25.0",
 		"eslint-config-expo": "~10.0.0",
 		"expo-build-properties": "^1.0.10",
 		"typescript": "~5.9.2"
-	},
-	"private": true
+	}
 }

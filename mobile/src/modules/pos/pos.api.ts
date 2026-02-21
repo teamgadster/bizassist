@@ -2,7 +2,33 @@
 import apiClient from "@/lib/api/httpClient";
 import { CheckoutInput, CheckoutResult } from "./pos.types";
 
+export type ProductModifierOption = {
+	id: string;
+	name: string;
+	priceDeltaMinor: string;
+	sortOrder: number;
+};
+
+export type ProductModifierGroup = {
+	id: string;
+	productId: string;
+	name: string;
+	selectionType: "SINGLE" | "MULTI";
+	isRequired: boolean;
+	minSelected: number;
+	maxSelected: number;
+	sortOrder: number;
+	options: ProductModifierOption[];
+};
+
 export const posApi = {
+	async getProductModifiers(productId: string) {
+		const res = await apiClient.get<{ success: true; data: { items: ProductModifierGroup[] } }>(
+			`/modifiers/products/${encodeURIComponent(productId)}/modifiers`,
+		);
+		return res.data.data.items ?? [];
+	},
+
 	async checkout(input: CheckoutInput) {
 		const res = await apiClient.post<{ success: true; data: CheckoutResult }>("/pos/checkout", input);
 		return res.data.data;
