@@ -91,4 +91,3 @@ export type CheckoutResult = {
 		itemCount: number;
 	};
 };
-

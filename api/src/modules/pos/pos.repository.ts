@@ -267,4 +267,3 @@ export async function createCheckoutTransaction(deps: PosRepoDeps, input: Create
 		return sale;
 	});
 }
-

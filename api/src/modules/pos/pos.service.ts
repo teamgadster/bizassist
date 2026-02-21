@@ -21,11 +21,7 @@ import {
 	multiplyMinorByQuantityDecimal,
 	parseMinorUnitsStringToBigInt,
 } from "@/shared/money/moneyMinor";
-import {
-	applyPercentMinor,
-	basisPointsToPercentString,
-	percentStringToBasisPoints,
-} from "@/shared/money/percentMath";
+import { applyPercentMinor, basisPointsToPercentString, percentStringToBasisPoints } from "@/shared/money/percentMath";
 import { normalizeDecimalString } from "@/shared/quantity/quantityDecimal";
 import { ModifiersService } from "@/modules/modifiers/modifiers.service";
 
@@ -150,11 +146,7 @@ export async function checkout(args: CheckoutArgs): Promise<CheckoutResult> {
 			? parseMinorUnitsStringToBigInt(item.totalModifiersDeltaMinor, "totalModifiersDeltaMinor")
 			: expectedDeltaMinor;
 		if (providedDeltaMinor !== expectedDeltaMinor) {
-			throw new AppError(
-				StatusCodes.BAD_REQUEST,
-				"Modifier totals are out of sync.",
-				"MODIFIER_TOTAL_MISMATCH",
-			);
+			throw new AppError(StatusCodes.BAD_REQUEST, "Modifier totals are out of sync.", "MODIFIER_TOTAL_MISMATCH");
 		}
 
 		const unitPriceMinor = baseUnitPriceMinor + expectedDeltaMinor;

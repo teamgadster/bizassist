@@ -89,7 +89,8 @@ export function PosModifiersPickerSheet({ visible, groups, onClose, onConfirm }:
 								<View key={group.id} style={styles.groupWrap}>
 									<BAIText variant='subtitle'>{group.name}</BAIText>
 									<BAIText variant='caption' muted>
-										{group.selectionType === "SINGLE" ? "Single" : "Multi"} • {group.isRequired ? "Required" : "Optional"}
+										{group.selectionType === "SINGLE" ? "Single" : "Multi"} •{" "}
+										{group.isRequired ? "Required" : "Optional"}
 									</BAIText>
 									<View style={styles.optionsWrap}>
 										{group.options.map((option) => {
@@ -98,10 +99,16 @@ export function PosModifiersPickerSheet({ visible, groups, onClose, onConfirm }:
 												<Pressable
 													key={option.id}
 													onPress={() => toggle(group, option.id)}
-													style={[styles.optionRow, { borderColor: theme.colors.outline }, selected && { borderColor: theme.colors.primary }]}
+													style={[
+														styles.optionRow,
+														{ borderColor: theme.colors.outline },
+														selected && { borderColor: theme.colors.primary },
+													]}
 												>
 													<BAIText variant='body'>{option.name}</BAIText>
-													<BAIText variant='caption' muted>{formatMinor(BigInt(option.priceDeltaMinor))}</BAIText>
+													<BAIText variant='caption' muted>
+														{formatMinor(BigInt(option.priceDeltaMinor))}
+													</BAIText>
 												</Pressable>
 											);
 										})}

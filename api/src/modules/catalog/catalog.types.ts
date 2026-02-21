@@ -93,7 +93,6 @@ export type CreateProductInput = {
 	price?: string | number | null;
 	cost?: string | number | null;
 
-
 	trackInventory?: boolean;
 	processingEnabled?: boolean;
 	durationInitialMinutes?: number | null;

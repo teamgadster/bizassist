@@ -318,7 +318,9 @@ export default function PosTablet() {
 			const baseMinor = decimalToMinorUnits(l.unitPrice ?? "0.00");
 			const deltaMinor = BigInt(l.totalModifiersDeltaMinor ?? "0");
 			const effectiveUnitPrice = minorToDecimalString(baseMinor + deltaMinor, 2);
-			return sum + lineTotalMinor({ unitPrice: effectiveUnitPrice, quantity: l.quantity, precisionScale: l.precisionScale });
+			return (
+				sum + lineTotalMinor({ unitPrice: effectiveUnitPrice, quantity: l.quantity, precisionScale: l.precisionScale })
+			);
 		}, 0n as bigint);
 	}, [cartLines]);
 
@@ -695,7 +697,9 @@ export default function PosTablet() {
 								) : (
 									<FlatList
 										data={cartLines}
-										keyExtractor={(l) => `${l.productId}:${(l.selectedModifierOptionIds ?? []).slice().sort().join(",")}`}
+										keyExtractor={(l) =>
+											`${l.productId}:${(l.selectedModifierOptionIds ?? []).slice().sort().join(",")}`
+										}
 										contentContainerStyle={styles.cartList}
 										showsVerticalScrollIndicator={false}
 										ItemSeparatorComponent={() => <View style={[styles.sep, { backgroundColor: borderColor }]} />}

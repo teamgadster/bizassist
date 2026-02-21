@@ -52,11 +52,7 @@ function formatSelectionSummary(selection: OptionSelectionDraft, optionSet: Opti
 	return names.join(", ");
 }
 
-export default function ProductSelectOptionsScreen({
-	routeScope = "inventory",
-}: {
-	routeScope?: InventoryRouteScope;
-}) {
+export default function ProductSelectOptionsScreen({ routeScope = "inventory" }: { routeScope?: InventoryRouteScope }) {
 	const router = useRouter();
 	const theme = useTheme();
 	const params = useLocalSearchParams<{ draftId?: string; returnTo?: string }>();
@@ -132,14 +128,14 @@ export default function ProductSelectOptionsScreen({
 			if (isUiDisabled) return;
 			const nextSelections = next
 				? [
-					...selections,
-					{
-						optionSetId: optionSet.id,
-						optionSetName: optionSet.name,
-						displayName: optionSet.displayName,
-						selectedValueIds: getActiveValueIds(optionSet),
-					},
-				]
+						...selections,
+						{
+							optionSetId: optionSet.id,
+							optionSetName: optionSet.name,
+							displayName: optionSet.displayName,
+							selectedValueIds: getActiveValueIds(optionSet),
+						},
+					]
 				: selections.filter((selection) => selection.optionSetId !== optionSet.id);
 			patch({
 				optionSelections: nextSelections,
@@ -168,7 +164,8 @@ export default function ProductSelectOptionsScreen({
 		if (!lockNav()) return;
 
 		const backTo = `${toScopedRoute(INVENTORY_PRODUCT_OPTIONS_SELECT_ROUTE)}?${DRAFT_ID_KEY}=${encodeURIComponent(draftId)}`;
-		const createRouteBase = routeScope === "settings-items-services" ? SETTINGS_OPTIONS_CREATE_ROUTE : INVENTORY_OPTIONS_CREATE_ROUTE;
+		const createRouteBase =
+			routeScope === "settings-items-services" ? SETTINGS_OPTIONS_CREATE_ROUTE : INVENTORY_OPTIONS_CREATE_ROUTE;
 		const createRoute = `${createRouteBase}?${DRAFT_ID_KEY}=${encodeURIComponent(draftId)}`;
 		router.push(appendReturnToQuery(createRoute, backTo) as any);
 	}, [draftId, isUiDisabled, lockNav, routeScope, router, toScopedRoute]);
@@ -282,7 +279,7 @@ export default function ProductSelectOptionsScreen({
 									renderItem={({ item }) => {
 										const checked = selectedSetIds.has(item.id);
 										return (
-											<View style={[styles.optionRow, { borderBottomColor: borderColor }]}> 
+											<View style={[styles.optionRow, { borderBottomColor: borderColor }]}>
 												<View style={styles.optionRowText}>
 													<BAIText variant='subtitle'>{item.name}</BAIText>
 												</View>

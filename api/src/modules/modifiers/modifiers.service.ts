@@ -11,20 +11,37 @@ import type {
 	UpdateModifierOptionInput,
 } from "./modifiers.types";
 
-function validateRules(selectionType: ModifierSelectionType, isRequired: boolean, minSelected: number, maxSelected: number): void {
+function validateRules(
+	selectionType: ModifierSelectionType,
+	isRequired: boolean,
+	minSelected: number,
+	maxSelected: number,
+): void {
 	if (selectionType === "SINGLE") {
 		if (maxSelected !== 1) {
 			throw new AppError(StatusCodes.BAD_REQUEST, "SINGLE groups must have maxSelected=1.", "MODIFIER_RULES_INVALID");
 		}
 		if (minSelected > 1) {
-			throw new AppError(StatusCodes.BAD_REQUEST, "SINGLE groups must have minSelected <= 1.", "MODIFIER_RULES_INVALID");
+			throw new AppError(
+				StatusCodes.BAD_REQUEST,
+				"SINGLE groups must have minSelected <= 1.",
+				"MODIFIER_RULES_INVALID",
+			);
 		}
 	}
 	if (minSelected > maxSelected) {
-		throw new AppError(StatusCodes.BAD_REQUEST, "minSelected cannot be greater than maxSelected.", "MODIFIER_RULES_INVALID");
+		throw new AppError(
+			StatusCodes.BAD_REQUEST,
+			"minSelected cannot be greater than maxSelected.",
+			"MODIFIER_RULES_INVALID",
+		);
 	}
 	if (isRequired && minSelected < 1) {
-		throw new AppError(StatusCodes.BAD_REQUEST, "Required groups must have minSelected >= 1.", "MODIFIER_RULES_INVALID");
+		throw new AppError(
+			StatusCodes.BAD_REQUEST,
+			"Required groups must have minSelected >= 1.",
+			"MODIFIER_RULES_INVALID",
+		);
 	}
 }
 
@@ -71,7 +88,11 @@ export class ModifiersService {
 		if (!product) throw new AppError(StatusCodes.NOT_FOUND, "Product not found.", "PRODUCT_NOT_FOUND");
 		const groupsCount = await this.repo.countGroups(businessId, productId);
 		if (groupsCount >= MAX_MODIFIER_GROUPS_PER_PRODUCT) {
-			throw new AppError(StatusCodes.CONFLICT, `Max ${MAX_MODIFIER_GROUPS_PER_PRODUCT} modifier groups per product.`, "MODIFIER_GROUP_LIMIT_REACHED");
+			throw new AppError(
+				StatusCodes.CONFLICT,
+				`Max ${MAX_MODIFIER_GROUPS_PER_PRODUCT} modifier groups per product.`,
+				"MODIFIER_GROUP_LIMIT_REACHED",
+			);
 		}
 		validateRules(input.selectionType, input.isRequired, input.minSelected, input.maxSelected);
 		const created = await this.prisma.modifierGroup.create({
@@ -91,7 +112,10 @@ export class ModifiersService {
 	}
 
 	async updateGroup(businessId: string, id: string, input: UpdateModifierGroupInput): Promise<ModifierGroupDto> {
-		const existing = await this.prisma.modifierGroup.findFirst({ where: { id, businessId }, include: { options: true } });
+		const existing = await this.prisma.modifierGroup.findFirst({
+			where: { id, businessId },
+			include: { options: true },
+		});
 		if (!existing) throw new AppError(StatusCodes.NOT_FOUND, "Modifier group not found.", "MODIFIER_GROUP_NOT_FOUND");
 		const selectionType = input.selectionType ?? existing.selectionType;
 		const isRequired = input.isRequired ?? existing.isRequired;
@@ -114,11 +138,18 @@ export class ModifiersService {
 	}
 
 	async createOption(businessId: string, groupId: string, input: CreateModifierOptionInput): Promise<ModifierGroupDto> {
-		const group = await this.prisma.modifierGroup.findFirst({ where: { id: groupId, businessId }, select: { id: true } });
+		const group = await this.prisma.modifierGroup.findFirst({
+			where: { id: groupId, businessId },
+			select: { id: true },
+		});
 		if (!group) throw new AppError(StatusCodes.NOT_FOUND, "Modifier group not found.", "MODIFIER_GROUP_NOT_FOUND");
 		const optionsCount = await this.repo.countOptions(businessId, groupId);
 		if (optionsCount >= MAX_MODIFIER_OPTIONS_PER_GROUP) {
-			throw new AppError(StatusCodes.CONFLICT, `Max ${MAX_MODIFIER_OPTIONS_PER_GROUP} options per modifier group.`, "MODIFIER_OPTION_LIMIT_REACHED");
+			throw new AppError(
+				StatusCodes.CONFLICT,
+				`Max ${MAX_MODIFIER_OPTIONS_PER_GROUP} options per modifier group.`,
+				"MODIFIER_OPTION_LIMIT_REACHED",
+			);
 		}
 		await this.prisma.modifierOption.create({
 			data: {
@@ -137,7 +168,10 @@ export class ModifiersService {
 	}
 
 	async updateOption(businessId: string, id: string, input: UpdateModifierOptionInput): Promise<ModifierGroupDto> {
-		const existing = await this.prisma.modifierOption.findFirst({ where: { id, businessId }, select: { id: true, modifierGroupId: true } });
+		const existing = await this.prisma.modifierOption.findFirst({
+			where: { id, businessId },
+			select: { id: true, modifierGroupId: true },
+		});
 		if (!existing) throw new AppError(StatusCodes.NOT_FOUND, "Modifier option not found.", "MODIFIER_OPTION_NOT_FOUND");
 		await this.prisma.modifierOption.update({
 			where: { id },
@@ -198,10 +232,18 @@ export class ModifiersService {
 				throw new AppError(StatusCodes.BAD_REQUEST, "Required modifiers are missing.", "MODIFIER_SELECTION_REQUIRED");
 			}
 			if (selectedCount > group.maxSelected) {
-				throw new AppError(StatusCodes.BAD_REQUEST, "Too many modifiers selected for a group.", "MODIFIER_SELECTION_LIMIT_EXCEEDED");
+				throw new AppError(
+					StatusCodes.BAD_REQUEST,
+					"Too many modifiers selected for a group.",
+					"MODIFIER_SELECTION_LIMIT_EXCEEDED",
+				);
 			}
 			if (group.selectionType === "SINGLE" && selectedCount > 1) {
-				throw new AppError(StatusCodes.BAD_REQUEST, "Only one modifier can be selected for this group.", "MODIFIER_SELECTION_SINGLE_ONLY");
+				throw new AppError(
+					StatusCodes.BAD_REQUEST,
+					"Only one modifier can be selected for this group.",
+					"MODIFIER_SELECTION_SINGLE_ONLY",
+				);
 			}
 		}
 		let deltaMinor = 0n;

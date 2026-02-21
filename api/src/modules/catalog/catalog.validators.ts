@@ -39,7 +39,11 @@ const legacyMoneyDecimal = z
 				.max(FIELD_LIMITS.price, `Money value must be ${FIELD_LIMITS.price} characters or less.`),
 			{ allowNewlines: false, allowTabs: false, normalizeWhitespace: false },
 		),
-		z.number().finite().min(0, "Money value cannot be negative.").transform((v) => String(v)),
+		z
+			.number()
+			.finite()
+			.min(0, "Money value cannot be negative.")
+			.transform((v) => String(v)),
 	])
 	.refine((value) => /^\d+(\.\d{1,2})?$/.test(value), "Invalid money format. Use decimals up to 2 places.");
 
@@ -72,7 +76,6 @@ const serviceDurationMinutesSchema = z.coerce
 	.max(SERVICE_DURATION_MAX_MINUTES, `Duration cannot exceed ${SERVICE_DURATION_MAX_MINUTES} minutes.`)
 	.optional()
 	.nullable();
-
 
 type ServiceValidationInput = {
 	type?: ProductType;
@@ -238,7 +241,6 @@ export const createProductSchema = createProductBodyBase.superRefine((val, ctx) 
 	if (type === ProductType.SERVICE) {
 		validateServiceDurationRules(val, ctx, { isCreate: true });
 	}
-
 });
 
 const updateProductBodyBase = createProductBodyBase

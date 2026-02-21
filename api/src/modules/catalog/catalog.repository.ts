@@ -163,7 +163,7 @@ export class CatalogRepository {
 			const created = await tx.product.create({
 				data: params.product,
 				// NOTE: we intentionally DO NOT rely on include here; we refetch after stock movement.
-					select: { id: true, businessId: true, storeId: true },
+				select: { id: true, businessId: true, storeId: true },
 			});
 
 			if (params.initialOnHand && params.initialOnHand !== "0") {

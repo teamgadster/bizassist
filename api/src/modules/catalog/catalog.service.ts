@@ -13,9 +13,7 @@ import {
 	parseMinorUnitsStringToBigInt,
 } from "@/shared/money/moneyMinor";
 
-import {
-	CatalogRepository,
-} from "./catalog.repository";
+import { CatalogRepository } from "./catalog.repository";
 import { UnitsRepository } from "@/modules/units/units.repository";
 import { resolveProductImageUrl } from "@/modules/media/media.resolve";
 import type {
@@ -559,7 +557,7 @@ export class CatalogService {
 						fieldLabel: "price",
 						minorInput: input.priceMinor,
 						legacyInput: input.price,
-				  })
+					})
 				: existingPriceMinor;
 		const nextCostMinor =
 			input.costMinor !== undefined || input.cost !== undefined
@@ -567,7 +565,7 @@ export class CatalogService {
 						fieldLabel: "cost",
 						minorInput: input.costMinor,
 						legacyInput: input.cost,
-				  })
+					})
 				: existingCostMinor;
 
 		if (existingType === ProductType.SERVICE) {
@@ -585,15 +583,21 @@ export class CatalogService {
 			);
 			serviceDuration = normalizeServiceDurationForUpdate({
 				processingEnabled:
-					input.processingEnabled !== undefined ? input.processingEnabled === true : Boolean(existing.processingEnabled),
+					input.processingEnabled !== undefined
+						? input.processingEnabled === true
+						: Boolean(existing.processingEnabled),
 				durationInitialMinutes:
-					input.durationInitialMinutes !== undefined ? input.durationInitialMinutes : (existing.durationInitialMinutes ?? null),
+					input.durationInitialMinutes !== undefined
+						? input.durationInitialMinutes
+						: (existing.durationInitialMinutes ?? null),
 				durationProcessingMinutes:
 					input.durationProcessingMinutes !== undefined
 						? input.durationProcessingMinutes
 						: (existing.durationProcessingMinutes ?? null),
 				durationFinalMinutes:
-					input.durationFinalMinutes !== undefined ? input.durationFinalMinutes : (existing.durationFinalMinutes ?? null),
+					input.durationFinalMinutes !== undefined
+						? input.durationFinalMinutes
+						: (existing.durationFinalMinutes ?? null),
 			});
 
 			reorderPointRaw = null;
@@ -623,20 +627,15 @@ export class CatalogService {
 			sku: input.sku !== undefined ? (input.sku == null ? undefined : input.sku) : undefined,
 			barcode: input.barcode !== undefined ? input.barcode : undefined,
 
-			unitId: existingType === ProductType.SERVICE ? serviceUnitId : (input.unitId !== undefined ? input.unitId : undefined),
+			unitId:
+				existingType === ProductType.SERVICE ? serviceUnitId : input.unitId !== undefined ? input.unitId : undefined,
 
 			categoryId: input.categoryId !== undefined ? input.categoryId : undefined,
 			categoryLegacy: input.categoryLegacy !== undefined ? input.categoryLegacy : undefined,
 			description: input.description !== undefined ? input.description : undefined,
 
-			priceMinor:
-				input.priceMinor !== undefined || input.price !== undefined
-					? nextPriceMinor
-					: undefined,
-			costMinor:
-				input.costMinor !== undefined || input.cost !== undefined
-					? nextCostMinor
-					: undefined,
+			priceMinor: input.priceMinor !== undefined || input.price !== undefined ? nextPriceMinor : undefined,
+			costMinor: input.costMinor !== undefined || input.cost !== undefined ? nextCostMinor : undefined,
 			price:
 				input.priceMinor !== undefined || input.price !== undefined
 					? nextPriceMinor == null
@@ -651,11 +650,17 @@ export class CatalogService {
 					: undefined,
 
 			trackInventory:
-				existingType === ProductType.SERVICE ? false : (input.trackInventory !== undefined ? input.trackInventory : undefined),
+				existingType === ProductType.SERVICE
+					? false
+					: input.trackInventory !== undefined
+						? input.trackInventory
+						: undefined,
 			durationTotalMinutes: existingType === ProductType.SERVICE ? serviceDuration?.durationTotalMinutes : undefined,
 			serviceDurationMins: existingType === ProductType.SERVICE ? serviceDuration?.serviceDurationMins : undefined,
-			processingEnabled: existingType === ProductType.SERVICE ? serviceDuration?.processingEnabled ?? false : undefined,
-			durationInitialMinutes: existingType === ProductType.SERVICE ? serviceDuration?.durationInitialMinutes : undefined,
+			processingEnabled:
+				existingType === ProductType.SERVICE ? (serviceDuration?.processingEnabled ?? false) : undefined,
+			durationInitialMinutes:
+				existingType === ProductType.SERVICE ? serviceDuration?.durationInitialMinutes : undefined,
 			durationProcessingMinutes:
 				existingType === ProductType.SERVICE ? serviceDuration?.durationProcessingMinutes : undefined,
 			durationFinalMinutes: existingType === ProductType.SERVICE ? serviceDuration?.durationFinalMinutes : undefined,

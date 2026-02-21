@@ -35,7 +35,11 @@ import {
 } from "@/modules/options/options.contract";
 import { useOptionSetById, useUpdateOptionSet } from "@/modules/options/options.queries";
 import { FIELD_LIMITS } from "@/shared/fieldLimits";
-import { sanitizeEntityNameDraftInput, sanitizeEntityNameInput, sanitizeSearchInput } from "@/shared/validation/sanitize";
+import {
+	sanitizeEntityNameDraftInput,
+	sanitizeEntityNameInput,
+	sanitizeSearchInput,
+} from "@/shared/validation/sanitize";
 
 type RouteParams = {
 	draftId?: string;
@@ -55,11 +59,7 @@ function optionValueLimitMessage(): string {
 	return `You can add up to ${FIELD_LIMITS.optionValuesPerSet} options.`;
 }
 
-export default function ProductOptionValuesScreen({
-	routeScope = "inventory",
-}: {
-	routeScope?: InventoryRouteScope;
-}) {
+export default function ProductOptionValuesScreen({ routeScope = "inventory" }: { routeScope?: InventoryRouteScope }) {
 	const router = useRouter();
 	const theme = useTheme();
 	const params = useLocalSearchParams<RouteParams>();
@@ -289,11 +289,7 @@ export default function ProductOptionValuesScreen({
 											>
 												{({ pressed }) => (
 													<BAISurface
-														style={[
-															styles.valueRow,
-															surfaceInteractive,
-															pressed ? styles.rowPressed : undefined,
-														]}
+														style={[styles.valueRow, surfaceInteractive, pressed ? styles.rowPressed : undefined]}
 														padded
 														bordered
 													>

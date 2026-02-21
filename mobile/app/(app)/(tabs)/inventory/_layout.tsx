@@ -14,7 +14,7 @@ export default function InventoryStackLayout() {
 			backgroundColor: theme.colors.background,
 			...(Platform.OS === "android" ? { elevation: 0, borderBottomWidth: 0 } : {}),
 		}),
-		[theme.colors.background]
+		[theme.colors.background],
 	);
 
 	const headerTintColor = useMemo(() => theme.colors.onBackground, [theme.colors.onBackground]);
@@ -25,7 +25,7 @@ export default function InventoryStackLayout() {
 			fontSize: 18,
 			fontWeight: "600" as const,
 		}),
-		[theme.colors.onBackground]
+		[theme.colors.onBackground],
 	);
 
 	// Smaller + muted back button title
@@ -35,7 +35,7 @@ export default function InventoryStackLayout() {
 			fontWeight: "500" as const,
 			color: theme.colors.onSurfaceVariant ?? theme.colors.onBackground,
 		}),
-		[theme.colors.onSurfaceVariant, theme.colors.onBackground]
+		[theme.colors.onSurfaceVariant, theme.colors.onBackground],
 	);
 
 	return (
@@ -86,7 +86,10 @@ export default function InventoryStackLayout() {
 			<Stack.Screen name='modifiers/[id]/restore' options={{ title: "Restore Modifier" }} />
 			<Stack.Screen name='units/add' options={{ title: "Unit Category", headerBackTitle: "Unit Type" }} />
 			<Stack.Screen name='units/select' options={{ title: "Add Unit", headerBackTitle: "Add Unit" }} />
-			<Stack.Screen name='units/custom-create' options={{ title: "Create Custom Unit", headerBackTitle: "Custom Unit" }} />
+			<Stack.Screen
+				name='units/custom-create'
+				options={{ title: "Create Custom Unit", headerBackTitle: "Custom Unit" }}
+			/>
 			<Stack.Screen name='units/[id]/archive' options={{ title: "Archive Unit" }} />
 			<Stack.Screen name='units/[id]/restore' options={{ title: "Restore Unit" }} />
 			<Stack.Screen name='products/modifiers/select' options={{ title: "Select Modifiers" }} />

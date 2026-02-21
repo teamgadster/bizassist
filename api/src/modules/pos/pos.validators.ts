@@ -84,7 +84,12 @@ export const checkoutSchema = z.object({
 	idempotencyKey: idempotencyKeySchema,
 	deviceId: optionalTrimmedString({ collapseWhitespace: false }),
 	cart: z.array(cartItemSchema).min(1, "Cart must not be empty.").max(200, "Cart has too many items."),
-	payments: z.array(paymentSchema).min(1, "At least one payment entry is required.").max(10, "Too many payment entries."),
-	discounts: z.array(z.object({ discountId: uuidSchema })).max(50, "Too many discounts.").optional(),
+	payments: z
+		.array(paymentSchema)
+		.min(1, "At least one payment entry is required.")
+		.max(10, "Too many payment entries."),
+	discounts: z
+		.array(z.object({ discountId: uuidSchema }))
+		.max(50, "Too many discounts.")
+		.optional(),
 });
-
