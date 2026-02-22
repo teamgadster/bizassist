@@ -16,7 +16,6 @@ import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useTheme } from "react-native-paper";
 
 import { BAIButton } from "@/components/ui/BAIButton";
-import { BAIInlineHeaderMount } from "@/components/ui/BAIInlineHeaderMount";
 import { BAIScreen } from "@/components/ui/BAIScreen";
 import { BAISearchBar } from "@/components/ui/BAISearchBar";
 import { BAISurface } from "@/components/ui/BAISurface";
@@ -71,7 +70,9 @@ export default function ProductOptionValuesScreen({ routeScope = "inventory" }: 
 	const optionSetId = normalizeString(params[OPTION_SET_ID_KEY]);
 	const returnTo = useMemo(() => normalizeRoutePath(params[RETURN_TO_KEY]), [params]);
 	const mode = useMemo<"SINGLE" | "MULTI">(() => {
-		const raw = String(params.mode ?? "").trim().toUpperCase();
+		const raw = String(params.mode ?? "")
+			.trim()
+			.toUpperCase();
 		return raw === "SINGLE" ? "SINGLE" : "MULTI";
 	}, [params.mode]);
 
@@ -235,6 +236,7 @@ export default function ProductOptionValuesScreen({ routeScope = "inventory" }: 
 		title: headerTitle,
 		disabled: isUiDisabled,
 		onExit: guardedOnNavAction,
+		exitFallbackRoute: toScopedRoute("/(app)/(tabs)/inventory/products/modifiers/select"),
 	});
 
 	return (
@@ -256,7 +258,6 @@ export default function ProductOptionValuesScreen({ routeScope = "inventory" }: 
 									onClear={qText ? () => setQText("") : undefined}
 								/>
 
-									<BAIInlineHeaderMount options={headerOptions} />
 								<BAIText variant='subtitle'>
 									{`${optionSet?.displayName || "Options"} (${activeValues.length}/${FIELD_LIMITS.optionValuesPerSet})`}
 								</BAIText>

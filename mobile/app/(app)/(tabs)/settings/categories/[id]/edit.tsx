@@ -24,7 +24,6 @@ import { categoryKeys } from "@/modules/categories/categories.queryKeys";
 import type { Category } from "@/modules/categories/categories.types";
 import { extractCategoryApiError } from "@/modules/categories/categories.validators";
 import CategoryFormComponent from "@/modules/categories/components/CategoryForm";
-import { BAIInlineHeaderMount } from "@/components/ui/BAIInlineHeaderMount";
 import { useAppHeader } from "@/modules/navigation/useAppHeader";
 import { useProcessExitGuard } from "@/modules/navigation/useProcessExitGuard";
 import { useInventoryHeader } from "@/modules/inventory/useInventoryHeader";
@@ -133,7 +132,6 @@ export function CategoryEditScreen({ mode = "settings" }: { mode?: CategoryFlowM
 	return (
 		<>
 			<Stack.Screen options={headerOptions} />
-			<BAIInlineHeaderMount options={headerOptions} />
 			<BAIScreen tabbed padded={false} safeTop={false} style={styles.root}>
 				<KeyboardAvoidingView
 					style={styles.keyboardAvoider}

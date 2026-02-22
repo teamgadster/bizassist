@@ -44,7 +44,6 @@ import {
 import { useUnitFlowBackGuard } from "@/modules/units/useUnitFlowBackGuard";
 
 import { UNIT_CATALOG, type UnitCategory as CatalogUnitCategory, type UnitItem } from "@/features/units/unitCatalog";
-import { BAIInlineHeaderMount } from "@/components/ui/BAIInlineHeaderMount";
 import { useAppHeader } from "@/modules/navigation/useAppHeader";
 
 const DEFAULT_PRECISION: PrecisionScale = 2;
@@ -349,7 +348,6 @@ export default function UnitSelectScreen() {
 					headerShadowVisible: false,
 				}}
 			/>
-			<BAIInlineHeaderMount options={headerOptions} />
 
 			<BAIScreen tabbed padded={false} safeTop={false} style={{ flex: 1 }}>
 				<BAISurface style={styles.card} padded>

@@ -25,7 +25,6 @@ import {
 	normalizeDiscountReturnTo,
 } from "@/modules/discounts/discounts.navigation";
 import { useArchiveDiscount, useDiscountById } from "@/modules/discounts/discounts.queries";
-import { BAIInlineHeaderMount } from "@/components/ui/BAIInlineHeaderMount";
 import { useAppHeader } from "@/modules/navigation/useAppHeader";
 import { useProcessExitGuard } from "@/modules/navigation/useProcessExitGuard";
 import { useInventoryHeader } from "@/modules/inventory/useInventoryHeader";
@@ -115,7 +114,6 @@ export function DiscountArchiveScreen({ mode = "settings" }: { mode?: DiscountFl
 	return (
 		<>
 			<Stack.Screen options={headerOptions} />
-			<BAIInlineHeaderMount options={headerOptions} />
 			<BAIScreen tabbed padded={false} safeTop={false}>
 				<View style={styles.screen}>
 					<BAISurface style={[styles.card, { borderColor }]} padded bordered>

@@ -15,7 +15,6 @@ import { FontAwesome6, MaterialCommunityIcons } from "@expo/vector-icons";
 
 import { BAIActivityIndicator } from "@/components/system/BAIActivityIndicator";
 import { BAIButton } from "@/components/ui/BAIButton";
-import { BAIInlineHeaderMount } from "@/components/ui/BAIInlineHeaderMount";
 import { BAIRetryButton } from "@/components/ui/BAIRetryButton";
 import { BAIScreen } from "@/components/ui/BAIScreen";
 import { BAISurface } from "@/components/ui/BAISurface";
@@ -232,7 +231,6 @@ export default function InventoryCategoryDetailScreen() {
 	return (
 		<>
 			<Stack.Screen options={headerOptions} />
-			<BAIInlineHeaderMount options={headerOptions} />
 			<BAIScreen padded={false} safeTop={false} safeBottom={false} style={styles.root}>
 				<View
 					style={[

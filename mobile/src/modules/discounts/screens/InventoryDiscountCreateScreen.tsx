@@ -7,7 +7,7 @@
 
 import React, { useCallback, useMemo, useState } from "react";
 import { Keyboard, KeyboardAvoidingView, Platform, StyleSheet, TouchableWithoutFeedback, View } from "react-native";
-import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTheme } from "react-native-paper";
 
 import { BAIScreen } from "@/components/ui/BAIScreen";
@@ -15,7 +15,7 @@ import { BAISurface } from "@/components/ui/BAISurface";
 import { BAIText } from "@/components/ui/BAIText";
 import { BAIButton } from "@/components/ui/BAIButton";
 import { BAICTAButton } from "@/components/ui/BAICTAButton";
-import { BAIHeader } from "@/components/ui/BAIHeader";
+import { BAIInlineHeaderScaffold } from "@/components/ui/BAIInlineHeaderScaffold";
 import { BAIMoneyInput } from "@/components/ui/BAIMoneyInput";
 import { BAITextarea } from "@/components/ui/BAITextarea";
 import { BAITextInput } from "@/components/ui/BAITextInput";
@@ -55,8 +55,8 @@ function extractDiscountSaveErrorMessage(err: unknown): string {
 		typeof apiError?.message === "string"
 			? apiError.message
 			: typeof data?.message === "string"
-			  ? data.message
-			  : undefined;
+				? data.message
+				: undefined;
 
 	if (code === "DISCOUNT_NAME_EXISTS") return "Discount name already exists.";
 	if (code === "DISCOUNT_LIMIT_REACHED") return `You've reached the maximum of ${limit} discounts.`;
@@ -193,10 +193,7 @@ export default function InventoryDiscountCreateScreen() {
 	const valueMaxLength = type === "PERCENT" ? valueLimit + 1 : valueLimit;
 
 	return (
-		<>
-			<Stack.Screen options={{ headerShown: false }} />
-			<BAIHeader title='Create Discount' variant='exit' onLeftPress={onExit} disabled={isUiDisabled} />
-
+		<BAIInlineHeaderScaffold title='Create Discount' variant='exit' onLeftPress={onExit} disabled={isUiDisabled}>
 			<BAIScreen padded={false} safeTop={false} style={styles.root}>
 				<KeyboardAvoidingView
 					style={styles.keyboardAvoider}
@@ -334,7 +331,7 @@ export default function InventoryDiscountCreateScreen() {
 					</TouchableWithoutFeedback>
 				</KeyboardAvoidingView>
 			</BAIScreen>
-		</>
+		</BAIInlineHeaderScaffold>
 	);
 }
 

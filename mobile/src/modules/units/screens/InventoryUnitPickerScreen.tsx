@@ -24,7 +24,6 @@ import { BAIButton } from "@/components/ui/BAIButton";
 import { BAICTAPillButton } from "@/components/ui/BAICTAButton";
 import { BAIRadioRow } from "@/components/ui/BAIRadioRow";
 import { BAIRetryButton } from "@/components/ui/BAIRetryButton";
-import { BAIInlineHeaderMount } from "@/components/ui/BAIInlineHeaderMount";
 import { BAIScreen } from "@/components/ui/BAIScreen";
 import { BAISearchBar } from "@/components/ui/BAISearchBar";
 import { BAISurface } from "@/components/ui/BAISurface";
@@ -32,7 +31,11 @@ import { BAIText } from "@/components/ui/BAIText";
 
 import { BAIActivityIndicator } from "@/components/system/BAIActivityIndicator";
 import { useAppBusy } from "@/hooks/useAppBusy";
-import { mapInventoryRouteToScope, resolveInventoryRouteScope } from "@/modules/inventory/navigation.scope";
+import {
+	mapInventoryRouteToScope,
+	resolveInventoryRouteScope,
+	type InventoryRouteScope,
+} from "@/modules/inventory/navigation.scope";
 import { useProcessExitGuard } from "@/modules/navigation/useProcessExitGuard";
 import { precisionHint } from "@/modules/units/units.format";
 import {
@@ -52,7 +55,14 @@ import {
 } from "@/modules/units/unitPicker.contract";
 import { unitsApi } from "@/modules/units/units.api";
 import { syncUnitListCaches } from "@/modules/units/units.cache";
-import { clearUnitSelectionParams, CREATE_ITEM_ROUTE, replaceToReturnTo } from "@/modules/units/units.navigation";
+import {
+	ADD_ITEM_ROUTE,
+	clearUnitSelectionParams,
+	CREATE_ITEM_ROUTE,
+	replaceToReturnTo,
+	SETTINGS_ITEMS_SERVICES_ADD_ITEM_ROUTE,
+	SETTINGS_ITEMS_SERVICES_CREATE_ITEM_ROUTE,
+} from "@/modules/units/units.navigation";
 import { unitKeys, useUnitVisibilityMutation, useUnitVisibilityQuery } from "@/modules/units/units.queries";
 import type { PrecisionScale, Unit } from "@/modules/units/units.types";
 import { applyVisibilityFilter, getEachUnit } from "@/modules/units/units.visibility";
@@ -157,7 +167,7 @@ function compareByRecentDesc(a: Unit, b: Unit): number {
 
 type Selection = { unitId: string };
 
-export default function UnitPickerScreen() {
+export default function UnitPickerScreen({ routeScope }: { routeScope?: InventoryRouteScope } = {}) {
 	const router = useRouter();
 	const navigation = useNavigation();
 	const theme = useTheme();
@@ -175,13 +185,21 @@ export default function UnitPickerScreen() {
 
 	// ✅ FIX: harden to a definite UnitProductType (no undefined)
 	const productType: UnitProductType = inbound.productType ?? "PHYSICAL";
+	const draftId = inbound.draftId || "";
+	const fallbackReturnTo = useMemo(() => {
+		if (routeScope === "settings-items-services") {
+			return draftId ? SETTINGS_ITEMS_SERVICES_CREATE_ITEM_ROUTE : SETTINGS_ITEMS_SERVICES_ADD_ITEM_ROUTE;
+		}
+		return draftId ? CREATE_ITEM_ROUTE : ADD_ITEM_ROUTE;
+	}, [draftId, routeScope]);
 
 	const returnTo = inbound.returnTo || "";
-	const target = returnTo || CREATE_ITEM_ROUTE;
-	const routeScope = useMemo(() => resolveInventoryRouteScope(target), [target]);
-	const toScopedRoute = useCallback((route: string) => mapInventoryRouteToScope(route, routeScope), [routeScope]);
-
-	const draftId = inbound.draftId || "";
+	const target = returnTo || fallbackReturnTo;
+	const effectiveRouteScope = useMemo(() => routeScope ?? resolveInventoryRouteScope(target), [routeScope, target]);
+	const toScopedRoute = useCallback(
+		(route: string) => mapInventoryRouteToScope(route, effectiveRouteScope),
+		[effectiveRouteScope],
+	);
 
 	// Search
 	const [q, setQ] = useState("");
@@ -307,11 +325,19 @@ export default function UnitPickerScreen() {
 	const visibleNonPinnedSorted = useMemo(() => {
 		const pinnedId = countUnit?.id ?? "";
 		const list = listScopeUnits.filter((u) => u.id !== pinnedId);
-		return [...list].sort((a, b) => (rankMap.get(a.id) ?? Number.MAX_SAFE_INTEGER) - (rankMap.get(b.id) ?? Number.MAX_SAFE_INTEGER));
+		return [...list].sort(
+			(a, b) => (rankMap.get(a.id) ?? Number.MAX_SAFE_INTEGER) - (rankMap.get(b.id) ?? Number.MAX_SAFE_INTEGER),
+		);
 	}, [countUnit?.id, listScopeUnits, rankMap]);
 
-	const recentUnits = useMemo(() => visibleNonPinnedSorted.filter((u) => recentUnitIds.has(u.id)), [recentUnitIds, visibleNonPinnedSorted]);
-	const olderUnits = useMemo(() => visibleNonPinnedSorted.filter((u) => !recentUnitIds.has(u.id)), [recentUnitIds, visibleNonPinnedSorted]);
+	const recentUnits = useMemo(
+		() => visibleNonPinnedSorted.filter((u) => recentUnitIds.has(u.id)),
+		[recentUnitIds, visibleNonPinnedSorted],
+	);
+	const olderUnits = useMemo(
+		() => visibleNonPinnedSorted.filter((u) => !recentUnitIds.has(u.id)),
+		[recentUnitIds, visibleNonPinnedSorted],
+	);
 	const hasSectionRows = !!countUnit || recentUnits.length > 0 || olderUnits.length > 0;
 
 	const maybeRestoreHidden = useCallback(
@@ -472,6 +498,7 @@ export default function UnitPickerScreen() {
 		title: "Select Unit Type",
 		disabled: isUiDisabled,
 		onExit: guardedOnCancel,
+		exitFallbackRoute: "/(app)/(tabs)/inventory",
 	});
 
 	useUnitFlowBackGuard(navigation, exitRef, guardedOnCancel);
@@ -531,7 +558,6 @@ export default function UnitPickerScreen() {
 					headerShadowVisible: false,
 				}}
 			/>
-						<BAIInlineHeaderMount options={headerOptions} />
 
 			<BAIScreen padded={false} safeTop={false} safeBottom={true} style={{ flex: 1 }}>
 				{unitsQuery.isLoading ? (
@@ -654,7 +680,7 @@ export default function UnitPickerScreen() {
 										<BAISurface style={styles.emptyCard} padded>
 											<BAIText variant='subtitle'>No units created yet.</BAIText>
 											<BAIText variant='caption' muted>
-											Create a unit to see it listed here.
+												Create a unit to see it listed here.
 											</BAIText>
 										</BAISurface>
 									) : !hasSectionRows ? (

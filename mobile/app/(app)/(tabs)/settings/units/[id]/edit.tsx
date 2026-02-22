@@ -27,7 +27,6 @@ import {
 	sanitizeLabelInput,
 	sanitizeUnitAbbreviationInput,
 } from "@/shared/validation/sanitize";
-import { BAIInlineHeaderMount } from "@/components/ui/BAIInlineHeaderMount";
 import { useAppHeader } from "@/modules/navigation/useAppHeader";
 import { useProcessExitGuard } from "@/modules/navigation/useProcessExitGuard";
 
@@ -382,7 +381,6 @@ export default function UnitEditScreen() {
 	return (
 		<>
 			<Stack.Screen options={headerOptions} />
-			<BAIInlineHeaderMount options={headerOptions} />
 			<BAIScreen tabbed padded={false} safeTop={false}>
 				<View style={styles.screen}>{content}</View>
 			</BAIScreen>

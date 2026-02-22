@@ -10,11 +10,14 @@ import { StyleSheet, View } from "react-native";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useNavigation } from "@react-navigation/native";
 
-import { mapInventoryRouteToScope, resolveInventoryRouteScope } from "@/modules/inventory/navigation.scope";
+import {
+	mapInventoryRouteToScope,
+	resolveInventoryRouteScope,
+	type InventoryRouteScope,
+} from "@/modules/inventory/navigation.scope";
 import { useInventoryHeader } from "@/modules/inventory/useInventoryHeader";
 
 import { BAIScreen } from "@/components/ui/BAIScreen";
-import { BAIInlineHeaderMount } from "@/components/ui/BAIInlineHeaderMount";
 import { BAISurface } from "@/components/ui/BAISurface";
 import { BAIText } from "@/components/ui/BAIText";
 import { BAIButton } from "@/components/ui/BAIButton";
@@ -37,6 +40,10 @@ import {
 	UNIT_SELECT_ROUTE,
 } from "@/modules/units/unitPicker.contract";
 import {
+	ADD_ITEM_ROUTE,
+	CREATE_ITEM_ROUTE,
+	SETTINGS_ITEMS_SERVICES_ADD_ITEM_ROUTE,
+	SETTINGS_ITEMS_SERVICES_CREATE_ITEM_ROUTE,
 	SETTINGS_UNITS_ROUTE,
 	UNITS_INDEX_ROUTE,
 	clearUnitSelectionParams,
@@ -54,18 +61,27 @@ function toProductType(raw: unknown): UnitProductType {
 	return normalize(raw) === "SERVICE" ? "SERVICE" : "PHYSICAL";
 }
 
-export default function UnitsCreateCategoryScreen() {
+export default function UnitsCreateCategoryScreen({ routeScope }: { routeScope?: InventoryRouteScope } = {}) {
 	const router = useRouter();
 	const navigation = useNavigation();
 	const params = useLocalSearchParams();
 	const { withBusy, busy } = useAppBusy();
 
 	const inbound = useMemo(() => parseUnitSelectionParams(params as any), [params]);
-
-	const returnTo = resolveReturnTo(params as Record<string, unknown>);
-	const routeScope = useMemo(() => resolveInventoryRouteScope(returnTo), [returnTo]);
-	const toScopedRoute = useCallback((route: string) => mapInventoryRouteToScope(route, routeScope), [routeScope]);
 	const draftId = inbound.draftId || normalize((params as any)[DRAFT_ID_KEY]) || "";
+	const fallbackReturnTo = useMemo(() => {
+		if (routeScope === "settings-items-services") {
+			return draftId ? SETTINGS_ITEMS_SERVICES_CREATE_ITEM_ROUTE : SETTINGS_ITEMS_SERVICES_ADD_ITEM_ROUTE;
+		}
+		return draftId ? CREATE_ITEM_ROUTE : ADD_ITEM_ROUTE;
+	}, [draftId, routeScope]);
+
+	const returnTo = resolveReturnTo(params as Record<string, unknown>, fallbackReturnTo);
+	const effectiveRouteScope = useMemo(() => routeScope ?? resolveInventoryRouteScope(returnTo), [routeScope, returnTo]);
+	const toScopedRoute = useCallback(
+		(route: string) => mapInventoryRouteToScope(route, effectiveRouteScope),
+		[effectiveRouteScope],
+	);
 
 	const productType = useMemo(() => toProductType((params as any)[UNIT_CONTEXT_PRODUCT_TYPE_KEY]), [params]);
 	const [category] = useState<UnitCategory>(CUSTOM_CATEGORY);
@@ -139,6 +155,7 @@ export default function UnitsCreateCategoryScreen() {
 		title: "Create Custom Unit",
 		disabled: isUiDisabled,
 		onExit: guardedOnCancel,
+		exitFallbackRoute: "/(app)/(tabs)/inventory",
 	});
 
 	const onNext = useCallback(async () => {
@@ -169,7 +186,6 @@ export default function UnitsCreateCategoryScreen() {
 					headerShadowVisible: false,
 				}}
 			/>
-						<BAIInlineHeaderMount options={headerOptions} />
 
 			<BAIScreen padded={false} safeTop={false} safeBottom={false} style={{ flex: 1 }}>
 				<BAISurface style={styles.card} padded>

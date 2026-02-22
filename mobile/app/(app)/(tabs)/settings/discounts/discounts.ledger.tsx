@@ -27,7 +27,6 @@ import { useAppBusy } from "@/hooks/useAppBusy";
 import { useActiveBusinessMeta } from "@/modules/business/useActiveBusinessMeta";
 import { useDiscountVisibilityQuery, useDiscountsList } from "@/modules/discounts/discounts.queries";
 import type { Discount } from "@/modules/discounts/discounts.types";
-import { BAIInlineHeaderMount } from "@/components/ui/BAIInlineHeaderMount";
 import { useAppHeader } from "@/modules/navigation/useAppHeader";
 import { useInventoryHeader } from "@/modules/inventory/useInventoryHeader";
 import { formatCompactNumber } from "@/lib/locale/businessLocale";
@@ -347,7 +346,6 @@ export function DiscountsLedgerScreen({
 	return (
 		<>
 			<Stack.Screen options={headerOptions} />
-			<BAIInlineHeaderMount options={headerOptions} />
 
 			<BAIScreen tabbed padded={false} safeTop={false} safeBottom={false} style={styles.root}>
 				<TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>

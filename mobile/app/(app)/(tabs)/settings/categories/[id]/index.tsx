@@ -25,7 +25,6 @@ import { categoriesApi } from "@/modules/categories/categories.api";
 import { categoryKeys } from "@/modules/categories/categories.queryKeys";
 import type { Category } from "@/modules/categories/categories.types";
 import { inventoryApi } from "@/modules/inventory/inventory.api";
-import { BAIInlineHeaderMount } from "@/components/ui/BAIInlineHeaderMount";
 import { useAppHeader } from "@/modules/navigation/useAppHeader";
 import type { InventoryProduct } from "@/modules/inventory/inventory.types";
 import { useActiveBusinessMeta } from "@/modules/business/useActiveBusinessMeta";
@@ -232,7 +231,6 @@ export default function SettingsCategoryDetailScreen() {
 	return (
 		<>
 			<Stack.Screen options={headerOptions} />
-			<BAIInlineHeaderMount options={headerOptions} />
 			<BAIScreen padded={false} safeTop={false} safeBottom={false} style={styles.root}>
 				<View
 					style={[

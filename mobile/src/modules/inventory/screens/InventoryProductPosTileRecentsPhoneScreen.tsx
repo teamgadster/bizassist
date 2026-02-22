@@ -3,7 +3,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AppState, FlatList, Pressable, StyleSheet, View } from "react-native";
-import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTheme, Modal, Portal } from "react-native-paper";
 import { useQuery } from "@tanstack/react-query";
 import * as MediaLibrary from "expo-media-library";
@@ -11,10 +11,10 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 
 import { BAIScreen } from "@/components/ui/BAIScreen";
-import { BAIInlineHeaderMount } from "@/components/ui/BAIInlineHeaderMount";
 import { BAISurface } from "@/components/ui/BAISurface";
 import { BAIText } from "@/components/ui/BAIText";
 import { BAIButton } from "@/components/ui/BAIButton";
+import { BAIInlineHeaderScaffold } from "@/components/ui/BAIInlineHeaderScaffold";
 import { BAIRetryButton } from "@/components/ui/BAIRetryButton";
 import { BAIActivityIndicator } from "@/components/system/BAIActivityIndicator";
 
@@ -24,8 +24,6 @@ import {
 	mapInventoryRouteToScope,
 	type InventoryRouteScope,
 } from "@/modules/inventory/navigation.scope";
-import { useInventoryHeader } from "@/modules/inventory/useInventoryHeader";
-import { useProcessExitGuard } from "@/modules/navigation/useProcessExitGuard";
 import {
 	DRAFT_ID_KEY,
 	POS_TILE_CROP_ROUTE,
@@ -113,9 +111,15 @@ export default function PosTileRecentsPhone({ routeScope = "inventory" }: { rout
 	const [selectModalOpen, setSelectModalOpen] = useState(false);
 	const [selectModalMessage, setSelectModalMessage] = useState("Please select a photo to continue.");
 
-	const onExit = useCallback(() => {
+	const onBack = useCallback(() => {
 		if (isUiDisabled) return;
 		if (!lockNav()) return;
+
+		if ((router as any).canGoBack?.()) {
+			router.back();
+			return;
+		}
+
 		if (isItemPhotoMode) {
 			if (!productId) {
 				router.replace(rootRoute as any);
@@ -130,6 +134,7 @@ export default function PosTileRecentsPhone({ routeScope = "inventory" }: { rout
 			} as any);
 			return;
 		}
+
 		router.replace({
 			pathname: returnTo as any,
 			params: {
@@ -150,13 +155,6 @@ export default function PosTileRecentsPhone({ routeScope = "inventory" }: { rout
 		router,
 		tileLabelParam,
 	]);
-	const guardedOnExit = useProcessExitGuard(onExit);
-
-	const headerOptions = useInventoryHeader("process", {
-		title: "Recent Photos",
-		disabled: isUiDisabled,
-		onExit: guardedOnExit,
-	});
 
 	const onRequestPermission = useCallback(async () => {
 		if (isUiDisabled) return;
@@ -203,30 +201,30 @@ export default function PosTileRecentsPhone({ routeScope = "inventory" }: { rout
 							[ROOT_RETURN_TO_KEY]: rootReturnTo ?? "",
 							[RETURN_TO_KEY]: returnTo,
 						}
-						: {
-								[DRAFT_ID_KEY]: draftId,
-								[LOCAL_URI_KEY]: resolvedUri,
-								[ROOT_RETURN_TO_KEY]: rootReturnTo ?? "",
-								[RETURN_TO_KEY]: scopedPosTileRoute,
-								[TILE_LABEL_KEY]: tileLabelParam,
-							},
-				});
+					: {
+							[DRAFT_ID_KEY]: draftId,
+							[LOCAL_URI_KEY]: resolvedUri,
+							[ROOT_RETURN_TO_KEY]: rootReturnTo ?? "",
+							[RETURN_TO_KEY]: scopedPosTileRoute,
+							[TILE_LABEL_KEY]: tileLabelParam,
+						},
 			});
-		}, [
-			draftId,
+		});
+	}, [
+		draftId,
 		isItemPhotoMode,
 		isUiDisabled,
 		lockNav,
 		productId,
-			returnTo,
-			rootReturnTo,
-			router,
-			scopedCropRoute,
-			scopedPosTileRoute,
-			selectedAsset,
-			tileLabelParam,
-			withBusy,
-		]);
+		returnTo,
+		rootReturnTo,
+		router,
+		scopedCropRoute,
+		scopedPosTileRoute,
+		selectedAsset,
+		tileLabelParam,
+		withBusy,
+	]);
 
 	// masterplan: Recents routes into BizAssist Photo Library screen (not OS picker).
 	const onOpenPhotoLibrary = useCallback(() => {
@@ -242,12 +240,12 @@ export default function PosTileRecentsPhone({ routeScope = "inventory" }: { rout
 						[ROOT_RETURN_TO_KEY]: rootReturnTo ?? "",
 						[RETURN_TO_KEY]: returnTo,
 					}
-					: {
-							[DRAFT_ID_KEY]: draftId,
-							[ROOT_RETURN_TO_KEY]: rootReturnTo ?? "",
-							[RETURN_TO_KEY]: scopedPosTileRoute,
-							[TILE_LABEL_KEY]: tileLabelParam,
-						},
+				: {
+						[DRAFT_ID_KEY]: draftId,
+						[ROOT_RETURN_TO_KEY]: rootReturnTo ?? "",
+						[RETURN_TO_KEY]: scopedPosTileRoute,
+						[TILE_LABEL_KEY]: tileLabelParam,
+					},
 		} as any);
 	}, [
 		draftId,
@@ -290,17 +288,13 @@ export default function PosTileRecentsPhone({ routeScope = "inventory" }: { rout
 	}, [assetsQuery, hasPermission]);
 
 	return (
-		<>
-			<Stack.Screen
-				options={{
-					...headerOptions,
-					headerShadowVisible: false,
-					headerRight: () => null,
-				}}
-			/>
-						<BAIInlineHeaderMount options={headerOptions} />
-
-			<BAIScreen padded={false} safeTop={false} tabbed style={styles.root}>
+		<BAIInlineHeaderScaffold title='Recent Photos' variant='back' onLeftPress={onBack} disabled={isUiDisabled}>
+			<BAIScreen
+				padded={false}
+				safeTop={false}
+				tabbed
+				style={[styles.root, { backgroundColor: theme.colors.background }]}
+			>
 				<View style={[styles.screen, { backgroundColor: theme.colors.background }]}>
 					<BAISurface style={[styles.card, { borderColor }]} padded>
 						<View style={styles.topActions}>
@@ -417,7 +411,7 @@ export default function PosTileRecentsPhone({ routeScope = "inventory" }: { rout
 					</BAISurface>
 				</Modal>
 			</Portal>
-		</>
+		</BAIInlineHeaderScaffold>
 	);
 }
 

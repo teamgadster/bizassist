@@ -3,22 +3,21 @@
 
 import React, { useCallback, useMemo, useRef, useState } from "react";
 import { Image, StyleSheet, View } from "react-native";
-import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTheme } from "react-native-paper";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import * as ImagePicker from "expo-image-picker";
 import { FontAwesome6 } from "@expo/vector-icons";
 
 import { BAIScreen } from "@/components/ui/BAIScreen";
-import { BAIInlineHeaderMount } from "@/components/ui/BAIInlineHeaderMount";
 import { BAISurface } from "@/components/ui/BAISurface";
+import { BAIInlineHeaderScaffold } from "@/components/ui/BAIInlineHeaderScaffold";
 import { BAIText } from "@/components/ui/BAIText";
 import { BAICTAPillButton } from "@/components/ui/BAICTAButton";
 import { BAIRetryButton } from "@/components/ui/BAIRetryButton";
 import { ConfirmActionModal } from "@/components/settings/ConfirmActionModal";
 
 import { useAppBusy } from "@/hooks/useAppBusy";
-import { useInventoryHeader } from "@/modules/inventory/useInventoryHeader";
 import { runGovernedBack } from "@/modules/inventory/navigation.governance";
 import {
 	inventoryScopeRoot,
@@ -39,7 +38,11 @@ import {
 const INVENTORY_SERVICE_DETAILS_ROUTE = "/(app)/(tabs)/inventory/services/[id]" as const;
 const INVENTORY_SERVICE_PHOTO_ROUTE = "/(app)/(tabs)/inventory/services/[id]/photo" as const;
 
-export default function InventoryServicePhotoScreen({ routeScope = "inventory" }: { routeScope?: InventoryRouteScope }) {
+export default function InventoryServicePhotoScreen({
+	routeScope = "inventory",
+}: {
+	routeScope?: InventoryRouteScope;
+}) {
 	const router = useRouter();
 	const theme = useTheme();
 	const qc = useQueryClient();
@@ -90,12 +93,6 @@ export default function InventoryServicePhotoScreen({ routeScope = "inventory" }
 			detailRoute,
 		);
 	}, [detailRoute, isUiDisabled, lockNav, router]);
-
-	const headerOptions = useInventoryHeader("detail", {
-		title: "Photo",
-		disabled: isUiDisabled,
-		onBack,
-	});
 	const borderColor = theme.colors.outlineVariant ?? theme.colors.outline;
 
 	const pickFromLibrary = useCallback(async () => {
@@ -203,9 +200,7 @@ export default function InventoryServicePhotoScreen({ routeScope = "inventory" }
 
 	if (serviceQuery.isError) {
 		return (
-			<>
-				<Stack.Screen options={headerOptions} />
-				<BAIInlineHeaderMount options={headerOptions} />
+			<BAIInlineHeaderScaffold title='Photo' variant='back' onLeftPress={onBack} disabled={isUiDisabled}>
 				<BAIScreen padded={false} tabbed safeTop={false} style={styles.root}>
 					<BAISurface style={[styles.surface, { borderColor }]} padded>
 						<BAIText variant='title'>Photo</BAIText>
@@ -215,15 +210,12 @@ export default function InventoryServicePhotoScreen({ routeScope = "inventory" }
 						<BAIRetryButton onPress={() => serviceQuery.refetch()} />
 					</BAISurface>
 				</BAIScreen>
-			</>
+			</BAIInlineHeaderScaffold>
 		);
 	}
 
 	return (
-		<>
-			<Stack.Screen options={headerOptions} />
-			<BAIInlineHeaderMount options={headerOptions} />
-
+		<BAIInlineHeaderScaffold title='Photo' variant='back' onLeftPress={onBack} disabled={isUiDisabled}>
 			<BAIScreen padded={false} tabbed safeTop={false} style={styles.root}>
 				<BAISurface style={[styles.surface, { borderColor }]} padded>
 					<BAIText variant='title' style={styles.title}>
@@ -250,49 +242,49 @@ export default function InventoryServicePhotoScreen({ routeScope = "inventory" }
 						{previewNode}
 					</View>
 
-						<View style={styles.actions}>
-							<View style={styles.primaryActions}>
-								<BAICTAPillButton
-									intent='primary'
-									variant='outline'
-									onPress={pickFromLibrary}
-									disabled={isUiDisabled}
-									style={styles.actionButton}
-								>
-									Photo Library
-								</BAICTAPillButton>
-								<BAICTAPillButton
-									intent='primary'
-									variant='solid'
-									onPress={takePhoto}
-									disabled={isUiDisabled}
-									style={styles.actionButton}
-								>
-									Take a Photo
-								</BAICTAPillButton>
-							</View>
-
-							<View style={styles.secondaryActions}>
-								<BAICTAPillButton
-									intent='neutral'
-									variant='outline'
-									onPress={onCancel}
-									disabled={isUiDisabled}
-									style={styles.secondaryButton}
-								>
-									Cancel
-								</BAICTAPillButton>
-								<BAICTAPillButton
-									intent='danger'
-									variant='outline'
-									onPress={() => setConfirmRemoveOpen(true)}
-									disabled={isUiDisabled || !hasImage}
-									style={styles.secondaryButton}
-								>
-									Remove Photo
-								</BAICTAPillButton>
-							</View>
+					<View style={styles.actions}>
+						<View style={styles.primaryActions}>
+							<BAICTAPillButton
+								intent='primary'
+								variant='outline'
+								onPress={pickFromLibrary}
+								disabled={isUiDisabled}
+								style={styles.actionButton}
+							>
+								Photo Library
+							</BAICTAPillButton>
+							<BAICTAPillButton
+								intent='primary'
+								variant='solid'
+								onPress={takePhoto}
+								disabled={isUiDisabled}
+								style={styles.actionButton}
+							>
+								Take a Photo
+							</BAICTAPillButton>
 						</View>
+
+						<View style={styles.secondaryActions}>
+							<BAICTAPillButton
+								intent='neutral'
+								variant='outline'
+								onPress={onCancel}
+								disabled={isUiDisabled}
+								style={styles.secondaryButton}
+							>
+								Cancel
+							</BAICTAPillButton>
+							<BAICTAPillButton
+								intent='danger'
+								variant='outline'
+								onPress={() => setConfirmRemoveOpen(true)}
+								disabled={isUiDisabled || !hasImage}
+								style={styles.secondaryButton}
+							>
+								Remove Photo
+							</BAICTAPillButton>
+						</View>
+					</View>
 				</BAISurface>
 			</BAIScreen>
 
@@ -307,7 +299,7 @@ export default function InventoryServicePhotoScreen({ routeScope = "inventory" }
 				onConfirm={onConfirmRemove}
 				disabled={isUiDisabled}
 			/>
-		</>
+		</BAIInlineHeaderScaffold>
 	);
 }
 

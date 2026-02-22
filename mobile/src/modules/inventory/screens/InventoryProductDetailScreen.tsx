@@ -4,7 +4,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Image, Pressable, StyleSheet, View } from "react-native";
+import { Image, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { useTheme } from "react-native-paper";
 import { FontAwesome6 } from "@expo/vector-icons";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
@@ -13,7 +13,6 @@ import { BAIActivityIndicator } from "@/components/system/BAIActivityIndicator";
 import { BAITimeAgo } from "@/components/system/BAITimeAgo";
 import { BAIButton } from "@/components/ui/BAIButton";
 import { BAICTAPillButton } from "@/components/ui/BAICTAButton";
-import { BAIHeader } from "@/components/ui/BAIHeader";
 import { BAIIconButton } from "@/components/ui/BAIIconButton";
 import { BAIRetryButton } from "@/components/ui/BAIRetryButton";
 import { BAIScreen } from "@/components/ui/BAIScreen";
@@ -33,6 +32,7 @@ import {
 } from "@/modules/inventory/navigation.scope";
 import { inventoryKeys } from "@/modules/inventory/inventory.queries";
 import type { InventoryMovement, InventoryProductDetail } from "@/modules/inventory/inventory.types";
+import { useInventoryHeader } from "@/modules/inventory/useInventoryHeader";
 import { unitsApi } from "@/modules/units/units.api";
 import { unitDisplayToken } from "@/modules/units/units.format";
 import { unitKeys } from "@/modules/units/units.queries";
@@ -380,7 +380,11 @@ function MetaRow({
 	);
 }
 
-export default function InventoryProductDetailScreen({ routeScope = "inventory" }: { routeScope?: InventoryRouteScope }) {
+export default function InventoryProductDetailScreen({
+	routeScope = "inventory",
+}: {
+	routeScope?: InventoryRouteScope;
+}) {
 	const router = useRouter();
 	const theme = useTheme();
 	const tabBarHeight = useBottomTabBarHeight();
@@ -433,6 +437,14 @@ export default function InventoryProductDetailScreen({ routeScope = "inventory" 
 		if (!canNavigate) return;
 		router.replace(rootRoute as any);
 	}, [canNavigate, rootRoute, router]);
+	const backLabel = routeScope === "settings-items-services" ? "Items" : "Inventory";
+
+	const headerOptions = useInventoryHeader("detail", {
+		title: "Item Details Overview",
+		headerBackTitle: backLabel,
+		backLabel,
+		onBack: onBackToInventory,
+	});
 
 	const unitById = useMemo(() => {
 		const map = new Map<string, Unit>();
@@ -539,7 +551,8 @@ export default function InventoryProductDetailScreen({ routeScope = "inventory" 
 		.trim()
 		.toUpperCase();
 	const hasRemoteTileImage = imageUri.length > 0;
-	const tileMode = rawTileMode === "IMAGE" ? "IMAGE" : rawTileMode === "COLOR" ? "COLOR" : hasRemoteTileImage ? "IMAGE" : "COLOR";
+	const tileMode =
+		rawTileMode === "IMAGE" ? "IMAGE" : rawTileMode === "COLOR" ? "COLOR" : hasRemoteTileImage ? "IMAGE" : "COLOR";
 	const selectedTileColor =
 		typeof (product as any)?.posTileColor === "string" && (product as any).posTileColor.trim().length > 0
 			? (product as any).posTileColor.trim()
@@ -908,324 +921,347 @@ export default function InventoryProductDetailScreen({ routeScope = "inventory" 
 
 	return (
 		<>
-			<Stack.Screen options={{ headerShown: false }} />
-			<BAIHeader title='Item Details Overview' variant='back' onLeftPress={onBackToInventory} disabled={!canNavigate} />
+			<Stack.Screen options={headerOptions} />
 
 			<BAIScreen
 				padded={false}
 				tabbed
-				scroll
 				safeTop={false}
 				safeBottom={false}
 				style={styles.root}
 				contentContainerStyle={[styles.screen, { paddingBottom: tabBarHeight + 12 }]}
-				scrollProps={{ showsVerticalScrollIndicator: false }}
 			>
-				<BAISurface style={styles.card} padded>
-					{isLoading ? (
-						<View style={styles.center}>
-							<BAIActivityIndicator />
+				<BAISurface style={[styles.card, { borderColor }]} padded={false}>
+					{!isLoading && !isError ? (
+						<View style={[styles.cardHeader, { borderBottomColor: borderColor }]}>
+							<BAIText variant='title'>Item Details</BAIText>
 						</View>
-					) : isError ? (
-						<View style={styles.center}>
-							{typeLabel ? (
-								<BAIText variant='caption' muted style={styles.typeLabel}>
-									Type: {typeLabel}
-								</BAIText>
-							) : null}
+					) : null}
 
-							<BAIText variant='title' numberOfLines={1} ellipsizeMode='tail' style={styles.title}>
-								{title}
-							</BAIText>
-
-							<BAIText variant='body' muted style={{ marginTop: 8, textAlign: "center" }}>
-								{errorMessage}
-							</BAIText>
-
-							<View style={styles.actions}>
-								<BAIRetryButton mode='contained' onPress={onRetry} disabled={!productId}>
-									Retry
-								</BAIRetryButton>
+					<ScrollView
+						style={styles.cardScroll}
+						contentContainerStyle={styles.cardScrollContent}
+						showsVerticalScrollIndicator={false}
+						keyboardShouldPersistTaps='handled'
+					>
+						{isLoading ? (
+							<View style={styles.center}>
+								<BAIActivityIndicator />
 							</View>
-						</View>
-					) : (
-						<>
-							<View style={styles.imageHeaderRow}>
-								<View
-									style={[
-										styles.imagePreview,
-										{
-											borderColor,
-											backgroundColor: theme.colors.surfaceVariant ?? theme.colors.surface,
-										},
-									]}
-								>
-									{previewHasImage ? (
-										<View style={styles.imageFill}>
-											<Image
-												source={{ uri: imageUri }}
-												style={styles.imagePreviewImage}
-												resizeMode='cover'
-												onLoadStart={() => {
-													setIsImageLoading(true);
-													setImageLoadFailed(false);
-												}}
-												onLoadEnd={() => setIsImageLoading(false)}
-												onError={() => {
-													setIsImageLoading(false);
-													setImageLoadFailed(true);
-												}}
-											/>
-
-											{isImageLoading ? (
-												<View style={styles.imageLoadingOverlay} pointerEvents='none'>
-													<BAIActivityIndicator />
-												</View>
-											) : null}
-
-											{imageLoadFailed ? (
-												<View style={styles.imageLoadingOverlay} pointerEvents='none'>
-													<FontAwesome6
-														name='image'
-														size={48}
-														color={theme.colors.onSurfaceVariant ?? theme.colors.onSurface}
-													/>
-													<View style={{ height: 6 }} />
-													<BAIText variant='caption' muted>
-														Failed to load photo
-													</BAIText>
-												</View>
-											) : null}
-										</View>
-									) : hasColor ? (
-										<View style={[styles.imagePreviewImage, { backgroundColor: tileColor }]} />
-									) : shouldShowEmpty ? (
-										<View style={styles.imagePreviewEmpty}>
-											<FontAwesome6
-												name='image'
-												size={64}
-												color={theme.colors.onSurfaceVariant ?? theme.colors.onSurface}
-											/>
-											<BAIText variant='caption' muted>
-												No Photo
-											</BAIText>
-										</View>
-									) : null}
-									{shouldShowTileTextOverlay ? (
-										<View style={styles.tileLabelWrap}>
-											{shouldShowNameOnlyOverlay ? (
-												<View style={styles.tileNameOnlyContent}>
-													<View style={[styles.tileNamePill, { backgroundColor: tileLabelBg }]}>
-														<BAIText
-															variant='caption'
-															numberOfLines={1}
-															ellipsizeMode='tail'
-															style={[styles.tileItemName, { color: tileLabelColor }]}
-														>
-															{tileItemName}
-														</BAIText>
-													</View>
-												</View>
-											) : (
-												<>
-													<View style={[styles.tileLabelOverlay, { backgroundColor: tileLabelBg }]} />
-													<View style={styles.tileLabelContent}>
-														<View style={styles.tileLabelRow}>
-															{hasTileLabel ? (
-																<BAIText
-																	variant='subtitle'
-																	numberOfLines={1}
-																	style={[styles.tileLabelText, { color: tileLabelColor }]}
-																>
-																	{tileLabel}
-																</BAIText>
-															) : null}
-														</View>
-														<View style={styles.tileNameRow}>
-															{hasTileItemName ? (
-																<View style={[styles.tileNamePill, { backgroundColor: tileLabelBg }]}>
-																	<BAIText
-																		variant='caption'
-																		numberOfLines={1}
-																		ellipsizeMode='tail'
-																		style={[styles.tileItemName, { color: tileLabelColor }]}
-																	>
-																		{tileItemName}
-																	</BAIText>
-																</View>
-															) : null}
-														</View>
-													</View>
-												</>
-											)}
-										</View>
-									) : null}
-								</View>
-								{!isArchived ? (
-									<View style={styles.imageActionColumn}>
-										<BAIIconButton
-											variant='outlined'
-											size='md'
-											icon='camera'
-											iconSize={34}
-											accessibilityLabel='Edit image'
-											onPress={onImagePress}
-											disabled={!canNavigate || isLoading}
-											style={styles.imageEditButtonOutside}
-										/>
-									</View>
+						) : isError ? (
+							<View style={styles.center}>
+								{typeLabel ? (
+									<BAIText variant='caption' muted style={styles.typeLabel}>
+										Type: {typeLabel}
+									</BAIText>
 								) : null}
-							</View>
 
-							<View style={styles.header}>
-								<View style={styles.headerLeft}>
-									<BAIText variant='title' numberOfLines={1} ellipsizeMode='tail' style={styles.title}>
-										{title}
-									</BAIText>
-									<BAIText variant='caption' muted numberOfLines={1} style={styles.headerSub}>
-										Status:{" "}
-										{typeof (product as any)?.isActive === "boolean"
-											? (product as any).isActive
-												? "Active"
-												: "Archived"
-											: "—"}
-									</BAIText>
+								<BAIText variant='title' numberOfLines={1} ellipsizeMode='tail' style={styles.title}>
+									{title}
+								</BAIText>
+
+								<BAIText variant='body' muted style={{ marginTop: 8, textAlign: "center" }}>
+									{errorMessage}
+								</BAIText>
+
+								<View style={styles.actions}>
+									<BAIRetryButton mode='contained' onPress={onRetry} disabled={!productId}>
+										Retry
+									</BAIRetryButton>
 								</View>
 							</View>
-
-							<View
-								style={[
-									styles.metaPanel,
-									{ borderColor, backgroundColor: theme.colors.surfaceVariant ?? theme.colors.surface },
-								]}
-							>
-								{metaRows.map((row, index) => (
-									<MetaRow
-										key={`${row.label}-${index}`}
-										label={row.label}
-										value={row.value}
-										divider={index < metaRows.length - 1}
-										dividerColor={borderColor}
-									/>
-								))}
-							</View>
-
-							{!isArchived ? (
-								<View style={styles.itemFooterActions}>
-									<BAICTAPillButton
-										variant='outline'
-										intent='primary'
-										onPress={onEditItem}
-										disabled={!canEditItem || !canNavigate || isLoading}
-										style={styles.footerActionButton}
-									>
-										Edit Item
-									</BAICTAPillButton>
-									<BAICTAPillButton
-										variant='solid'
-										onPress={onAdjustStock}
-										disabled={!productId}
-										style={styles.footerActionButton}
-									>
-										Adjust Stock
-									</BAICTAPillButton>
-								</View>
-							) : null}
-						</>
-					)}
-				</BAISurface>
-
-				{showDetails ? (
-					<BAISurface style={styles.card} padded={false}>
-						<View style={[styles.sectionHeader, { borderBottomColor: borderColor }]}>
-							<BAIText variant='subtitle'>Details</BAIText>
-						</View>
-
-						<View style={styles.sectionBodyTight}>
-							<View style={styles.detailsGridTight}>
-								{details.map((r, index) => (
-									<DetailRow
-										key={`${r.label}:${String(r.value)}`}
-										label={r.label}
-										value={r.value}
-										isLast={index === details.length - 1}
-									/>
-								))}
-							</View>
-						</View>
-					</BAISurface>
-				) : null}
-
-				<BAISurface style={styles.card} padded={false}>
-					<View style={[styles.sectionHeader, { borderBottomColor: borderColor }]}>
-						<View style={styles.sectionHeaderText}>
-							<BAIText variant='subtitle'>Recent Activity</BAIText>
-							<BAIText variant='caption' muted>
-								Last 5 Movements
-							</BAIText>
-						</View>
-						<BAIButton
-							variant='outline'
-							intent='neutral'
-							size='sm'
-							onPress={onViewAllActivity}
-							disabled={!productId}
-							style={styles.sectionHeaderAction}
-							widthPreset='standard'
-						>
-							View All
-						</BAIButton>
-					</View>
-
-					<View style={styles.sectionBody}>{activityContent}</View>
-				</BAISurface>
-
-				<BAISurface style={styles.card} padded>
-					<View style={styles.itemFooterActions}>
-						{isArchived ? (
-							<>
-								<BAICTAPillButton
-									variant='outline'
-									intent='neutral'
-									onPress={onCancel}
-									disabled={!canNavigate || isLoading}
-									style={styles.footerActionButton}
-								>
-									Cancel
-								</BAICTAPillButton>
-								<BAICTAPillButton
-									variant='solid'
-									intent='primary'
-									onPress={onRestoreItem}
-									disabled={!canPrimaryAction || !canNavigate || isLoading}
-									style={styles.footerActionButton}
-								>
-									Restore
-								</BAICTAPillButton>
-							</>
 						) : (
 							<>
-								<BAICTAPillButton
-									variant='outline'
-									intent='danger'
-									onPress={onArchiveItem}
-									disabled={!canPrimaryAction || !canNavigate || isLoading}
-									style={styles.footerActionButton}
+								<View style={styles.imageHeaderRow}>
+									<View
+										style={[
+											styles.imagePreview,
+											{
+												borderColor,
+												backgroundColor: theme.colors.surfaceVariant ?? theme.colors.surface,
+											},
+										]}
+									>
+										{previewHasImage ? (
+											<View style={styles.imageFill}>
+												<Image
+													source={{ uri: imageUri }}
+													style={styles.imagePreviewImage}
+													resizeMode='cover'
+													onLoadStart={() => {
+														setIsImageLoading(true);
+														setImageLoadFailed(false);
+													}}
+													onLoadEnd={() => setIsImageLoading(false)}
+													onError={() => {
+														setIsImageLoading(false);
+														setImageLoadFailed(true);
+													}}
+												/>
+
+												{isImageLoading ? (
+													<View style={styles.imageLoadingOverlay} pointerEvents='none'>
+														<BAIActivityIndicator />
+													</View>
+												) : null}
+
+												{imageLoadFailed ? (
+													<View style={styles.imageLoadingOverlay} pointerEvents='none'>
+														<FontAwesome6
+															name='image'
+															size={48}
+															color={theme.colors.onSurfaceVariant ?? theme.colors.onSurface}
+														/>
+														<View style={{ height: 6 }} />
+														<BAIText variant='caption' muted>
+															Failed to load photo
+														</BAIText>
+													</View>
+												) : null}
+											</View>
+										) : hasColor ? (
+											<View style={[styles.imagePreviewImage, { backgroundColor: tileColor }]} />
+										) : shouldShowEmpty ? (
+											<View style={styles.imagePreviewEmpty}>
+												<FontAwesome6
+													name='image'
+													size={64}
+													color={theme.colors.onSurfaceVariant ?? theme.colors.onSurface}
+												/>
+												<BAIText variant='caption' muted>
+													No Photo
+												</BAIText>
+											</View>
+										) : null}
+										{shouldShowTileTextOverlay ? (
+											<View style={styles.tileLabelWrap}>
+												{shouldShowNameOnlyOverlay ? (
+													<View style={styles.tileNameOnlyContent}>
+														<View style={[styles.tileNamePill, { backgroundColor: tileLabelBg }]}>
+															<BAIText
+																variant='caption'
+																numberOfLines={1}
+																ellipsizeMode='tail'
+																style={[styles.tileItemName, { color: tileLabelColor }]}
+															>
+																{tileItemName}
+															</BAIText>
+														</View>
+													</View>
+												) : (
+													<>
+														<View style={[styles.tileLabelOverlay, { backgroundColor: tileLabelBg }]} />
+														<View style={styles.tileLabelContent}>
+															<View style={styles.tileLabelRow}>
+																{hasTileLabel ? (
+																	<BAIText
+																		variant='subtitle'
+																		numberOfLines={1}
+																		style={[styles.tileLabelText, { color: tileLabelColor }]}
+																	>
+																		{tileLabel}
+																	</BAIText>
+																) : null}
+															</View>
+															<View style={styles.tileNameRow}>
+																{hasTileItemName ? (
+																	<View style={[styles.tileNamePill, { backgroundColor: tileLabelBg }]}>
+																		<BAIText
+																			variant='caption'
+																			numberOfLines={1}
+																			ellipsizeMode='tail'
+																			style={[styles.tileItemName, { color: tileLabelColor }]}
+																		>
+																			{tileItemName}
+																		</BAIText>
+																	</View>
+																) : null}
+															</View>
+														</View>
+													</>
+												)}
+											</View>
+										) : null}
+									</View>
+									{!isArchived ? (
+										<View style={styles.imageActionColumn}>
+											<BAIIconButton
+												variant='outlined'
+												size='md'
+												icon='camera'
+												iconSize={34}
+												accessibilityLabel='Edit image'
+												onPress={onImagePress}
+												disabled={!canNavigate || isLoading}
+												style={styles.imageEditButtonOutside}
+											/>
+										</View>
+									) : null}
+								</View>
+
+								<View style={styles.header}>
+									<View style={styles.headerLeft}>
+										<BAIText variant='title' numberOfLines={1} ellipsizeMode='tail' style={styles.title}>
+											{title}
+										</BAIText>
+										<BAIText variant='caption' muted numberOfLines={1} style={styles.headerSub}>
+											Status:{" "}
+											{typeof (product as any)?.isActive === "boolean"
+												? (product as any).isActive
+													? "Active"
+													: "Archived"
+												: "—"}
+										</BAIText>
+									</View>
+								</View>
+
+								<View
+									style={[
+										styles.metaPanel,
+										{ borderColor, backgroundColor: theme.colors.surfaceVariant ?? theme.colors.surface },
+									]}
 								>
-									Archive
-								</BAICTAPillButton>
-								<BAICTAPillButton
-									variant='outline'
-									intent='neutral'
-									onPress={onCancel}
-									disabled={!canNavigate || isLoading}
-									style={styles.footerActionButton}
-								>
-									Cancel
-								</BAICTAPillButton>
+									{metaRows.map((row, index) => (
+										<MetaRow
+											key={`${row.label}-${index}`}
+											label={row.label}
+											value={row.value}
+											divider={index < metaRows.length - 1}
+											dividerColor={borderColor}
+										/>
+									))}
+								</View>
+
+								{!isArchived ? (
+									<View style={[styles.itemFooterActions, styles.topActionsContainer]}>
+										<BAICTAPillButton
+											variant='outline'
+											intent='primary'
+											onPress={onEditItem}
+											disabled={!canEditItem || !canNavigate || isLoading}
+											style={styles.footerActionButton}
+										>
+											Edit Item
+										</BAICTAPillButton>
+										<BAICTAPillButton
+											variant='solid'
+											onPress={onAdjustStock}
+											disabled={!productId}
+											style={styles.footerActionButton}
+										>
+											Adjust Stock
+										</BAICTAPillButton>
+									</View>
+								) : null}
+
+								{showDetails ? (
+									<>
+										<View style={styles.detailsSectionContainerPadding}>
+											<View
+												style={[
+													styles.detailsSecondaryContainer,
+													{ borderColor, backgroundColor: theme.colors.surfaceVariant ?? theme.colors.surface },
+												]}
+											>
+												<View style={[styles.sectionHeader, { borderBottomColor: borderColor }]}>
+													<BAIText variant='subtitle'>Details</BAIText>
+												</View>
+												<View style={styles.sectionBody}>
+													<View style={styles.detailsGridTight}>
+														{details.map((r, index) => (
+															<DetailRow
+																key={`${r.label}:${String(r.value)}`}
+																label={r.label}
+																value={r.value}
+																isLast={index === details.length - 1}
+															/>
+														))}
+													</View>
+												</View>
+											</View>
+										</View>
+									</>
+								) : null}
+
+								<View style={styles.recentSectionContainerPadding}>
+									<View
+										style={[
+											styles.detailsSecondaryContainer,
+											{ borderColor, backgroundColor: theme.colors.surfaceVariant ?? theme.colors.surface },
+										]}
+									>
+										<View style={[styles.sectionHeader, { borderBottomColor: borderColor }]}>
+											<View style={styles.sectionHeaderText}>
+												<BAIText variant='subtitle'>Recent Activity</BAIText>
+												<BAIText variant='caption' muted>
+													Last 5 Movements
+												</BAIText>
+											</View>
+											<BAIButton
+												variant='outline'
+												intent='neutral'
+												size='sm'
+												onPress={onViewAllActivity}
+												disabled={!productId}
+												style={styles.sectionHeaderAction}
+												widthPreset='standard'
+											>
+												View All
+											</BAIButton>
+										</View>
+
+										<View style={styles.sectionBody}>{activityContent}</View>
+									</View>
+								</View>
+
+								<View style={[styles.itemFooterActions, styles.bottomActionsContainer]}>
+									{isArchived ? (
+										<>
+											<BAICTAPillButton
+												variant='outline'
+												intent='neutral'
+												onPress={onCancel}
+												disabled={!canNavigate || isLoading}
+												style={styles.footerActionButton}
+											>
+												Cancel
+											</BAICTAPillButton>
+											<BAICTAPillButton
+												variant='solid'
+												intent='primary'
+												onPress={onRestoreItem}
+												disabled={!canPrimaryAction || !canNavigate || isLoading}
+												style={styles.footerActionButton}
+											>
+												Restore
+											</BAICTAPillButton>
+										</>
+									) : (
+										<>
+											<BAICTAPillButton
+												variant='outline'
+												intent='danger'
+												onPress={onArchiveItem}
+												disabled={!canPrimaryAction || !canNavigate || isLoading}
+												style={styles.footerActionButton}
+											>
+												Archive
+											</BAICTAPillButton>
+											<BAICTAPillButton
+												variant='outline'
+												intent='neutral'
+												onPress={onCancel}
+												disabled={!canNavigate || isLoading}
+												style={styles.footerActionButton}
+											>
+												Cancel
+											</BAICTAPillButton>
+										</>
+									)}
+								</View>
 							</>
 						)}
-					</View>
+					</ScrollView>
 				</BAISurface>
 			</BAIScreen>
 		</>
@@ -1234,8 +1270,26 @@ export default function InventoryProductDetailScreen({ routeScope = "inventory" 
 
 const styles = StyleSheet.create({
 	root: { flex: 1 },
-	screen: { paddingHorizontal: 12, paddingBottom: 12, paddingTop: 0 },
-	card: { overflow: "hidden" },
+	screen: { flex: 1, paddingHorizontal: 12, paddingBottom: 12, paddingTop: 0 },
+	card: {
+		flex: 1,
+		minHeight: 0,
+		borderWidth: 1,
+		borderRadius: 24,
+		gap: 6,
+		overflow: "hidden",
+		paddingHorizontal: 0,
+		paddingTop: 12,
+		paddingBottom: 12,
+	},
+	cardScroll: { flex: 1 },
+	cardScrollContent: { paddingBottom: 4 },
+	cardHeader: {
+		paddingHorizontal: 14,
+		paddingBottom: 10,
+		marginBottom: 0,
+		borderBottomWidth: StyleSheet.hairlineWidth,
+	},
 	center: { padding: 16, alignItems: "center", justifyContent: "center" },
 
 	imageHeaderRow: {
@@ -1255,10 +1309,18 @@ const styles = StyleSheet.create({
 		borderRadius: 30,
 	},
 	itemFooterActions: {
-		marginTop: 12,
+		marginTop: 16,
 		flexDirection: "row",
 		alignItems: "center",
 		gap: 10,
+	},
+	topActionsContainer: {
+		paddingHorizontal: 12,
+		paddingBottom: 12,
+	},
+	bottomActionsContainer: {
+		paddingHorizontal: 12,
+		paddingVertical: 10,
 	},
 	footerActionButton: {
 		flex: 1,
@@ -1345,11 +1407,23 @@ const styles = StyleSheet.create({
 		marginTop: 0,
 		fontSize: 18,
 	},
-	header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 },
+	header: {
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "space-between",
+		gap: 12,
+		paddingHorizontal: 12,
+	},
 	headerLeft: { flex: 1, minWidth: 0, gap: 6 },
 	headerSub: { opacity: 0.9 },
 
-	metaPanel: { borderWidth: StyleSheet.hairlineWidth, borderRadius: 16, overflow: "hidden", marginTop: 12 },
+	metaPanel: {
+		borderWidth: StyleSheet.hairlineWidth,
+		borderRadius: 16,
+		overflow: "hidden",
+		marginTop: 12,
+		marginHorizontal: 12,
+	},
 	metaRow: { flexDirection: "row", alignItems: "center", paddingHorizontal: 12, paddingVertical: 10, gap: 8 },
 	metaRowDivider: { borderBottomWidth: StyleSheet.hairlineWidth },
 	metaLabel: { width: 88 },
@@ -1374,9 +1448,21 @@ const styles = StyleSheet.create({
 	},
 	sectionHeaderText: { flex: 1, minWidth: 0, gap: 2 },
 	sectionHeaderAction: { marginLeft: 8 },
+	detailsSectionContainerPadding: {
+		paddingHorizontal: 12,
+		paddingVertical: 10,
+	},
+	recentSectionContainerPadding: {
+		paddingHorizontal: 12,
+		paddingVertical: 10,
+	},
+	detailsSecondaryContainer: {
+		borderWidth: StyleSheet.hairlineWidth,
+		borderRadius: 16,
+		overflow: "hidden",
+	},
 
 	sectionBody: { padding: 12 },
-	sectionBodyTight: { paddingHorizontal: 12, paddingVertical: 10 },
 
 	emptyState: { paddingVertical: 6 },
 	detailsGridTight: { gap: 0 },

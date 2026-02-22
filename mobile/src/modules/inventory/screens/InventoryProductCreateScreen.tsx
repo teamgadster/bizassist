@@ -28,7 +28,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { FontAwesome6 } from "@expo/vector-icons";
 
 import { BAIScreen } from "@/components/ui/BAIScreen";
-import { BAIInlineHeaderMount } from "@/components/ui/BAIInlineHeaderMount";
 import { BAISurface } from "@/components/ui/BAISurface";
 import { BAIText } from "@/components/ui/BAIText";
 import { BAIButton } from "@/components/ui/BAIButton";
@@ -59,7 +58,11 @@ import {
 import { GTIN_MAX_LENGTH, sanitizeGtinInput, validateGtinValue } from "@/shared/validation/gtin";
 import { inventoryApi } from "@/modules/inventory/inventory.api";
 import { useInventoryHeader } from "@/modules/inventory/useInventoryHeader";
-import { inventoryScopeRoot, mapInventoryRouteToScope, type InventoryRouteScope } from "@/modules/inventory/navigation.scope";
+import {
+	inventoryScopeRoot,
+	mapInventoryRouteToScope,
+	type InventoryRouteScope,
+} from "@/modules/inventory/navigation.scope";
 import { runGovernedExitReplace } from "@/modules/inventory/navigation.governance";
 import { invalidateInventoryAfterMutation } from "@/modules/inventory/inventory.invalidate";
 import type { CreateProductInput } from "@/modules/inventory/inventory.types";
@@ -175,7 +178,6 @@ function capText(raw: string, maxLen: number) {
 	if (maxLen <= 0) return "";
 	return raw.length > maxLen ? raw.slice(0, maxLen) : raw;
 }
-
 
 /**
  * ✅ MIN SAFE FIX (Create):
@@ -338,7 +340,11 @@ function normalizeQuantityForUnitChange(raw: string, nextScale: number, hardCap:
 	return capText(`${intPart}.${paddedFrac}`, hardCap);
 }
 
-export default function InventoryProductCreateScreen({ routeScope = "inventory" }: { routeScope?: InventoryRouteScope }) {
+export default function InventoryProductCreateScreen({
+	routeScope = "inventory",
+}: {
+	routeScope?: InventoryRouteScope;
+}) {
 	const router = useRouter();
 	const theme = useTheme();
 	const queryClient = useQueryClient();
@@ -797,8 +803,17 @@ export default function InventoryProductCreateScreen({ routeScope = "inventory" 
 				[UNIT_SELECTION_SOURCE_KEY]: "existing",
 			} as any,
 		});
-	}, [draftId, effectiveUnit, effectiveUnitId, isUiDisabled, lockNav, router, thisRoute, toScopedRoute, unitProductType]);
-
+	}, [
+		draftId,
+		effectiveUnit,
+		effectiveUnitId,
+		isUiDisabled,
+		lockNav,
+		router,
+		thisRoute,
+		toScopedRoute,
+		unitProductType,
+	]);
 
 	/* ---------------- save ---------------- */
 
@@ -1020,6 +1035,7 @@ export default function InventoryProductCreateScreen({ routeScope = "inventory" 
 		title: "Create Item",
 		disabled: isUiDisabled,
 		onExit: guardedOnExitToAddItems,
+		exitFallbackRoute: addItemsRoute,
 	});
 
 	return (
@@ -1030,7 +1046,6 @@ export default function InventoryProductCreateScreen({ routeScope = "inventory" 
 					headerShadowVisible: false,
 				}}
 			/>
-						<BAIInlineHeaderMount options={headerOptions} />
 
 			<BAIScreen padded={false} safeTop={false} safeBottom={false} style={styles.root}>
 				<View
@@ -1225,7 +1240,6 @@ export default function InventoryProductCreateScreen({ routeScope = "inventory" 
 								disabled={isUiDisabled}
 								style={{ marginTop: 10 }}
 							/>
-
 
 							{!effectiveUnitId ? (
 								<BAIText variant='caption' muted>

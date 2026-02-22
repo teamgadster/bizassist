@@ -9,7 +9,6 @@ import { useTheme } from "react-native-paper";
 
 import { BAIActivityIndicator } from "@/components/system/BAIActivityIndicator";
 import { BAIButton } from "@/components/ui/BAIButton";
-import { BAIInlineHeaderMount } from "@/components/ui/BAIInlineHeaderMount";
 import { BAIRetryButton } from "@/components/ui/BAIRetryButton";
 import { BAIScreen } from "@/components/ui/BAIScreen";
 import { BAISurface } from "@/components/ui/BAISurface";
@@ -132,7 +131,6 @@ export function OptionSetDetailScreen({ mode = "settings" }: { mode?: OptionSetF
 	return (
 		<>
 			<Stack.Screen options={headerOptions} />
-			<BAIInlineHeaderMount options={headerOptions} />
 			<BAIScreen tabbed padded={false} safeTop={false} scroll contentContainerStyle={styles.scrollContent}>
 				<View style={styles.screen}>
 					{query.isLoading ? (

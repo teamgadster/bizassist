@@ -25,7 +25,6 @@ import { useAppBusy } from "@/hooks/useAppBusy";
 import { useNavLock } from "@/shared/hooks/useNavLock";
 import { FIELD_LIMITS } from "@/shared/fieldLimits";
 import { sanitizeMoneyInput } from "@/shared/validation/sanitize";
-import { BAIInlineHeaderMount } from "@/components/ui/BAIInlineHeaderMount";
 import { useAppHeader } from "@/modules/navigation/useAppHeader";
 import { useActiveBusinessMeta } from "@/modules/business/useActiveBusinessMeta";
 import {
@@ -161,7 +160,6 @@ export default function DiscountCreateScreen() {
 	return (
 		<>
 			<Stack.Screen options={headerOptions} />
-			<BAIInlineHeaderMount options={headerOptions} />
 
 			<BAIScreen padded={false} safeTop={false} style={styles.root}>
 				<KeyboardAvoidingView

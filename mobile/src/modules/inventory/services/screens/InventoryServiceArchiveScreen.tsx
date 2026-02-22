@@ -8,13 +8,13 @@
 
 import { useCallback, useMemo, useRef, useState } from "react";
 import { StyleSheet, View } from "react-native";
-import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTheme } from "react-native-paper";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { BAIButton } from "@/components/ui/BAIButton";
 import { BAICTAPillButton } from "@/components/ui/BAICTAButton";
-import { BAIInlineHeaderMount } from "@/components/ui/BAIInlineHeaderMount";
+import { BAIInlineHeaderScaffold } from "@/components/ui/BAIInlineHeaderScaffold";
 import { BAIRetryButton } from "@/components/ui/BAIRetryButton";
 import { BAIScreen } from "@/components/ui/BAIScreen";
 import { BAISurface } from "@/components/ui/BAISurface";
@@ -23,11 +23,14 @@ import { useAppBusy } from "@/hooks/useAppBusy";
 import { catalogKeys } from "@/modules/catalog/catalog.queries";
 import { inventoryApi } from "@/modules/inventory/inventory.api";
 import { invalidateInventoryAfterMutation } from "@/modules/inventory/inventory.invalidate";
-import { inventoryScopeRoot, mapInventoryRouteToScope, type InventoryRouteScope } from "@/modules/inventory/navigation.scope";
+import {
+	inventoryScopeRoot,
+	mapInventoryRouteToScope,
+	type InventoryRouteScope,
+} from "@/modules/inventory/navigation.scope";
 import { runGovernedProcessExit } from "@/modules/inventory/navigation.governance";
 import { inventoryKeys } from "@/modules/inventory/inventory.queries";
 import type { InventoryProductDetail } from "@/modules/inventory/inventory.types";
-import { useInventoryHeader } from "@/modules/inventory/useInventoryHeader";
 
 function extractApiErrorMessage(err: unknown): string {
 	const data = (err as any)?.response?.data;
@@ -35,7 +38,11 @@ function extractApiErrorMessage(err: unknown): string {
 	return String(msg);
 }
 
-export default function InventoryServiceArchiveScreen({ routeScope = "inventory" }: { routeScope?: InventoryRouteScope }) {
+export default function InventoryServiceArchiveScreen({
+	routeScope = "inventory",
+}: {
+	routeScope?: InventoryRouteScope;
+}) {
 	const router = useRouter();
 	const theme = useTheme();
 	const qc = useQueryClient();
@@ -108,16 +115,9 @@ export default function InventoryServiceArchiveScreen({ routeScope = "inventory"
 	}, [canArchive, detailRoute, isUiDisabled, lockNav, product, productId, qc, router, withBusy]);
 
 	const borderColor = theme.colors.outlineVariant ?? theme.colors.outline;
-	const headerOptions = useInventoryHeader("process", {
-		title: "Archive Service",
-		disabled: isUiDisabled,
-		onExit,
-	});
 
 	return (
-		<>
-			<Stack.Screen options={headerOptions} />
-			<BAIInlineHeaderMount options={headerOptions} />
+		<BAIInlineHeaderScaffold title='Archive Service' variant='exit' onLeftPress={onExit} disabled={isUiDisabled}>
 			<BAIScreen tabbed padded={false} safeTop={false}>
 				<View style={styles.screen}>
 					<BAISurface style={[styles.card, { borderColor }]} padded bordered>
@@ -193,11 +193,14 @@ export default function InventoryServiceArchiveScreen({ routeScope = "inventory"
 					</BAISurface>
 				</View>
 			</BAIScreen>
-		</>
+		</BAIInlineHeaderScaffold>
 	);
 }
 
 const styles = StyleSheet.create({
+	root: {
+		flex: 1,
+	},
 	screen: {
 		flex: 1,
 		padding: 12,

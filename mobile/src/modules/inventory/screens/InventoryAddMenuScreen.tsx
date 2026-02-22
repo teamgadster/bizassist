@@ -2,11 +2,11 @@
 // path: src/modules/inventory/screens/InventoryAddMenuScreen.tsx
 import React, { useCallback, useMemo, useRef, useState } from "react";
 import { View, StyleSheet } from "react-native";
-import { Stack, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { useTheme } from "react-native-paper";
 
+import { BAIInlineHeaderScaffold } from "@/components/ui/BAIInlineHeaderScaffold";
 import { BAIScreen } from "@/components/ui/BAIScreen";
-import { BAIInlineHeaderMount } from "@/components/ui/BAIInlineHeaderMount";
 import { BAISurface } from "@/components/ui/BAISurface";
 import { AddMenuList, type AddMenuListItem } from "@/components/system/AddMenuList";
 
@@ -15,7 +15,6 @@ import {
 	mapInventoryRouteToScope,
 	type InventoryRouteScope,
 } from "@/modules/inventory/navigation.scope";
-import { useInventoryHeader } from "@/modules/inventory/useInventoryHeader";
 
 export default function InventoryAddMenu({ routeScope = "inventory" }: { routeScope?: InventoryRouteScope }) {
 	const router = useRouter();
@@ -45,11 +44,6 @@ export default function InventoryAddMenu({ routeScope = "inventory" }: { routeSc
 		if (!lockNav()) return;
 		router.replace(inventoryRootRoute as any);
 	}, [inventoryRootRoute, lockNav, router]);
-
-	const headerOptions = useInventoryHeader("process", {
-		title: "Create New",
-		onExit,
-	});
 
 	const safePush = useCallback(
 		(path: string) => {
@@ -97,11 +91,9 @@ export default function InventoryAddMenu({ routeScope = "inventory" }: { routeSc
 	const dividerColor = theme.colors.outlineVariant ?? theme.colors.outline;
 
 	return (
-		<>
-			<Stack.Screen options={headerOptions} />
-			<BAIInlineHeaderMount options={headerOptions} />
+		<BAIInlineHeaderScaffold title='Create New' variant='exit' onLeftPress={onExit} disabled={isNavLocked}>
 			<BAIScreen padded={false} safeTop={false} style={styles.root}>
-				<View style={[styles.screen, { backgroundColor: theme.colors.background }]}>
+				<View style={styles.screen}>
 					<BAISurface style={[styles.card, { borderColor: dividerColor }]}>
 						<View style={styles.cardBody}>
 							<AddMenuList items={menuItems} disabled={isNavLocked} />
@@ -109,7 +101,7 @@ export default function InventoryAddMenu({ routeScope = "inventory" }: { routeSc
 					</BAISurface>
 				</View>
 			</BAIScreen>
-		</>
+		</BAIInlineHeaderScaffold>
 	);
 }
 

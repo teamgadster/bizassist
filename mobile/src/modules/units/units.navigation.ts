@@ -16,7 +16,8 @@ import {
 
 export const CREATE_ITEM_ROUTE = "/(app)/(tabs)/inventory/products/create" as const;
 export const ADD_ITEM_ROUTE = "/(app)/(tabs)/inventory/add-item" as const;
-export const SETTINGS_ITEMS_SERVICES_CREATE_ITEM_ROUTE = "/(app)/(tabs)/settings/items-services/products/create" as const;
+export const SETTINGS_ITEMS_SERVICES_CREATE_ITEM_ROUTE =
+	"/(app)/(tabs)/settings/items-services/products/create" as const;
 export const SETTINGS_ITEMS_SERVICES_ADD_ITEM_ROUTE = "/(app)/(tabs)/settings/items-services/add-item" as const;
 export const UNITS_INDEX_ROUTE = "/(app)/(tabs)/inventory/units" as const;
 export const SETTINGS_UNITS_ROUTE = "/(app)/(tabs)/settings/units" as const;
@@ -55,12 +56,16 @@ function isAllowedReturnTo(route: string): boolean {
 	return ALLOWED_RETURN_TO_PATTERNS.some((pattern) => pattern.test(route));
 }
 
-function resolveFallbackReturnTo(params: Record<string, unknown>): string {
+function resolveFallbackReturnTo(params: Record<string, unknown>, explicitFallback?: string): string {
+	if (explicitFallback && isAllowedReturnTo(explicitFallback)) {
+		return explicitFallback;
+	}
+
 	const draftId = String(params?.[DRAFT_ID_KEY] ?? "").trim();
 	return draftId ? CREATE_ITEM_ROUTE : ADD_ITEM_ROUTE;
 }
 
-export function resolveReturnTo(params: Record<string, unknown>): string {
+export function resolveReturnTo(params: Record<string, unknown>, explicitFallback?: string): string {
 	const raw = normalizeReturnTo(params?.[RETURN_TO_KEY]);
 	if (raw && isAllowedReturnTo(raw)) return raw;
 
@@ -68,7 +73,7 @@ export function resolveReturnTo(params: Record<string, unknown>): string {
 		console.warn(`[units.navigation] Invalid returnTo "${raw}", falling back to a safe default.`);
 	}
 
-	return resolveFallbackReturnTo(params);
+	return resolveFallbackReturnTo(params, explicitFallback);
 }
 
 export function goBackSafe(router: RouterLike, fallbackRoute: FallbackRoute) {

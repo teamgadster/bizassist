@@ -29,7 +29,6 @@ import { categoryKeys } from "@/modules/categories/categories.queryKeys";
 import type { Category } from "@/modules/categories/categories.types";
 import { CategoryRow } from "@/modules/categories/components/CategoryRow";
 import { useActiveBusinessMeta } from "@/modules/business/useActiveBusinessMeta";
-import { BAIInlineHeaderMount } from "@/components/ui/BAIInlineHeaderMount";
 import { useAppHeader } from "@/modules/navigation/useAppHeader";
 import { useInventoryHeader } from "@/modules/inventory/useInventoryHeader";
 import { formatCompactNumber } from "@/lib/locale/businessLocale";
@@ -240,7 +239,6 @@ export function CategoriesLedgerScreen({
 	return (
 		<>
 			<Stack.Screen options={headerOptions} />
-			<BAIInlineHeaderMount options={headerOptions} />
 			<BAIScreen tabbed padded={false} safeTop={false} safeBottom={false} style={styles.root}>
 				<TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
 					<View style={[styles.wrap, { paddingBottom: screenBottomPad }]}>

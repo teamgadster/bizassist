@@ -5,15 +5,14 @@
 // - This is a DETAIL screen (drill-down from Activity List).
 // - Use BACK (history) only. No Exit/cancel semantics here.
 
-import React, { useMemo } from "react";
+import React, { useCallback, useMemo } from "react";
 import { Image, StyleSheet, View } from "react-native";
-import { Stack, useLocalSearchParams } from "expo-router";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useTheme } from "react-native-paper";
 import { useQuery } from "@tanstack/react-query";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import { BAIScreen } from "@/components/ui/BAIScreen";
-import { BAIInlineHeaderMount } from "@/components/ui/BAIInlineHeaderMount";
 import { BAISurface } from "@/components/ui/BAISurface";
 import { BAIText } from "@/components/ui/BAIText";
 import { BAIActivityIndicator } from "@/components/system/BAIActivityIndicator";
@@ -133,12 +132,7 @@ function formatSignedQuantity(value: unknown, scale: number, mode: QuantityMode)
 	return `+${base}`;
 }
 
-function formatSignedQuantityWithUnit(
-	value: unknown,
-	scale: number,
-	unitSource: any,
-	mode: QuantityMode,
-): string {
+function formatSignedQuantityWithUnit(value: unknown, scale: number, unitSource: any, mode: QuantityMode): string {
 	const baseSigned = formatSignedQuantity(value, scale, mode);
 	if (baseSigned === "—") return baseSigned;
 	const unitToken = unitDisplayToken(unitSource, "quantity", value);
@@ -159,7 +153,10 @@ function resolveMovementDelta(movement: any): { value: unknown; mode: QuantityMo
 			: null;
 	if (scaled !== null) return { value: scaled, mode: "scaled-int" };
 
-	const legacy = typeof movement?.quantityDelta === "number" && Number.isFinite(movement.quantityDelta) ? movement.quantityDelta : null;
+	const legacy =
+		typeof movement?.quantityDelta === "number" && Number.isFinite(movement.quantityDelta)
+			? movement.quantityDelta
+			: null;
 	return { value: legacy, mode: "scaled-int" };
 }
 
@@ -216,14 +213,24 @@ function InfoRow({
 }
 
 export default function InventoryMovementDetailScreen() {
+	const router = useRouter();
 	const theme = useTheme();
 	const params = useLocalSearchParams<Params>();
 
 	const productId = useMemo(() => String(params.id ?? "").trim(), [params.id]);
 	const movementId = useMemo(() => String(params.movementId ?? "").trim(), [params.movementId]);
 	const enabled = !!productId && !!movementId;
+	const onBack = useCallback(() => {
+		if (!productId) {
+			router.back();
+			return;
+		}
+		router.replace(`/(app)/(tabs)/inventory/products/${encodeURIComponent(productId)}/activity` as any);
+	}, [productId, router]);
 	const headerOptions = useInventoryHeader("detail", {
 		title: "Activity Details",
+		headerBackTitle: "Activity",
+		onBack,
 	});
 
 	// Identity anchor (product name + on-hand). Read-only and safe.
@@ -276,7 +283,12 @@ export default function InventoryMovementDetailScreen() {
 	const rawReason = (movement as any)?.reason;
 	const reason = reasonLabel(rawReason);
 	const deltaResolved = resolveMovementDelta(movement as any);
-	const delta = formatSignedQuantityWithUnit(deltaResolved.value, unitPrecisionScale, productDetailQuery.data, deltaResolved.mode);
+	const delta = formatSignedQuantityWithUnit(
+		deltaResolved.value,
+		unitPrecisionScale,
+		productDetailQuery.data,
+		deltaResolved.mode,
+	);
 
 	const isStockOut =
 		typeof rawReason === "string" ? rawReason.trim().toUpperCase() === "STOCK_OUT" : reason === "Stock Out";
@@ -290,7 +302,6 @@ export default function InventoryMovementDetailScreen() {
 		<>
 			{/* ✅ BACK only. No Exit/cancel semantics here. */}
 			<Stack.Screen options={headerOptions} />
-			<BAIInlineHeaderMount options={headerOptions} />
 
 			<BAIScreen
 				padded={false}

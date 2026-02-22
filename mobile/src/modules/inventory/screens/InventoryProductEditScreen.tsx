@@ -16,7 +16,6 @@ import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { BAIMoneyInput } from "@/components/ui/BAIMoneyInput";
 import { BAIButton } from "@/components/ui/BAIButton";
 import { BAICTAPillButton } from "@/components/ui/BAICTAButton";
-import { BAIHeader } from "@/components/ui/BAIHeader";
 import { BAIIconButton } from "@/components/ui/BAIIconButton";
 import { BAIRetryButton } from "@/components/ui/BAIRetryButton";
 import { BAIScreen } from "@/components/ui/BAIScreen";
@@ -47,6 +46,7 @@ import {
 	ROOT_RETURN_TO_KEY as POS_TILE_ROOT_RETURN_TO_KEY,
 	TILE_LABEL_KEY as POS_TILE_TILE_LABEL_KEY,
 } from "@/modules/inventory/posTile.contract";
+import { useInventoryHeader } from "@/modules/inventory/useInventoryHeader";
 import { uploadProductImage } from "@/modules/media/media.upload";
 import { toMediaDomainError } from "@/modules/media/media.errors";
 import { FIELD_LIMITS } from "@/shared/fieldLimits";
@@ -213,7 +213,8 @@ function deriveTileSnapshot(product: InventoryProductDetail | null): {
 		.trim()
 		.toUpperCase();
 	const hasRemoteTileImage = typeof p?.primaryImageUrl === "string" && p.primaryImageUrl.trim().length > 0;
-	const tileMode = rawMode === "IMAGE" ? "IMAGE" : rawMode === "COLOR" ? "COLOR" : hasRemoteTileImage ? "IMAGE" : "COLOR";
+	const tileMode =
+		rawMode === "IMAGE" ? "IMAGE" : rawMode === "COLOR" ? "COLOR" : hasRemoteTileImage ? "IMAGE" : "COLOR";
 	const posTileNode = p?.posTile && typeof p.posTile === "object" ? p.posTile : null;
 	const tileLabel = sanitizeLabelInput(
 		typeof p?.posTileLabel === "string"
@@ -224,17 +225,18 @@ function deriveTileSnapshot(product: InventoryProductDetail | null): {
 					? p.posTileTitle
 					: typeof p?.tileTitle === "string"
 						? p.tileTitle
-				: typeof p?.posTileName === "string"
-					? p.posTileName
-					: typeof posTileNode?.label === "string"
-						? posTileNode.label
-						: typeof posTileNode?.name === "string"
-							? posTileNode.name
-							: typeof posTileNode?.title === "string"
-								? posTileNode.title
-							: "",
+						: typeof p?.posTileName === "string"
+							? p.posTileName
+							: typeof posTileNode?.label === "string"
+								? posTileNode.label
+								: typeof posTileNode?.name === "string"
+									? posTileNode.name
+									: typeof posTileNode?.title === "string"
+										? posTileNode.title
+										: "",
 	).trim();
-	const tileColor = typeof p?.posTileColor === "string" && p.posTileColor.trim().length > 0 ? p.posTileColor.trim() : null;
+	const tileColor =
+		typeof p?.posTileColor === "string" && p.posTileColor.trim().length > 0 ? p.posTileColor.trim() : null;
 
 	return { tileMode, tileColor, tileLabel };
 }
@@ -261,7 +263,10 @@ export default function InventoryProductEditScreen({ routeScope = "inventory" }:
 	const { draft: mediaDraft, patch: patchMediaDraft } = useProductCreateDraft(draftId);
 	const rawReturnTo = params[DETAIL_RETURN_TO_KEY];
 	const detailRoute = useMemo(
-		() => (productId ? toScopedRoute(`/(app)/(tabs)/inventory/products/${encodeURIComponent(productId)}` as const) : rootRoute),
+		() =>
+			productId
+				? toScopedRoute(`/(app)/(tabs)/inventory/products/${encodeURIComponent(productId)}` as const)
+				: rootRoute,
 		[productId, rootRoute, toScopedRoute],
 	);
 	const thisRoute = useMemo(() => `${detailRoute}/edit`, [detailRoute]);
@@ -362,14 +367,26 @@ export default function InventoryProductEditScreen({ routeScope = "inventory" }:
 			tileColor: baselineTileSnapshot.tileColor,
 			tileLabel: baselineTileSnapshot.tileLabel,
 		};
-	}, [baselineTileSnapshot.tileColor, baselineTileSnapshot.tileLabel, baselineTileSnapshot.tileMode, precisionScale, product]);
+	}, [
+		baselineTileSnapshot.tileColor,
+		baselineTileSnapshot.tileLabel,
+		baselineTileSnapshot.tileMode,
+		precisionScale,
+		product,
+	]);
 	const isMediaDraftPristine = useMemo(() => {
 		const draftImage = String(mediaDraft.imageLocalUri ?? "").trim();
 		const draftLabel = String(mediaDraft.posTileLabel ?? "").trim();
 		const draftMode = mediaDraft.posTileMode === "IMAGE" ? "IMAGE" : "COLOR";
 		const draftColor = typeof mediaDraft.posTileColor === "string" ? mediaDraft.posTileColor.trim() : "";
 		return !draftImage && !draftLabel && !mediaDraftTileLabelTouched && draftMode === "COLOR" && !draftColor;
-	}, [mediaDraft.imageLocalUri, mediaDraft.posTileColor, mediaDraft.posTileLabel, mediaDraft.posTileMode, mediaDraftTileLabelTouched]);
+	}, [
+		mediaDraft.imageLocalUri,
+		mediaDraft.posTileColor,
+		mediaDraft.posTileLabel,
+		mediaDraft.posTileMode,
+		mediaDraftTileLabelTouched,
+	]);
 
 	useEffect(() => {
 		if (!product || !baseline) return;
@@ -413,9 +430,7 @@ export default function InventoryProductEditScreen({ routeScope = "inventory" }:
 
 	useEffect(() => {
 		const raw =
-			typeof (params as any)?.[SCANNED_BARCODE_KEY] === "string"
-				? String((params as any)[SCANNED_BARCODE_KEY])
-				: "";
+			typeof (params as any)?.[SCANNED_BARCODE_KEY] === "string" ? String((params as any)[SCANNED_BARCODE_KEY]) : "";
 		const value = sanitizeGtinInput(raw).trim();
 		if (!value) return;
 		setBarcode(value);
@@ -439,7 +454,10 @@ export default function InventoryProductEditScreen({ routeScope = "inventory" }:
 	const tileColor = selectedTileColor ?? DEFAULT_ITEM_TILE_COLOR;
 	const previewImageUri = localImageUri || (tileMode === "IMAGE" ? remoteImageUri : "");
 	const previewHasImage = tileMode === "IMAGE" && !!previewImageUri;
-	const draftTileLabel = useMemo(() => sanitizeLabelInput(mediaDraft.posTileLabel ?? "").trim(), [mediaDraft.posTileLabel]);
+	const draftTileLabel = useMemo(
+		() => sanitizeLabelInput(mediaDraft.posTileLabel ?? "").trim(),
+		[mediaDraft.posTileLabel],
+	);
 	const linkedTileLabelForEditor = useMemo(() => {
 		return draftTileLabel || baselineTileSnapshot.tileLabel;
 	}, [baselineTileSnapshot.tileLabel, draftTileLabel]);
@@ -542,15 +560,11 @@ export default function InventoryProductEditScreen({ routeScope = "inventory" }:
 	}, [hasChanges, isArchived, isUiDisabled, nameCheck.ok, product, productId, reorderCheck.ok]);
 
 	const onExit = useCallback(() => {
-		runGovernedProcessExit(
-			rawReturnTo,
-			detailRoute,
-			{
-				router: router as any,
-				lockNav,
-				disabled: isUiDisabled,
-			},
-		);
+		runGovernedProcessExit(rawReturnTo, detailRoute, {
+			router: router as any,
+			lockNav,
+			disabled: isUiDisabled,
+		});
 	}, [detailRoute, isUiDisabled, lockNav, rawReturnTo, router]);
 	const guardedOnExit = useProcessExitGuard(onExit);
 
@@ -713,6 +727,12 @@ export default function InventoryProductEditScreen({ routeScope = "inventory" }:
 	]);
 
 	const borderColor = theme.colors.outlineVariant ?? theme.colors.outline;
+	const headerOptions = useInventoryHeader("process", {
+		title: "Edit Item",
+		disabled: isUiDisabled,
+		onExit: guardedOnExit,
+		exitFallbackRoute: detailRoute,
+	});
 	const cardBottomPadding = useMemo(() => {
 		if (keyboardInset <= 0) return styles.formContainer.paddingBottom;
 		const keyboardLiftPad = Math.max(260, Math.min(520, Math.round(keyboardInset + 220)));
@@ -726,8 +746,12 @@ export default function InventoryProductEditScreen({ routeScope = "inventory" }:
 
 	return (
 		<>
-			<Stack.Screen options={{ headerShown: false }} />
-			<BAIHeader title='Edit Item' variant='exit' onLeftPress={guardedOnExit} disabled={isUiDisabled} />
+			<Stack.Screen
+				options={{
+					...headerOptions,
+					headerShadowVisible: false,
+				}}
+			/>
 			<BAIScreen padded={false} safeTop={false} safeBottom={false} style={styles.root}>
 				<TouchableWithoutFeedback onPress={dismissKeyboard} accessible={false}>
 					<View style={styles.keyboardContent}>
@@ -812,7 +836,11 @@ export default function InventoryProductEditScreen({ routeScope = "inventory" }:
 													]}
 												>
 													{previewHasImage ? (
-														<Image source={{ uri: previewImageUri }} style={styles.imagePreviewImage} resizeMode='cover' />
+														<Image
+															source={{ uri: previewImageUri }}
+															style={styles.imagePreviewImage}
+															resizeMode='cover'
+														/>
 													) : hasColor ? (
 														<View style={[styles.imagePreviewImage, { backgroundColor: tileColor }]} />
 													) : shouldShowEmpty ? (
@@ -880,28 +908,28 @@ export default function InventoryProductEditScreen({ routeScope = "inventory" }:
 													) : null}
 												</View>
 
-											<View style={styles.imageActionColumn}>
-												<BAIIconButton
-													variant='outlined'
-													size='lg'
-													icon='barcode-scan'
-													iconSize={44}
-													accessibilityLabel='Scan barcode'
-													onPress={onOpenBarcodeScanner}
-													disabled={isUiDisabled || isArchived}
-													style={styles.barcodeIconButtonLarge}
-												/>
-												<BAIIconButton
-													variant='outlined'
-													size='md'
-													icon='camera'
-													iconSize={34}
-													accessibilityLabel='Edit image'
-													onPress={openTileEditor}
-													disabled={isUiDisabled || isArchived}
-													style={styles.imageEditButtonOutside}
-												/>
-											</View>
+												<View style={styles.imageActionColumn}>
+													<BAIIconButton
+														variant='outlined'
+														size='lg'
+														icon='barcode-scan'
+														iconSize={44}
+														accessibilityLabel='Scan barcode'
+														onPress={onOpenBarcodeScanner}
+														disabled={isUiDisabled || isArchived}
+														style={styles.barcodeIconButtonLarge}
+													/>
+													<BAIIconButton
+														variant='outlined'
+														size='md'
+														icon='camera'
+														iconSize={34}
+														accessibilityLabel='Edit image'
+														onPress={openTileEditor}
+														disabled={isUiDisabled || isArchived}
+														style={styles.imageEditButtonOutside}
+													/>
+												</View>
 											</View>
 										</View>
 

@@ -20,7 +20,6 @@ import { useTheme } from "react-native-paper";
 import { BAIButton } from "@/components/ui/BAIButton";
 import { BAICTAPillButton } from "@/components/ui/BAICTAButton";
 import { BAIIconButton } from "@/components/ui/BAIIconButton";
-import { BAIInlineHeaderMount } from "@/components/ui/BAIInlineHeaderMount";
 import { BAIRetryButton } from "@/components/ui/BAIRetryButton";
 import { BAITextInput } from "@/components/ui/BAITextInput";
 import { BAIScreen } from "@/components/ui/BAIScreen";
@@ -55,7 +54,10 @@ type RouteParams = {
 const DRAG_ROW_HEIGHT = 62;
 
 function normalizeRoutePath(route: string | null | undefined): string {
-	return String(route ?? "").split("?")[0].split("#")[0].trim();
+	return String(route ?? "")
+		.split("?")[0]
+		.split("#")[0]
+		.trim();
 }
 
 function capText(raw: string, maxLength: number): string {
@@ -425,11 +427,13 @@ export function OptionSetUpsertScreen({
 		title: headerTitle,
 		disabled: isUiDisabled,
 		onExit: guardedOnExit,
+		exitFallbackRoute: fallbackLedgerRoute,
 	});
 	const inventoryHeaderOptions = useInventoryHeader("process", {
 		title: headerTitle,
 		disabled: isUiDisabled,
 		onExit: guardedOnExit,
+		exitFallbackRoute: fallbackLedgerRoute,
 	});
 	const headerOptions = mode === "settings" ? appHeaderOptions : inventoryHeaderOptions;
 
@@ -440,7 +444,6 @@ export function OptionSetUpsertScreen({
 	return (
 		<>
 			<Stack.Screen options={headerOptions} />
-			<BAIInlineHeaderMount options={headerOptions} />
 			<BAIScreen tabbed padded={false} safeTop={false} safeBottom={false}>
 				<KeyboardAvoidingView style={styles.keyboardAvoider} behavior={Platform.OS === "ios" ? "padding" : "height"}>
 					<TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>

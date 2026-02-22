@@ -11,7 +11,8 @@ import { Platform } from "react-native";
 import { useRouter } from "expo-router";
 import { useTheme } from "react-native-paper";
 
-import type { BAIHeaderProps } from "@/components/ui/BAIHeader";
+import { BAIHeader } from "@/components/ui/BAIHeader";
+import { runGovernedBack, runGovernedProcessExit } from "@/modules/inventory/navigation.governance";
 
 export type AppScreenClass = "workspace" | "detail" | "picker" | "process";
 
@@ -22,25 +23,22 @@ export type UseAppHeaderOptions = {
 	disabled?: boolean;
 	onBack?: () => void;
 	onExit?: () => void;
+	backFallbackRoute?: string;
+	exitFallbackRoute?: string;
+	exitReturnTo?: unknown;
 };
 
 export type AppHeaderOptions = {
 	title?: string;
 	headerBackTitle?: string;
 	headerBackVisible?: boolean;
-	header?: (props?: unknown) => React.ReactNode;
 	headerLeft?: (props?: unknown) => React.ReactNode;
 	headerStyle?: Record<string, unknown>;
 	headerTintColor?: string;
 	headerTitleStyle?: Record<string, unknown>;
 	headerBackTitleStyle?: Record<string, unknown>;
-	headerShown?: boolean;
 	headerShadowVisible?: boolean;
 	headerTitleAlign?: "center" | "left";
-	__baiHeader?: Pick<
-		BAIHeaderProps,
-		"title" | "variant" | "onLeftPress" | "disabled" | "hideLeftAction" | "rightSlot" | "rightSlotDisabled"
-	>;
 	[key: string]: unknown;
 };
 
@@ -53,6 +51,9 @@ export function useAppHeader(screenClass: AppScreenClass, options?: UseAppHeader
 	const disabled = !!options?.disabled;
 	const onBack = options?.onBack;
 	const onExit = options?.onExit;
+	const backFallbackRoute = options?.backFallbackRoute;
+	const exitFallbackRoute = options?.exitFallbackRoute;
+	const exitReturnTo = options?.exitReturnTo;
 
 	const headerBackTitleStyle = useMemo(
 		() => ({
@@ -87,31 +88,68 @@ export function useAppHeader(screenClass: AppScreenClass, options?: UseAppHeader
 		if (title) base.title = title;
 		if (headerBackTitle) base.headerBackTitle = headerBackTitle;
 
-		const onLeftPress = () => {
-			if (disabled) return;
-			if (screenClass === "process") {
-				if (onExit) return onExit();
-				router.back();
-				return;
-			}
-			if (onBack) return onBack();
-			router.back();
-		};
+		if (screenClass === "workspace") {
+			return {
+				...base,
+				headerBackVisible: false,
+				headerLeft: () => null,
+			};
+		}
 
-		const variant = screenClass === "process" ? "exit" : "back";
-		const hideLeftAction = screenClass === "workspace";
-		const headerTitle = title ?? "";
+		if (screenClass === "detail" || screenClass === "picker") {
+			return {
+				...base,
+				headerShown: true,
+				header: () =>
+					React.createElement(BAIHeader as any, {
+						title: title ?? "",
+						variant: "back",
+						disabled,
+						onLeftPress: () => {
+							if (disabled) return;
+							if (onBack) {
+								onBack();
+								return;
+							}
+							runGovernedBack({ router: router as any }, backFallbackRoute);
+						},
+					}),
+			};
+		}
 
 		return {
 			...base,
-			headerShown: false,
-			__baiHeader: {
-				title: headerTitle,
-				variant,
-				onLeftPress,
-				disabled,
-				hideLeftAction,
-			},
+			headerShown: true,
+			header: () =>
+				React.createElement(BAIHeader as any, {
+					title: title ?? "",
+					variant: "exit",
+					disabled,
+					onLeftPress: () => {
+						if (disabled) return;
+						if (onExit) {
+							onExit();
+							return;
+						}
+						if (exitFallbackRoute) {
+							runGovernedProcessExit(exitReturnTo, exitFallbackRoute, { router: router as any });
+							return;
+						}
+						runGovernedBack({ router: router as any }, backFallbackRoute);
+					},
+				}),
 		};
-	}, [disabled, headerBackTitle, onBack, onExit, router, screenClass, sharedBase, title]);
+	}, [
+		backFallbackRoute,
+		disabled,
+		exitFallbackRoute,
+		exitReturnTo,
+		headerBackTitle,
+		onBack,
+		onExit,
+		router,
+		screenClass,
+		sharedBase,
+		title,
+	]);
 }

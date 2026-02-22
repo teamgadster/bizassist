@@ -4,7 +4,7 @@
 import { FontAwesome6 } from "@expo/vector-icons";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { useQuery } from "@tanstack/react-query";
-import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Image, StyleSheet, View } from "react-native";
 import { useTheme } from "react-native-paper";
@@ -13,8 +13,8 @@ import { BAIActivityIndicator } from "@/components/system/BAIActivityIndicator";
 import { BAITimeAgo } from "@/components/system/BAITimeAgo";
 import { BAIButton } from "@/components/ui/BAIButton";
 import { BAICTAButton, BAICTAPillButton } from "@/components/ui/BAICTAButton";
+import { BAIInlineHeaderScaffold } from "@/components/ui/BAIInlineHeaderScaffold";
 import { BAIIconButton } from "@/components/ui/BAIIconButton";
-import { BAIInlineHeaderMount } from "@/components/ui/BAIInlineHeaderMount";
 import { BAIRetryButton } from "@/components/ui/BAIRetryButton";
 import { BAIScreen } from "@/components/ui/BAIScreen";
 import { BAISurface } from "@/components/ui/BAISurface";
@@ -27,7 +27,6 @@ import { mapInventoryRouteToScope, type InventoryRouteScope } from "@/modules/in
 import { inventoryKeys } from "@/modules/inventory/inventory.queries";
 import type { InventoryProductDetail } from "@/modules/inventory/inventory.types";
 import { formatDurationLabel } from "@/modules/inventory/services/serviceDuration";
-import { useInventoryHeader } from "@/modules/inventory/useInventoryHeader";
 import { useNavLock } from "@/shared/hooks/useNavLock";
 import { formatMoney } from "@/shared/money/money.format";
 
@@ -51,11 +50,7 @@ function formatReadableTime(value: unknown): string | null {
 
 function formatUnitLabel(p: any): string | null {
 	const unitName =
-		typeof p?.unit?.name === "string"
-			? p.unit.name.trim()
-			: typeof p?.unitName === "string"
-				? p.unitName.trim()
-				: "";
+		typeof p?.unit?.name === "string" ? p.unit.name.trim() : typeof p?.unitName === "string" ? p.unitName.trim() : "";
 	const unitAbbr =
 		typeof p?.unit?.abbreviation === "string"
 			? p.unit.abbreviation.trim()
@@ -144,7 +139,11 @@ function MetaRow({
 	);
 }
 
-export default function InventoryServiceDetailScreen({ routeScope = "inventory" }: { routeScope?: InventoryRouteScope }) {
+export default function InventoryServiceDetailScreen({
+	routeScope = "inventory",
+}: {
+	routeScope?: InventoryRouteScope;
+}) {
 	const router = useRouter();
 	const theme = useTheme();
 	const tabBarHeight = useBottomTabBarHeight();
@@ -170,13 +169,6 @@ export default function InventoryServiceDetailScreen({ routeScope = "inventory" 
 		if (!canNavigate) return;
 		router.replace(toScopedRoute("/(app)/(tabs)/inventory?type=SERVICES") as any);
 	}, [canNavigate, router, toScopedRoute]);
-	const backLabel = routeScope === "settings-items-services" ? "Items" : "Inventory";
-
-	const headerOptions = useInventoryHeader("detail", {
-		title: "Service Details Overview",
-		backLabel,
-		onBack: onBackToServices,
-	});
 
 	const title = (product as any)?.name?.trim() ? (product as any).name : "Service";
 	const typeLabel = "Service";
@@ -209,10 +201,9 @@ export default function InventoryServiceDetailScreen({ routeScope = "inventory" 
 
 		const computedTotalFromSegments =
 			initial != null && processing != null && final != null ? initial + processing + final : null;
-		const effectiveTotal =
-			processingEnabled
-				? (computedTotalFromSegments ?? total ?? DEFAULT_SERVICE_TOTAL_DURATION_MINUTES)
-				: (total ?? DEFAULT_SERVICE_TOTAL_DURATION_MINUTES);
+		const effectiveTotal = processingEnabled
+			? (computedTotalFromSegments ?? total ?? DEFAULT_SERVICE_TOTAL_DURATION_MINUTES)
+			: (total ?? DEFAULT_SERVICE_TOTAL_DURATION_MINUTES);
 		const durationValue = formatDurationLabel(effectiveTotal);
 
 		return {
@@ -292,10 +283,12 @@ export default function InventoryServiceDetailScreen({ routeScope = "inventory" 
 		rows.push({ label: "Processing Time", value: durationBreakdown.processingEnabled ? "Enabled" : "Disabled" });
 
 		if (durationBreakdown.processingEnabled) {
-			if (durationBreakdown.initial != null) rows.push({ label: "Initial", value: formatDurationLabel(durationBreakdown.initial) });
+			if (durationBreakdown.initial != null)
+				rows.push({ label: "Initial", value: formatDurationLabel(durationBreakdown.initial) });
 			if (durationBreakdown.processing != null)
 				rows.push({ label: "Processing", value: formatDurationLabel(durationBreakdown.processing) });
-			if (durationBreakdown.final != null) rows.push({ label: "Final", value: formatDurationLabel(durationBreakdown.final) });
+			if (durationBreakdown.final != null)
+				rows.push({ label: "Final", value: formatDurationLabel(durationBreakdown.final) });
 		}
 
 		const createdAtLabel = formatReadableTime(p.createdAt);
@@ -364,14 +357,20 @@ export default function InventoryServiceDetailScreen({ routeScope = "inventory" 
 	const isLoading = detailQuery.isLoading;
 	const isError = detailQuery.isError;
 	const errorMessage = isError
-		? String((detailQuery.error as any)?.response?.data?.message ?? (detailQuery.error as any)?.message ?? "Failed to load service.")
+		? String(
+				(detailQuery.error as any)?.response?.data?.message ??
+					(detailQuery.error as any)?.message ??
+					"Failed to load service.",
+			)
 		: "";
 
 	return (
-		<>
-			<Stack.Screen options={headerOptions} />
-			<BAIInlineHeaderMount options={headerOptions} />
-
+		<BAIInlineHeaderScaffold
+			title='Service Details Overview'
+			variant='back'
+			onLeftPress={onBackToServices}
+			disabled={!canNavigate}
+		>
 			<BAIScreen
 				padded={false}
 				tabbed
@@ -603,7 +602,7 @@ export default function InventoryServiceDetailScreen({ routeScope = "inventory" 
 					</View>
 				</BAISurface>
 			</BAIScreen>
-		</>
+		</BAIInlineHeaderScaffold>
 	);
 }
 

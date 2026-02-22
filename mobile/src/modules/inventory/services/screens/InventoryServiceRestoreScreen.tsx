@@ -14,7 +14,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { BAIButton } from "@/components/ui/BAIButton";
 import { BAICTAPillButton } from "@/components/ui/BAICTAButton";
-import { BAIInlineHeaderMount } from "@/components/ui/BAIInlineHeaderMount";
 import { BAIRetryButton } from "@/components/ui/BAIRetryButton";
 import { BAIScreen } from "@/components/ui/BAIScreen";
 import { BAISurface } from "@/components/ui/BAISurface";
@@ -23,7 +22,11 @@ import { useAppBusy } from "@/hooks/useAppBusy";
 import { catalogKeys } from "@/modules/catalog/catalog.queries";
 import { inventoryApi } from "@/modules/inventory/inventory.api";
 import { invalidateInventoryAfterMutation } from "@/modules/inventory/inventory.invalidate";
-import { inventoryScopeRoot, mapInventoryRouteToScope, type InventoryRouteScope } from "@/modules/inventory/navigation.scope";
+import {
+	inventoryScopeRoot,
+	mapInventoryRouteToScope,
+	type InventoryRouteScope,
+} from "@/modules/inventory/navigation.scope";
 import { runGovernedProcessExit } from "@/modules/inventory/navigation.governance";
 import { inventoryKeys } from "@/modules/inventory/inventory.queries";
 import type { InventoryProductDetail } from "@/modules/inventory/inventory.types";
@@ -35,7 +38,11 @@ function extractApiErrorMessage(err: unknown): string {
 	return String(msg);
 }
 
-export default function InventoryServiceRestoreScreen({ routeScope = "inventory" }: { routeScope?: InventoryRouteScope }) {
+export default function InventoryServiceRestoreScreen({
+	routeScope = "inventory",
+}: {
+	routeScope?: InventoryRouteScope;
+}) {
 	const router = useRouter();
 	const theme = useTheme();
 	const qc = useQueryClient();
@@ -112,12 +119,12 @@ export default function InventoryServiceRestoreScreen({ routeScope = "inventory"
 		title: "Restore Service",
 		disabled: isUiDisabled,
 		onExit,
+		exitFallbackRoute: detailRoute,
 	});
 
 	return (
 		<>
 			<Stack.Screen options={headerOptions} />
-			<BAIInlineHeaderMount options={headerOptions} />
 			<BAIScreen tabbed padded={false} safeTop={false}>
 				<View style={styles.screen}>
 					<BAISurface style={[styles.card, { borderColor }]} padded bordered>

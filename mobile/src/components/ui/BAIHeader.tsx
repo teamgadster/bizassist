@@ -1,88 +1,119 @@
-import React from "react";
-import { StyleSheet, View } from "react-native";
+import React, { useCallback, useMemo, useRef, useState, type ReactNode } from "react";
+import { Pressable, StyleSheet, View } from "react-native";
 import { useRouter } from "expo-router";
-import { useTheme } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTheme } from "react-native-paper";
 
-import { BAIIconButton } from "@/components/ui/BAIIconButton";
+import { BAIHeaderIconButton } from "@/components/system/BAIHeaderIconButton";
 import { BAIText } from "@/components/ui/BAIText";
+import { useAppBusy } from "@/hooks/useAppBusy";
+import { useResponsiveLayout } from "@/lib/layout/useResponsiveLayout";
 
 export type BAIHeaderProps = {
 	title: string;
 	variant: "back" | "exit";
+	rightSlot?: ReactNode | ((options: { disabled: boolean }) => ReactNode);
 	onLeftPress?: () => void;
-	rightSlot?: React.ReactNode;
-	rightSlotDisabled?: boolean;
-	hideLeftAction?: boolean;
+	onRightPress?: () => void;
 	disabled?: boolean;
+	rightDisabled?: boolean;
+	guardBusy?: boolean;
+	testID?: string;
 };
 
-const HEADER_HEIGHT = 56;
-const SIDE_SLOT_WIDTH = 60;
-const EXIT_ICON_SIZE = 32;
-const BACK_ICON_SIZE = 36;
+const HEADER_BAR_HEIGHT = 56;
 
 export function BAIHeader({
 	title,
 	variant,
-	onLeftPress,
 	rightSlot,
-	rightSlotDisabled = false,
-	hideLeftAction = false,
+	onLeftPress,
+	onRightPress,
 	disabled = false,
+	rightDisabled = false,
+	guardBusy = true,
+	testID,
 }: BAIHeaderProps) {
 	const router = useRouter();
 	const theme = useTheme();
 	const insets = useSafeAreaInsets();
+	const { paddingX } = useResponsiveLayout();
+	const { busy } = useAppBusy();
 
-	const iconName = variant === "exit" ? "close" : "chevron-left";
-	const iconSize = variant === "exit" ? EXIT_ICON_SIZE : BACK_ICON_SIZE;
-	const a11yLabel = variant === "exit" ? "Exit" : "Back";
-	const handleLeftPress = React.useCallback(() => {
-		if (disabled) return;
+	const tapLockRef = useRef(false);
+	const [isTapLocked, setIsTapLocked] = useState(false);
+
+	const isBusyGuarded = guardBusy && busy.isBusy;
+	const leftDisabled = disabled || isBusyGuarded || isTapLocked;
+	const rightActionDisabled = disabled || rightDisabled || isBusyGuarded || isTapLocked;
+
+	const lockTap = useCallback((ms = 650) => {
+		if (tapLockRef.current) return false;
+		tapLockRef.current = true;
+		setIsTapLocked(true);
+		setTimeout(() => {
+			tapLockRef.current = false;
+			setIsTapLocked(false);
+		}, ms);
+		return true;
+	}, []);
+
+	const handleLeftPress = useCallback(() => {
+		if (leftDisabled) return;
+		if (!lockTap()) return;
 		if (onLeftPress) {
 			onLeftPress();
 			return;
 		}
-		if (router.canGoBack?.()) router.back();
-	}, [disabled, onLeftPress, router]);
+		router.back();
+	}, [leftDisabled, lockTap, onLeftPress, router]);
+
+	const handleRightPress = useCallback(() => {
+		if (!onRightPress) return;
+		if (rightActionDisabled) return;
+		if (!lockTap()) return;
+		onRightPress();
+	}, [lockTap, onRightPress, rightActionDisabled]);
+
+	const renderedRightSlot = useMemo(() => {
+		if (!rightSlot) return null;
+		if (typeof rightSlot === "function") {
+			return rightSlot({ disabled: rightActionDisabled });
+		}
+		return rightSlot;
+	}, [rightActionDisabled, rightSlot]);
 
 	return (
-		<View
-			style={[
-				styles.root,
-				{
-					paddingTop: insets.top,
-					backgroundColor: theme.colors.background,
-					borderBottomColor: theme.colors.outlineVariant ?? theme.colors.outline,
-				},
-			]}
-		>
-			<View style={styles.row}>
-				<View style={styles.leftSlot}>
-					{hideLeftAction ? null : (
-						<BAIIconButton
-							icon={iconName}
-							onPress={handleLeftPress}
-							disabled={disabled}
-							accessibilityLabel={a11yLabel}
-							variant='ghost'
-							size='lg'
-							iconSize={iconSize}
-							hitSlop={8}
-						/>
-					)}
+		<View testID={testID} style={[styles.root, { paddingTop: insets.top, backgroundColor: theme.colors.background }]}>
+			<View style={[styles.bar, { paddingHorizontal: paddingX || 16 }]}>
+				<View style={styles.leftRail}>
+					<BAIHeaderIconButton
+						variant={variant}
+						disabled={leftDisabled}
+						onPress={handleLeftPress}
+						buttonStyle={styles.leftIconButton}
+					/>
 				</View>
 
-				<BAIText variant='subtitle' numberOfLines={1} ellipsizeMode='tail' style={styles.title}>
-					{title}
-				</BAIText>
+				<View style={styles.centerRail}>
+					<BAIText variant='title' numberOfLines={1} ellipsizeMode='tail' style={styles.title}>
+						{title}
+					</BAIText>
+				</View>
 
-				<View
-					pointerEvents={rightSlotDisabled ? "none" : "auto"}
-					style={[styles.rightSlot, rightSlotDisabled && styles.disabled]}
-				>
-					{rightSlot}
+				<View style={styles.rightRail}>
+					{onRightPress ? (
+						<Pressable
+							onPress={handleRightPress}
+							disabled={rightActionDisabled}
+							hitSlop={8}
+							style={({ pressed }) => [styles.rightPressable, pressed && styles.rightPressed]}
+						>
+							{renderedRightSlot}
+						</Pressable>
+					) : (
+						renderedRightSlot
+					)}
 				</View>
 			</View>
 		</View>
@@ -91,33 +122,45 @@ export function BAIHeader({
 
 const styles = StyleSheet.create({
 	root: {
-		borderBottomWidth: 0,
+		width: "100%",
 	},
-	row: {
-		height: HEADER_HEIGHT,
+	bar: {
+		height: HEADER_BAR_HEIGHT,
 		flexDirection: "row",
 		alignItems: "center",
-		paddingHorizontal: 16,
-		gap: 8,
 	},
-	leftSlot: {
-		width: SIDE_SLOT_WIDTH,
-		minWidth: SIDE_SLOT_WIDTH,
+	leftRail: {
+		width: 56,
+		height: "100%",
+		justifyContent: "center",
 		alignItems: "flex-start",
+	},
+	centerRail: {
+		flex: 1,
+		minWidth: 0,
 		justifyContent: "center",
 	},
 	title: {
-		flex: 1,
-		minWidth: 0,
 		textAlign: "center",
 	},
-	rightSlot: {
-		width: SIDE_SLOT_WIDTH,
-		minWidth: SIDE_SLOT_WIDTH,
+	rightRail: {
+		width: 56,
+		height: "100%",
+		justifyContent: "center",
 		alignItems: "flex-end",
+	},
+	rightPressable: {
+		minWidth: 44,
+		minHeight: 44,
+		alignItems: "center",
 		justifyContent: "center",
 	},
-	disabled: {
-		opacity: 0.45,
+	rightPressed: {
+		opacity: 0.75,
+	},
+	leftIconButton: {
+		width: 44,
+		height: 44,
+		borderRadius: 22,
 	},
 });

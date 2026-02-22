@@ -5,7 +5,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AppState, FlatList, Pressable, StyleSheet, View } from "react-native";
-import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTheme, Modal, Portal } from "react-native-paper";
 import { useQuery } from "@tanstack/react-query";
 import * as MediaLibrary from "expo-media-library";
@@ -14,18 +14,16 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 
 import { BAIScreen } from "@/components/ui/BAIScreen";
-import { BAIInlineHeaderMount } from "@/components/ui/BAIInlineHeaderMount";
 import { BAISurface } from "@/components/ui/BAISurface";
 import { BAIText } from "@/components/ui/BAIText";
 import { BAIButton } from "@/components/ui/BAIButton";
+import { BAIInlineHeaderScaffold } from "@/components/ui/BAIInlineHeaderScaffold";
 import { BAIRetryButton } from "@/components/ui/BAIRetryButton";
 import { BAIActivityIndicator } from "@/components/system/BAIActivityIndicator";
 import { BAIPressableRow } from "@/components/ui/BAIPressableRow";
 
 import { useAppBusy } from "@/hooks/useAppBusy";
 import { mapInventoryRouteToScope, type InventoryRouteScope } from "@/modules/inventory/navigation.scope";
-import { useInventoryHeader } from "@/modules/inventory/useInventoryHeader";
-import { useProcessExitGuard } from "@/modules/navigation/useProcessExitGuard";
 import {
 	DRAFT_ID_KEY,
 	POS_TILE_CROP_ROUTE,
@@ -166,9 +164,14 @@ export default function PosTilePhotoLibraryPhone({ routeScope = "inventory" }: {
 	const [selectModalOpen, setSelectModalOpen] = useState(false);
 	const [selectModalMessage, setSelectModalMessage] = useState("Please select a photo to continue.");
 
-	const onExit = useCallback(() => {
+	const onBack = useCallback(() => {
 		if (isUiDisabled) return;
 		if (!lockNav()) return;
+
+		if ((router as any).canGoBack?.()) {
+			router.back();
+			return;
+		}
 
 		if (isItemPhotoMode) {
 			router.replace({
@@ -190,13 +193,6 @@ export default function PosTilePhotoLibraryPhone({ routeScope = "inventory" }: {
 			},
 		} as any);
 	}, [draftId, isItemPhotoMode, isUiDisabled, lockNav, productId, returnTo, rootReturnTo, router, tileLabelParam]);
-	const guardedOnExit = useProcessExitGuard(onExit);
-
-	const headerOptions = useInventoryHeader("process", {
-		title: isItemPhotoMode ? "Choose Photo" : "Photo Library",
-		disabled: isUiDisabled,
-		onExit: guardedOnExit,
-	});
 
 	const onRequestPermission = useCallback(async () => {
 		if (isUiDisabled) return;
@@ -228,9 +224,9 @@ export default function PosTilePhotoLibraryPhone({ routeScope = "inventory" }: {
 				return;
 			}
 
-				router.replace({
-					pathname: scopedCropRoute as any,
-					params: isItemPhotoMode
+			router.replace({
+				pathname: scopedCropRoute as any,
+				params: isItemPhotoMode
 					? {
 							mode: "itemPhoto",
 							productId,
@@ -238,30 +234,30 @@ export default function PosTilePhotoLibraryPhone({ routeScope = "inventory" }: {
 							[ROOT_RETURN_TO_KEY]: rootReturnTo ?? "",
 							[RETURN_TO_KEY]: returnTo,
 						}
-						: {
-								[DRAFT_ID_KEY]: draftId,
-								[LOCAL_URI_KEY]: resolvedUri,
-								[ROOT_RETURN_TO_KEY]: rootReturnTo ?? "",
-								[RETURN_TO_KEY]: scopedPosTileRoute,
-								[TILE_LABEL_KEY]: tileLabelParam,
-							},
-				});
+					: {
+							[DRAFT_ID_KEY]: draftId,
+							[LOCAL_URI_KEY]: resolvedUri,
+							[ROOT_RETURN_TO_KEY]: rootReturnTo ?? "",
+							[RETURN_TO_KEY]: scopedPosTileRoute,
+							[TILE_LABEL_KEY]: tileLabelParam,
+						},
 			});
-		}, [
+		});
+	}, [
 		draftId,
 		isUiDisabled,
 		isItemPhotoMode,
 		lockNav,
 		productId,
-			returnTo,
-			rootReturnTo,
-			router,
-			scopedCropRoute,
-			scopedPosTileRoute,
-			selectedAsset,
-			tileLabelParam,
-			withBusy,
-		]);
+		returnTo,
+		rootReturnTo,
+		router,
+		scopedCropRoute,
+		scopedPosTileRoute,
+		selectedAsset,
+		tileLabelParam,
+		withBusy,
+	]);
 
 	const onTakePhoto = useCallback(async () => {
 		if (isUiDisabled) return;
@@ -285,9 +281,9 @@ export default function PosTilePhotoLibraryPhone({ routeScope = "inventory" }: {
 			const asset = res.assets?.[0];
 			if (!asset?.uri) return;
 
-				router.replace({
-					pathname: scopedCropRoute as any,
-					params: isItemPhotoMode
+			router.replace({
+				pathname: scopedCropRoute as any,
+				params: isItemPhotoMode
 					? {
 							mode: "itemPhoto",
 							productId,
@@ -295,14 +291,14 @@ export default function PosTilePhotoLibraryPhone({ routeScope = "inventory" }: {
 							[ROOT_RETURN_TO_KEY]: rootReturnTo ?? "",
 							[RETURN_TO_KEY]: returnTo,
 						}
-						: {
-								[DRAFT_ID_KEY]: draftId,
-								[LOCAL_URI_KEY]: asset.uri,
-								[ROOT_RETURN_TO_KEY]: rootReturnTo ?? "",
-								[RETURN_TO_KEY]: scopedPosTileRoute,
-								[TILE_LABEL_KEY]: tileLabelParam,
-							},
-				});
+					: {
+							[DRAFT_ID_KEY]: draftId,
+							[LOCAL_URI_KEY]: asset.uri,
+							[ROOT_RETURN_TO_KEY]: rootReturnTo ?? "",
+							[RETURN_TO_KEY]: scopedPosTileRoute,
+							[TILE_LABEL_KEY]: tileLabelParam,
+						},
+			});
 		} catch {
 			setSelectModalMessage("Camera is not available on this device. Use library photos instead.");
 			setSelectModalOpen(true);
@@ -343,9 +339,9 @@ export default function PosTilePhotoLibraryPhone({ routeScope = "inventory" }: {
 			const asset = res.assets?.[0];
 			if (!asset?.uri) return;
 
-				router.replace({
-					pathname: scopedCropRoute as any,
-					params: isItemPhotoMode
+			router.replace({
+				pathname: scopedCropRoute as any,
+				params: isItemPhotoMode
 					? {
 							mode: "itemPhoto",
 							productId,
@@ -353,14 +349,14 @@ export default function PosTilePhotoLibraryPhone({ routeScope = "inventory" }: {
 							[ROOT_RETURN_TO_KEY]: rootReturnTo ?? "",
 							[RETURN_TO_KEY]: returnTo,
 						}
-						: {
-								[DRAFT_ID_KEY]: draftId,
-								[LOCAL_URI_KEY]: asset.uri,
-								[ROOT_RETURN_TO_KEY]: rootReturnTo ?? "",
-								[RETURN_TO_KEY]: scopedPosTileRoute,
-								[TILE_LABEL_KEY]: tileLabelParam,
-							},
-				});
+					: {
+							[DRAFT_ID_KEY]: draftId,
+							[LOCAL_URI_KEY]: asset.uri,
+							[ROOT_RETURN_TO_KEY]: rootReturnTo ?? "",
+							[RETURN_TO_KEY]: scopedPosTileRoute,
+							[TILE_LABEL_KEY]: tileLabelParam,
+						},
+			});
 		} catch {
 			setSelectModalMessage("Unable to open the photo library right now. Please try again.");
 			setSelectModalOpen(true);
@@ -437,17 +433,18 @@ export default function PosTilePhotoLibraryPhone({ routeScope = "inventory" }: {
 	}, [assetsQuery, hasPermission]);
 
 	return (
-		<>
-			<Stack.Screen
-				options={{
-					...headerOptions,
-					headerShadowVisible: false,
-					headerRight: () => null,
-				}}
-			/>
-						<BAIInlineHeaderMount options={headerOptions} />
-
-			<BAIScreen padded={false} safeTop={false} tabbed style={styles.root}>
+		<BAIInlineHeaderScaffold
+			title={isItemPhotoMode ? "Choose Photo" : "Photo Library"}
+			variant='back'
+			onLeftPress={onBack}
+			disabled={isUiDisabled}
+		>
+			<BAIScreen
+				padded={false}
+				safeTop={false}
+				tabbed
+				style={[styles.root, { backgroundColor: theme.colors.background }]}
+			>
 				<View style={[styles.screen, { backgroundColor: theme.colors.background }]}>
 					<BAISurface style={[styles.card, { borderColor }]} padded>
 						<View style={styles.topActions}>
@@ -457,7 +454,7 @@ export default function PosTilePhotoLibraryPhone({ routeScope = "inventory" }: {
 								shape='pill'
 								size='sm'
 								widthPreset='standard'
-								onPress={guardedOnExit}
+								onPress={onBack}
 								disabled={isUiDisabled}
 								style={{ flex: 1 }}
 							>
@@ -621,7 +618,7 @@ export default function PosTilePhotoLibraryPhone({ routeScope = "inventory" }: {
 					</BAISurface>
 				</Modal>
 			</Portal>
-		</>
+		</BAIInlineHeaderScaffold>
 	);
 }
 

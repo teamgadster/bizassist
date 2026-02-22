@@ -15,7 +15,6 @@ import { useTheme } from "react-native-paper";
 
 import { BAIButton } from "@/components/ui/BAIButton";
 import { BAICTAPillButton } from "@/components/ui/BAICTAButton";
-import { BAIInlineHeaderMount } from "@/components/ui/BAIInlineHeaderMount";
 import { BAIScreen } from "@/components/ui/BAIScreen";
 import { BAISurface } from "@/components/ui/BAISurface";
 import { BAIText } from "@/components/ui/BAIText";
@@ -169,7 +168,6 @@ export default function DurationPickerScreen() {
 	return (
 		<>
 			<Stack.Screen options={headerOptions} />
-			<BAIInlineHeaderMount options={headerOptions} />
 			<BAIScreen style={styles.root}>
 				<View style={styles.screen}>
 					<BAISurface style={[styles.card, { borderColor }]} bordered>

@@ -13,9 +13,12 @@ import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigation } from "@react-navigation/native";
 
-import { mapInventoryRouteToScope, resolveInventoryRouteScope } from "@/modules/inventory/navigation.scope";
+import {
+	mapInventoryRouteToScope,
+	resolveInventoryRouteScope,
+	type InventoryRouteScope,
+} from "@/modules/inventory/navigation.scope";
 import { BAIScreen } from "@/components/ui/BAIScreen";
-import { BAIInlineHeaderMount } from "@/components/ui/BAIInlineHeaderMount";
 import { BAISurface } from "@/components/ui/BAISurface";
 import { BAIText } from "@/components/ui/BAIText";
 import { BAIButton } from "@/components/ui/BAIButton";
@@ -40,7 +43,15 @@ import {
 	UNIT_CREATE_CATEGORY_KEY,
 	UNIT_ADD_ROUTE,
 } from "@/modules/units/unitPicker.contract";
-import { clearUnitSelectionParams, replaceToReturnTo, resolveReturnTo } from "@/modules/units/units.navigation";
+import {
+	ADD_ITEM_ROUTE,
+	clearUnitSelectionParams,
+	CREATE_ITEM_ROUTE,
+	replaceToReturnTo,
+	resolveReturnTo,
+	SETTINGS_ITEMS_SERVICES_ADD_ITEM_ROUTE,
+	SETTINGS_ITEMS_SERVICES_CREATE_ITEM_ROUTE,
+} from "@/modules/units/units.navigation";
 import { useUnitFlowBackGuard } from "@/modules/units/useUnitFlowBackGuard";
 
 import { UNIT_CATALOG, type UnitCategory as CatalogUnitCategory, type UnitItem } from "@/features/units/unitCatalog";
@@ -132,7 +143,7 @@ function resolveCatalogToExisting(governedUnits: Unit[], item: UnitItem): Unit |
 	return byName;
 }
 
-export default function UnitSelectScreen() {
+export default function UnitSelectScreen({ routeScope }: { routeScope?: InventoryRouteScope } = {}) {
 	const router = useRouter();
 	const navigation = useNavigation();
 	const params = useLocalSearchParams();
@@ -141,10 +152,19 @@ export default function UnitSelectScreen() {
 
 	const inbound = useMemo(() => parseUnitSelectionParams(params as any), [params]);
 
-	const returnTo = resolveReturnTo(params as Record<string, unknown>);
-	const routeScope = useMemo(() => resolveInventoryRouteScope(returnTo), [returnTo]);
-	const toScopedRoute = useCallback((route: string) => mapInventoryRouteToScope(route, routeScope), [routeScope]);
 	const draftId = inbound.draftId || normalize((params as any)[DRAFT_ID_KEY]) || "";
+	const fallbackReturnTo = useMemo(() => {
+		if (routeScope === "settings-items-services") {
+			return draftId ? SETTINGS_ITEMS_SERVICES_CREATE_ITEM_ROUTE : SETTINGS_ITEMS_SERVICES_ADD_ITEM_ROUTE;
+		}
+		return draftId ? CREATE_ITEM_ROUTE : ADD_ITEM_ROUTE;
+	}, [draftId, routeScope]);
+	const returnTo = resolveReturnTo(params as Record<string, unknown>, fallbackReturnTo);
+	const effectiveRouteScope = useMemo(() => routeScope ?? resolveInventoryRouteScope(returnTo), [routeScope, returnTo]);
+	const toScopedRoute = useCallback(
+		(route: string) => mapInventoryRouteToScope(route, effectiveRouteScope),
+		[effectiveRouteScope],
+	);
 	const productType = useMemo(() => toProductType((params as any)[UNIT_CONTEXT_PRODUCT_TYPE_KEY]), [params]);
 
 	const category = useMemo<CatalogUnitCategory>(() => {
@@ -336,6 +356,7 @@ export default function UnitSelectScreen() {
 		title: "Add Unit",
 		disabled: isUiDisabled,
 		onExit: guardedOnCancel,
+		exitFallbackRoute: "/(app)/(tabs)/inventory",
 	});
 
 	useUnitFlowBackGuard(navigation, exitRef, guardedOnCancel);
@@ -348,7 +369,6 @@ export default function UnitSelectScreen() {
 					headerShadowVisible: false,
 				}}
 			/>
-						<BAIInlineHeaderMount options={headerOptions} />
 
 			<BAIScreen tabbed padded={false} safeTop={false} style={{ flex: 1 }}>
 				<BAISurface style={styles.card} padded>

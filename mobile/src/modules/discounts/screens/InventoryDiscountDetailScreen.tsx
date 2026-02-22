@@ -8,13 +8,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { BackHandler, StyleSheet, View } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTheme } from "react-native-paper";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 
 import { BAIActivityIndicator } from "@/components/system/BAIActivityIndicator";
 import { BAIButton } from "@/components/ui/BAIButton";
-import { BAIHeader } from "@/components/ui/BAIHeader";
+import { BAIInlineHeaderScaffold } from "@/components/ui/BAIInlineHeaderScaffold";
 import { BAIRetryButton } from "@/components/ui/BAIRetryButton";
 import { BAIScreen } from "@/components/ui/BAIScreen";
 import { BAISurface } from "@/components/ui/BAISurface";
@@ -143,15 +143,13 @@ export default function InventoryDiscountDetailScreen() {
 	}, [isNavLocked]);
 
 	return (
-		<>
-			<Stack.Screen options={{ headerShown: false }} />
-			<BAIHeader title='Discount Details' variant='back' onLeftPress={onBack} disabled={isUiDisabled} />
+		<BAIInlineHeaderScaffold title='Discount Details' variant='back' onLeftPress={onBack} disabled={isUiDisabled}>
 			<BAIScreen
 				padded={false}
 				safeTop={false}
 				safeBottom={false}
 				scroll
-				style={styles.root}
+				style={[styles.root, { backgroundColor: theme.colors.background }]}
 				contentContainerStyle={styles.scrollContent}
 				scrollProps={{ showsVerticalScrollIndicator: false }}
 			>
@@ -201,7 +199,13 @@ export default function InventoryDiscountDetailScreen() {
 									<BAIText variant='caption' muted style={styles.stateMessage}>
 										Discount not found.
 									</BAIText>
-									<BAIButton mode='outlined' onPress={onBack} disabled={isUiDisabled} shape='pill' widthPreset='standard'>
+									<BAIButton
+										mode='outlined'
+										onPress={onBack}
+										disabled={isUiDisabled}
+										shape='pill'
+										widthPreset='standard'
+									>
 										Back
 									</BAIButton>
 								</View>
@@ -383,7 +387,7 @@ export default function InventoryDiscountDetailScreen() {
 					</View>
 				</View>
 			</BAIScreen>
-		</>
+		</BAIInlineHeaderScaffold>
 	);
 }
 

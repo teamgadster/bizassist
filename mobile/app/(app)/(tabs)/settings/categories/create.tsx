@@ -32,7 +32,6 @@ import { categoryKeys } from "@/modules/categories/categories.queryKeys";
 import { extractCategoryApiError, toSafeCategoryParamString } from "@/modules/categories/categories.validators";
 import { CategoryForm } from "@/modules/categories/components/CategoryForm";
 import { mapInventoryRouteToScope, resolveInventoryRouteScope } from "@/modules/inventory/navigation.scope";
-import { BAIInlineHeaderMount } from "@/components/ui/BAIInlineHeaderMount";
 import { useAppHeader } from "@/modules/navigation/useAppHeader";
 import { useProcessExitGuard } from "@/modules/navigation/useProcessExitGuard";
 
@@ -143,7 +142,6 @@ export default function SettingsCategoryCreateScreen() {
 	return (
 		<>
 			<Stack.Screen options={headerOptions} />
-			<BAIInlineHeaderMount options={headerOptions} />
 			<BAIScreen tabbed padded={false} safeTop={false} style={styles.root}>
 				<KeyboardAvoidingView
 					style={styles.keyboardAvoider}

@@ -18,7 +18,6 @@ import * as ImagePicker from "expo-image-picker";
 import { FontAwesome6 } from "@expo/vector-icons";
 
 import { BAIScreen } from "@/components/ui/BAIScreen";
-import { BAIInlineHeaderMount } from "@/components/ui/BAIInlineHeaderMount";
 import { BAISurface } from "@/components/ui/BAISurface";
 import { BAIText } from "@/components/ui/BAIText";
 import { BAICTAPillButton } from "@/components/ui/BAICTAButton";
@@ -219,7 +218,6 @@ export default function ProductPhotoScreen({ routeScope = "inventory" }: { route
 		return (
 			<>
 				<Stack.Screen options={headerOptions} />
-				<BAIInlineHeaderMount options={headerOptions} />
 				<BAIScreen padded={false} tabbed safeTop={false} style={styles.root}>
 					<BAISurface style={[styles.surface, { borderColor }]} padded>
 						<BAIText variant='title'>Photo</BAIText>
@@ -236,7 +234,6 @@ export default function ProductPhotoScreen({ routeScope = "inventory" }: { route
 	return (
 		<>
 			<Stack.Screen options={headerOptions} />
-			<BAIInlineHeaderMount options={headerOptions} />
 
 			<BAIScreen padded={false} tabbed safeTop={false} style={styles.root}>
 				<BAISurface style={[styles.surface, { borderColor }]} padded>

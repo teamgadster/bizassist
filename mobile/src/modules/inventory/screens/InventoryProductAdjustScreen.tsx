@@ -40,7 +40,6 @@ import { FontAwesome6 } from "@expo/vector-icons";
 import { useAppBusy } from "@/hooks/useAppBusy";
 
 import { BAIScreen } from "@/components/ui/BAIScreen";
-import { BAIInlineHeaderMount } from "@/components/ui/BAIInlineHeaderMount";
 import { BAISurface } from "@/components/ui/BAISurface";
 import { BAIText } from "@/components/ui/BAIText";
 import { BAITextInput } from "@/components/ui/BAITextInput";
@@ -374,7 +373,11 @@ function ReasonRow({
 	);
 }
 
-export default function InventoryProductAdjustScreen({ routeScope = "inventory" }: { routeScope?: InventoryRouteScope }) {
+export default function InventoryProductAdjustScreen({
+	routeScope = "inventory",
+}: {
+	routeScope?: InventoryRouteScope;
+}) {
 	const theme = useTheme();
 	const router = useRouter();
 	const qc = useQueryClient();
@@ -398,18 +401,19 @@ export default function InventoryProductAdjustScreen({ routeScope = "inventory" 
 
 	// Header governance: PROCESS -> Exit (deterministic replace).
 	const onExit = useCallback(() => {
-		runGovernedProcessExit(
-			rawReturnTo,
-			detailRoute,
-			{
-				router: router as any,
-				disabled: isBusy,
-			},
-		);
+		runGovernedProcessExit(rawReturnTo, detailRoute, {
+			router: router as any,
+			disabled: isBusy,
+		});
 	}, [detailRoute, isBusy, rawReturnTo, router]);
 	const guardedOnExit = useProcessExitGuard(onExit);
 
-	const headerOptions = useInventoryHeader("process", { title: "Adjust Stock", disabled: isBusy, onExit: guardedOnExit });
+	const headerOptions = useInventoryHeader("process", {
+		title: "Adjust Stock",
+		disabled: isBusy,
+		onExit: guardedOnExit,
+		exitFallbackRoute: detailRoute,
+	});
 
 	const [keyboardHeight, setKeyboardHeight] = useState(0);
 	const [viewportH, setViewportH] = useState(0);
@@ -751,7 +755,6 @@ export default function InventoryProductAdjustScreen({ routeScope = "inventory" 
 	return (
 		<>
 			<Stack.Screen options={headerOptions} />
-			<BAIInlineHeaderMount options={headerOptions} />
 
 			<BAIScreen padded={false} tabbed safeTop={false} style={styles.root}>
 				<KeyboardAvoidingView

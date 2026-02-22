@@ -13,12 +13,15 @@ import { useTheme } from "react-native-paper";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigation } from "@react-navigation/native";
 
-import { mapInventoryRouteToScope, resolveInventoryRouteScope } from "@/modules/inventory/navigation.scope";
+import {
+	mapInventoryRouteToScope,
+	resolveInventoryRouteScope,
+	type InventoryRouteScope,
+} from "@/modules/inventory/navigation.scope";
 import { useInventoryHeader } from "@/modules/inventory/useInventoryHeader";
 import { useProcessExitGuard } from "@/modules/navigation/useProcessExitGuard";
 
 import { BAIScreen } from "@/components/ui/BAIScreen";
-import { BAIInlineHeaderMount } from "@/components/ui/BAIInlineHeaderMount";
 import { BAISurface } from "@/components/ui/BAISurface";
 import { BAIText } from "@/components/ui/BAIText";
 import { BAIButton } from "@/components/ui/BAIButton";
@@ -49,7 +52,15 @@ import {
 	UNIT_SERVICE_GROUP_KEY,
 	UNIT_SELECT_ROUTE,
 } from "@/modules/units/unitPicker.contract";
-import { clearUnitSelectionParams, replaceToReturnTo, resolveReturnTo } from "@/modules/units/units.navigation";
+import {
+	ADD_ITEM_ROUTE,
+	clearUnitSelectionParams,
+	CREATE_ITEM_ROUTE,
+	replaceToReturnTo,
+	resolveReturnTo,
+	SETTINGS_ITEMS_SERVICES_ADD_ITEM_ROUTE,
+	SETTINGS_ITEMS_SERVICES_CREATE_ITEM_ROUTE,
+} from "@/modules/units/units.navigation";
 import { useUnitFlowBackGuard } from "@/modules/units/useUnitFlowBackGuard";
 
 const CUSTOM_DEFAULT_PRECISION: PrecisionScale = 0;
@@ -117,7 +128,7 @@ function validateAbbreviation(value: string): string | null {
 	return null;
 }
 
-export default function UnitCustomCreateScreen() {
+export default function UnitCustomCreateScreen({ routeScope }: { routeScope?: InventoryRouteScope } = {}) {
 	const router = useRouter();
 	const navigation = useNavigation();
 	const theme = useTheme();
@@ -126,12 +137,20 @@ export default function UnitCustomCreateScreen() {
 
 	const params = useLocalSearchParams();
 	const inbound = useMemo(() => parseUnitSelectionParams(params as any), [params]);
-
-	const returnTo = resolveReturnTo(params as Record<string, unknown>);
-	const routeScope = useMemo(() => resolveInventoryRouteScope(returnTo), [returnTo]);
-	const toScopedRoute = useCallback((route: string) => mapInventoryRouteToScope(route, routeScope), [routeScope]);
-
 	const draftId = inbound.draftId || normalize((params as any)[DRAFT_ID_KEY]);
+	const fallbackReturnTo = useMemo(() => {
+		if (routeScope === "settings-items-services") {
+			return draftId ? SETTINGS_ITEMS_SERVICES_CREATE_ITEM_ROUTE : SETTINGS_ITEMS_SERVICES_ADD_ITEM_ROUTE;
+		}
+		return draftId ? CREATE_ITEM_ROUTE : ADD_ITEM_ROUTE;
+	}, [draftId, routeScope]);
+
+	const returnTo = resolveReturnTo(params as Record<string, unknown>, fallbackReturnTo);
+	const effectiveRouteScope = useMemo(() => routeScope ?? resolveInventoryRouteScope(returnTo), [routeScope, returnTo]);
+	const toScopedRoute = useCallback(
+		(route: string) => mapInventoryRouteToScope(route, effectiveRouteScope),
+		[effectiveRouteScope],
+	);
 
 	const productType = normalize((params as any)[UNIT_CONTEXT_PRODUCT_TYPE_KEY]) === "SERVICE" ? "SERVICE" : "PHYSICAL";
 
@@ -209,6 +228,7 @@ export default function UnitCustomCreateScreen() {
 		title: "Custom Unit",
 		disabled: isUiDisabled,
 		onExit: guardedOnCancel,
+		exitFallbackRoute: "/(app)/(tabs)/inventory",
 	});
 
 	const onSave = useCallback(async () => {
@@ -299,7 +319,6 @@ export default function UnitCustomCreateScreen() {
 					headerShadowVisible: false,
 				}}
 			/>
-						<BAIInlineHeaderMount options={headerOptions} />
 
 			<BAIScreen tabbed padded={false} safeTop={false}>
 				<Pressable style={styles.screen} onPress={Keyboard.dismiss}>

@@ -1,5 +1,5 @@
 import InventoryUnitAddScreen from "@/modules/units/screens/InventoryUnitAddScreen";
 
 export default function SettingsItemsServicesUnitAddRoute() {
-	return <InventoryUnitAddScreen />;
+	return <InventoryUnitAddScreen routeScope='settings-items-services' />;
 }

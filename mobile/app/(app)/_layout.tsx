@@ -8,10 +8,12 @@
 
 import React from "react";
 import { Redirect, Stack } from "expo-router";
+import { useTheme } from "react-native-paper";
 
 import { useAuth } from "@/modules/auth/AuthContext";
 
 export default function AppLayout() {
+	const theme = useTheme();
 	const { isAuthenticated, isBootstrapping } = useAuth();
 
 	// Block unauthenticated access to post-auth routes.
@@ -24,6 +26,7 @@ export default function AppLayout() {
 		<Stack
 			screenOptions={{
 				headerShown: false,
+				contentStyle: { backgroundColor: theme.colors.background },
 			}}
 		>
 			<Stack.Screen name='(tabs)' options={{ headerShown: false }} />

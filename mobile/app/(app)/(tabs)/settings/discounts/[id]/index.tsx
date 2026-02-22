@@ -32,7 +32,6 @@ import {
 	SETTINGS_DISCOUNTS_LEDGER_ROUTE,
 } from "@/modules/discounts/discounts.navigation";
 import type { Discount } from "@/modules/discounts/discounts.types";
-import { BAIInlineHeaderMount } from "@/components/ui/BAIInlineHeaderMount";
 import { useAppHeader } from "@/modules/navigation/useAppHeader";
 import { formatMoney } from "@/shared/money/money.format";
 
@@ -158,7 +157,6 @@ export default function SettingsDiscountDetailScreen() {
 	return (
 		<>
 			<Stack.Screen options={headerOptions} />
-			<BAIInlineHeaderMount options={headerOptions} />
 			<BAIScreen
 				padded={false}
 				safeTop={false}

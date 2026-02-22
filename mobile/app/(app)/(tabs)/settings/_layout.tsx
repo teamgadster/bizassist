@@ -46,6 +46,7 @@ export default function SettingsStackLayout() {
 			screenOptions={{
 				headerShown: true,
 				headerTitleAlign: "center",
+				contentStyle: { backgroundColor: theme.colors.background },
 				headerBackTitle: "",
 				headerStyle,
 				headerTintColor,
@@ -55,6 +56,16 @@ export default function SettingsStackLayout() {
 			}}
 		>
 			<Stack.Screen name='index' options={{ headerShown: false, animation: "none" }} />
+			<Stack.Screen name='items-services/products/pos-tile' options={{ headerShown: false, animation: "none" }} />
+			<Stack.Screen
+				name='items-services/products/pos-tile-photo-library'
+				options={{ headerShown: false, animation: "none" }}
+			/>
+			<Stack.Screen
+				name='items-services/products/pos-tile-recents'
+				options={{ headerShown: false, animation: "none" }}
+			/>
+			<Stack.Screen name='items-services/products/pos-tile-crop' options={{ headerShown: false, animation: "none" }} />
 		</Stack>
 	);
 }

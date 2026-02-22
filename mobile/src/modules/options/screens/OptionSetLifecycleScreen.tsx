@@ -16,7 +16,6 @@ import { useAppBusy } from "@/hooks/useAppBusy";
 import { useInventoryHeader } from "@/modules/inventory/useInventoryHeader";
 import { useAppHeader } from "@/modules/navigation/useAppHeader";
 import { useProcessExitGuard } from "@/modules/navigation/useProcessExitGuard";
-import { BAIInlineHeaderMount } from "@/components/ui/BAIInlineHeaderMount";
 import {
 	buildInventoryOptionDetailsRoute,
 	buildSettingsOptionDetailsRoute,
@@ -35,7 +34,10 @@ type RouteParams = {
 };
 
 function normalizeRoutePath(route: string | null | undefined): string {
-	return String(route ?? "").split("?")[0].split("#")[0].trim();
+	return String(route ?? "")
+		.split("?")[0]
+		.split("#")[0]
+		.trim();
 }
 
 function extractApiErrorMessage(err: unknown, fallback: string): string {
@@ -123,22 +125,40 @@ export function OptionSetLifecycleScreen({
 				router.replace(resolveSafeRoute(detailRoute, ledgerRoute) as any);
 			} catch (err) {
 				setError(
-					extractApiErrorMessage(err, action === "archive" ? "Failed to archive option set." : "Failed to restore option set."),
+					extractApiErrorMessage(
+						err,
+						action === "archive" ? "Failed to archive option set." : "Failed to restore option set.",
+					),
 				);
 			}
 		});
-	}, [action, archive, canRun, detailRoute, isUiDisabled, ledgerRoute, lockNav, optionSet, resolveSafeRoute, restore, router, withBusy]);
+	}, [
+		action,
+		archive,
+		canRun,
+		detailRoute,
+		isUiDisabled,
+		ledgerRoute,
+		lockNav,
+		optionSet,
+		resolveSafeRoute,
+		restore,
+		router,
+		withBusy,
+	]);
 
 	const headerTitle = action === "archive" ? "Archive Option" : "Restore Option";
 	const appHeaderOptions = useAppHeader("process", {
 		title: headerTitle,
 		disabled: isUiDisabled,
 		onExit: guardedOnExit,
+		exitFallbackRoute: ledgerRoute,
 	});
 	const inventoryHeaderOptions = useInventoryHeader("process", {
 		title: headerTitle,
 		disabled: isUiDisabled,
 		onExit: guardedOnExit,
+		exitFallbackRoute: ledgerRoute,
 	});
 	const headerOptions = mode === "settings" ? appHeaderOptions : inventoryHeaderOptions;
 
@@ -151,7 +171,6 @@ export function OptionSetLifecycleScreen({
 	return (
 		<>
 			<Stack.Screen options={headerOptions} />
-			<BAIInlineHeaderMount options={headerOptions} />
 			<BAIScreen tabbed padded={false} safeTop={false}>
 				<View style={styles.screen}>
 					<BAISurface style={[styles.card, { borderColor }]} padded bordered>

@@ -3,7 +3,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Image, ScrollView, StyleSheet, View } from "react-native";
-import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTheme } from "react-native-paper";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -12,8 +12,8 @@ import { FontAwesome6 } from "@expo/vector-icons";
 import { BAIActivityIndicator } from "@/components/system/BAIActivityIndicator";
 import { BAIButton } from "@/components/ui/BAIButton";
 import { BAICTAPillButton } from "@/components/ui/BAICTAButton";
+import { BAIInlineHeaderScaffold } from "@/components/ui/BAIInlineHeaderScaffold";
 import { BAIIconButton } from "@/components/ui/BAIIconButton";
-import { BAIInlineHeaderMount } from "@/components/ui/BAIInlineHeaderMount";
 import { BAIMoneyInput } from "@/components/ui/BAIMoneyInput";
 import { BAIPressableRow } from "@/components/ui/BAIPressableRow";
 import { BAIScreen } from "@/components/ui/BAIScreen";
@@ -59,7 +59,6 @@ import {
 } from "@/modules/inventory/services/durationPicker.contract";
 import { DurationWheelAccordion } from "@/modules/inventory/services/components/DurationWheelAccordion";
 import { clampDurationMinutes, SERVICE_DURATION_MAX_MINUTES } from "@/modules/inventory/services/serviceDuration";
-import { useInventoryHeader } from "@/modules/inventory/useInventoryHeader";
 import { uploadProductImage } from "@/modules/media/media.upload";
 import { toMediaDomainError } from "@/modules/media/media.errors";
 import { unitsApi } from "@/modules/units/units.api";
@@ -388,12 +387,6 @@ export function ServiceUpsertScreen(props: {
 		});
 	}, [exitRoute, isUiDisabled, lockNav, router]);
 
-	const headerOptions = useInventoryHeader("process", {
-		title: headerTitle,
-		onExit,
-		disabled: isUiDisabled,
-	});
-
 	const openCategoryPicker = useCallback(() => {
 		if (isUiDisabled) return;
 		if (!lockNav()) return;
@@ -421,32 +414,35 @@ export function ServiceUpsertScreen(props: {
 		});
 	}, [draftId, isUiDisabled, lockNav, router, thisRoute, toScopedRoute]);
 
-	const onToggleProcessing = useCallback((enabled: boolean) => {
-		setDraft((prev) => {
-			if (!enabled) {
-				return { ...prev, processingEnabled: false };
-			}
+	const onToggleProcessing = useCallback(
+		(enabled: boolean) => {
+			setDraft((prev) => {
+				if (!enabled) {
+					return { ...prev, processingEnabled: false };
+				}
 
-			if (
-				prev.durationInitialMinutes != null &&
-				prev.durationProcessingMinutes != null &&
-				prev.durationFinalMinutes != null
-			) {
-				const nextTotal = prev.durationInitialMinutes + prev.durationProcessingMinutes + prev.durationFinalMinutes;
-				return { ...prev, processingEnabled: true, durationTotalMinutes: nextTotal };
-			}
+				if (
+					prev.durationInitialMinutes != null &&
+					prev.durationProcessingMinutes != null &&
+					prev.durationFinalMinutes != null
+				) {
+					const nextTotal = prev.durationInitialMinutes + prev.durationProcessingMinutes + prev.durationFinalMinutes;
+					return { ...prev, processingEnabled: true, durationTotalMinutes: nextTotal };
+				}
 
-			const defaults = buildDefaultProcessingSegments(prev.durationTotalMinutes);
-			return {
-				...prev,
-				processingEnabled: true,
-				durationInitialMinutes: defaults.initial,
-				durationProcessingMinutes: defaults.processing,
-				durationFinalMinutes: defaults.final,
-				durationTotalMinutes: defaults.initial + defaults.processing + defaults.final,
-			};
-		});
-	}, [setDraft]);
+				const defaults = buildDefaultProcessingSegments(prev.durationTotalMinutes);
+				return {
+					...prev,
+					processingEnabled: true,
+					durationInitialMinutes: defaults.initial,
+					durationProcessingMinutes: defaults.processing,
+					durationFinalMinutes: defaults.final,
+					durationTotalMinutes: defaults.initial + defaults.processing + defaults.final,
+				};
+			});
+		},
+		[setDraft],
+	);
 
 	const onDurationAccordionExpandedChange = useCallback((key: DurationAccordionKey, next: boolean) => {
 		setOpenDurationAccordion((prev) => {
@@ -464,132 +460,135 @@ export function ServiceUpsertScreen(props: {
 		}
 	}, [draft.processingEnabled, openDurationAccordion]);
 
-	const onSave = useCallback(async (saveTarget: SaveTarget = "detail") => {
-		if (isUiDisabled || !validation.isValid) return;
-		const safeName = sanitizeServiceNameInput(draft.name).trim();
-		const safePrice = toMoneyOrNull(draft.priceText);
-		if (!safeName || safePrice == null) return;
-		setError(null);
-		const safeInitial = normalizeDurationOrNull(draft.durationInitialMinutes);
-		const safeProcessing = normalizeDurationOrNull(draft.durationProcessingMinutes);
-		const safeFinal = normalizeDurationOrNull(draft.durationFinalMinutes);
-		const effectiveTotalMinutes =
-			draft.processingEnabled && safeInitial != null && safeProcessing != null && safeFinal != null
-				? safeInitial + safeProcessing + safeFinal
-				: Math.trunc(draft.durationTotalMinutes);
-		const payloadDurationInitial = draft.processingEnabled ? draft.durationInitialMinutes : effectiveTotalMinutes;
-		const payloadDurationProcessing = draft.processingEnabled ? draft.durationProcessingMinutes : 0;
-		const payloadDurationFinal = draft.processingEnabled ? draft.durationFinalMinutes : 0;
+	const onSave = useCallback(
+		async (saveTarget: SaveTarget = "detail") => {
+			if (isUiDisabled || !validation.isValid) return;
+			const safeName = sanitizeServiceNameInput(draft.name).trim();
+			const safePrice = toMoneyOrNull(draft.priceText);
+			if (!safeName || safePrice == null) return;
+			setError(null);
+			const safeInitial = normalizeDurationOrNull(draft.durationInitialMinutes);
+			const safeProcessing = normalizeDurationOrNull(draft.durationProcessingMinutes);
+			const safeFinal = normalizeDurationOrNull(draft.durationFinalMinutes);
+			const effectiveTotalMinutes =
+				draft.processingEnabled && safeInitial != null && safeProcessing != null && safeFinal != null
+					? safeInitial + safeProcessing + safeFinal
+					: Math.trunc(draft.durationTotalMinutes);
+			const payloadDurationInitial = draft.processingEnabled ? draft.durationInitialMinutes : effectiveTotalMinutes;
+			const payloadDurationProcessing = draft.processingEnabled ? draft.durationProcessingMinutes : 0;
+			const payloadDurationFinal = draft.processingEnabled ? draft.durationFinalMinutes : 0;
 
-		await appBusy.withBusy("Saving Service…", async () => {
-			const payload = {
-				type: "SERVICE" as const,
-				name: safeName,
-				categoryId: draft.categoryId.trim() || undefined,
-				description: sanitizeServiceDescriptionFinal(draft.description).trim() || undefined,
-				price: safePrice,
-				trackInventory: false,
-				unitId: draft.unitId.trim() || undefined,
-				durationTotalMinutes: effectiveTotalMinutes,
-				processingEnabled: draft.processingEnabled,
-				durationInitialMinutes: payloadDurationInitial,
-				durationProcessingMinutes: payloadDurationProcessing,
-				durationFinalMinutes: payloadDurationFinal,
-				posTileMode: tileMode,
-				posTileColor: tileColor,
-				posTileLabel: (mediaDraft.posTileLabel ?? "").trim() || undefined,
-			};
+			await appBusy.withBusy("Saving Service…", async () => {
+				const payload = {
+					type: "SERVICE" as const,
+					name: safeName,
+					categoryId: draft.categoryId.trim() || undefined,
+					description: sanitizeServiceDescriptionFinal(draft.description).trim() || undefined,
+					price: safePrice,
+					trackInventory: false,
+					unitId: draft.unitId.trim() || undefined,
+					durationTotalMinutes: effectiveTotalMinutes,
+					processingEnabled: draft.processingEnabled,
+					durationInitialMinutes: payloadDurationInitial,
+					durationProcessingMinutes: payloadDurationProcessing,
+					durationFinalMinutes: payloadDurationFinal,
+					posTileMode: tileMode,
+					posTileColor: tileColor,
+					posTileLabel: (mediaDraft.posTileLabel ?? "").trim() || undefined,
+				};
 
-			try {
-				let id = String(serviceId ?? "").trim();
-				if (mode === "create") {
-					const created = await inventoryApi.createProduct(payload as any);
-					id = String((created as any)?.id ?? "").trim();
-				} else {
-					if (!id) throw new Error("Missing service id.");
-					await inventoryApi.updateProduct(id, payload as any);
-				}
+				try {
+					let id = String(serviceId ?? "").trim();
+					if (mode === "create") {
+						const created = await inventoryApi.createProduct(payload as any);
+						id = String((created as any)?.id ?? "").trim();
+					} else {
+						if (!id) throw new Error("Missing service id.");
+						await inventoryApi.updateProduct(id, payload as any);
+					}
 
-				if (id && tileMode === "IMAGE" && localImageUri) {
-					try {
-						await uploadProductImage({
-							imageKind: "PRIMARY_POS_TILE",
-							localUri: localImageUri,
-							productId: id,
-							isPrimary: true,
-							sortOrder: 0,
+					if (id && tileMode === "IMAGE" && localImageUri) {
+						try {
+							await uploadProductImage({
+								imageKind: "PRIMARY_POS_TILE",
+								localUri: localImageUri,
+								productId: id,
+								isPrimary: true,
+								sortOrder: 0,
+							});
+						} catch (uploadErr) {
+							const domainErr = toMediaDomainError(uploadErr);
+							setError(domainErr.message || "Service saved, but the tile image failed to upload.");
+							return;
+						}
+					}
+
+					queryClient.invalidateQueries({ queryKey: inventoryKeys.productsRoot() as any });
+					if (id) {
+						queryClient.invalidateQueries({ queryKey: inventoryKeys.productDetail(id) as any });
+					}
+
+					if (mode === "create" && saveTarget === "addAnother") {
+						resetServiceDraft({
+							unitId: defaultServiceUnit?.id ?? "",
 						});
-					} catch (uploadErr) {
-						const domainErr = toMediaDomainError(uploadErr);
-						setError(domainErr.message || "Service saved, but the tile image failed to upload.");
+						setOpenDurationAccordion(null);
+						resetMediaDraft();
+						showSuccess("Service saved. Add another service.");
 						return;
 					}
-				}
 
-				queryClient.invalidateQueries({ queryKey: inventoryKeys.productsRoot() as any });
-				if (id) {
-					queryClient.invalidateQueries({ queryKey: inventoryKeys.productDetail(id) as any });
-				}
+					if (mode === "create") {
+						resetServiceDraft();
+						setOpenDurationAccordion(null);
+						resetMediaDraft();
+					}
 
-				if (mode === "create" && saveTarget === "addAnother") {
-					resetServiceDraft({
-						unitId: defaultServiceUnit?.id ?? "",
-					});
-					setOpenDurationAccordion(null);
-					resetMediaDraft();
-					showSuccess("Service saved. Add another service.");
-					return;
-				}
+					if (id) {
+						router.replace(toScopedRoute(`/(app)/(tabs)/inventory/services/${encodeURIComponent(id)}`) as any);
+						return;
+					}
 
-				if (mode === "create") {
-					resetServiceDraft();
-					setOpenDurationAccordion(null);
-					resetMediaDraft();
+					router.replace(exitRoute as any);
+				} catch (saveErr: any) {
+					const payloadErr = saveErr?.response?.data;
+					const backendCode =
+						payloadErr?.code ?? payloadErr?.errorCode ?? payloadErr?.error?.code ?? payloadErr?.data?.code;
+					if (backendCode === "CATALOG_LIMIT_REACHED") {
+						setError("Limit Reached\nThis business has reached the supported catalog limit. Contact support.");
+						return;
+					}
+					const backendMessage =
+						payloadErr?.message ??
+						payloadErr?.error ??
+						payloadErr?.errorMessage ??
+						payloadErr?.error?.message ??
+						payloadErr?.data?.message;
+					setError(String(backendMessage ?? saveErr?.message ?? "Failed to save service."));
 				}
-
-				if (id) {
-					router.replace(toScopedRoute(`/(app)/(tabs)/inventory/services/${encodeURIComponent(id)}`) as any);
-					return;
-				}
-
-				router.replace(exitRoute as any);
-			} catch (saveErr: any) {
-				const payloadErr = saveErr?.response?.data;
-				const backendCode =
-					payloadErr?.code ?? payloadErr?.errorCode ?? payloadErr?.error?.code ?? payloadErr?.data?.code;
-				if (backendCode === "CATALOG_LIMIT_REACHED") {
-					setError("Limit Reached\nThis business has reached the supported catalog limit. Contact support.");
-					return;
-				}
-				const backendMessage =
-					payloadErr?.message ??
-					payloadErr?.error ??
-					payloadErr?.errorMessage ??
-					payloadErr?.error?.message ??
-					payloadErr?.data?.message;
-				setError(String(backendMessage ?? saveErr?.message ?? "Failed to save service."));
-			}
-		});
-	}, [
-		appBusy,
-		draft,
-		defaultServiceUnit?.id,
-		exitRoute,
-		isUiDisabled,
-		localImageUri,
-		mediaDraft.posTileLabel,
-		mode,
-		queryClient,
-		resetServiceDraft,
-		resetMediaDraft,
-		router,
-		serviceId,
-		showSuccess,
-		tileColor,
-		tileMode,
-		toScopedRoute,
-		validation.isValid,
-	]);
+			});
+		},
+		[
+			appBusy,
+			draft,
+			defaultServiceUnit?.id,
+			exitRoute,
+			isUiDisabled,
+			localImageUri,
+			mediaDraft.posTileLabel,
+			mode,
+			queryClient,
+			resetServiceDraft,
+			resetMediaDraft,
+			router,
+			serviceId,
+			showSuccess,
+			tileColor,
+			tileMode,
+			toScopedRoute,
+			validation.isValid,
+		],
+	);
 	const onSaveDetail = useCallback(() => onSave("detail"), [onSave]);
 	const onSaveAndAddAnother = useCallback(() => onSave("addAnother"), [onSave]);
 
@@ -601,22 +600,18 @@ export function ServiceUpsertScreen(props: {
 
 	if (shouldShowLoading) {
 		return (
-			<BAIScreen style={styles.loadingScreen}>
-				<Stack.Screen options={headerOptions} />
-				<BAIInlineHeaderMount options={headerOptions} />
-				<BAIActivityIndicator />
-			</BAIScreen>
+			<BAIInlineHeaderScaffold title={headerTitle} variant='exit' onLeftPress={onExit} disabled={isUiDisabled}>
+				<BAIScreen safeTop={false} padded={false} style={styles.root}>
+					<View style={styles.loadingScreen}>
+						<BAIActivityIndicator />
+					</View>
+				</BAIScreen>
+			</BAIInlineHeaderScaffold>
 		);
 	}
 
 	return (
-		<>
-			<Stack.Screen
-				options={{
-					...headerOptions,
-					headerShadowVisible: false,
-				}}
-			/>
+		<BAIInlineHeaderScaffold title={headerTitle} variant='exit' onLeftPress={onExit} disabled={isUiDisabled}>
 			<BAIScreen padded={false} safeTop={false} safeBottom={false} style={styles.root}>
 				<View
 					style={[
@@ -740,9 +735,7 @@ export function ServiceUpsertScreen(props: {
 							<BAITextInput
 								label='Name'
 								value={draft.name}
-								onChangeText={(text) =>
-									setDraft((prev) => ({ ...prev, name: sanitizeServiceNameDraftInput(text) }))
-								}
+								onChangeText={(text) => setDraft((prev) => ({ ...prev, name: sanitizeServiceNameDraftInput(text) }))}
 								onBlur={() =>
 									setDraft((prev) => ({
 										...prev,
@@ -884,7 +877,11 @@ export function ServiceUpsertScreen(props: {
 								>
 									Cancel
 								</BAICTAPillButton>
-								<BAICTAPillButton onPress={onSaveDetail} disabled={isUiDisabled || !validation.isValid} style={styles.actionButton}>
+								<BAICTAPillButton
+									onPress={onSaveDetail}
+									disabled={isUiDisabled || !validation.isValid}
+									style={styles.actionButton}
+								>
 									Save
 								</BAICTAPillButton>
 							</View>
@@ -903,7 +900,7 @@ export function ServiceUpsertScreen(props: {
 					</BAISurface>
 				</View>
 			</BAIScreen>
-		</>
+		</BAIInlineHeaderScaffold>
 	);
 }
 

@@ -5,7 +5,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Image, LayoutChangeEvent, StyleSheet, View, useWindowDimensions } from "react-native";
-import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTheme } from "react-native-paper";
 import { useQueryClient } from "@tanstack/react-query";
 import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
@@ -14,14 +14,14 @@ import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 
 import { BAIScreen } from "@/components/ui/BAIScreen";
-import { BAIInlineHeaderMount } from "@/components/ui/BAIInlineHeaderMount";
 import { BAISurface } from "@/components/ui/BAISurface";
 import { BAIText } from "@/components/ui/BAIText";
 import { BAICTAPillButton } from "@/components/ui/BAICTAButton";
+import { BAIInlineHeaderScaffold } from "@/components/ui/BAIInlineHeaderScaffold";
 import { BAIActivityIndicator } from "@/components/system/BAIActivityIndicator";
 
 import { useAppBusy } from "@/hooks/useAppBusy";
-import { useInventoryHeader, type InventoryScreenClass } from "@/modules/inventory/useInventoryHeader";
+import type { InventoryScreenClass } from "@/modules/inventory/useInventoryHeader";
 import {
 	inventoryScopeRoot,
 	mapInventoryRouteToScope,
@@ -279,11 +279,49 @@ export default function MediaCropperScreen({
 		});
 	}, [draftId, isItemPhoto, lockNav, productId, returnTo, rootReturnTo, rootRoute, router, tileLabelParam]);
 
-	const headerOptions = useInventoryHeader(headerClass, {
-		title: headerTitle,
-		disabled: isNavLocked,
-		onExit,
-	});
+	const onBack = useCallback(() => {
+		if (isNavLocked) return;
+		if (!lockNav()) return;
+
+		if ((router as any).canGoBack?.()) {
+			router.back();
+			return;
+		}
+
+		if (isItemPhoto) {
+			if (productId) {
+				router.replace({
+					pathname: returnTo as any,
+					params: { id: productId },
+				});
+				return;
+			}
+			router.replace(rootRoute as any);
+			return;
+		}
+
+		router.replace({
+			pathname: returnTo as any,
+			params: {
+				[DRAFT_ID_KEY]: draftId,
+				[ROOT_RETURN_TO_KEY]: rootReturnTo ?? "",
+				[TILE_LABEL_KEY]: tileLabelParam,
+			},
+		});
+	}, [
+		draftId,
+		isItemPhoto,
+		isNavLocked,
+		lockNav,
+		productId,
+		returnTo,
+		rootReturnTo,
+		rootRoute,
+		router,
+		tileLabelParam,
+	]);
+
+	const headerVariant = headerClass === "process" ? "exit" : "back";
 
 	const borderColor = theme.colors.outlineVariant ?? theme.colors.outline;
 	const overlayShadeColor = "rgba(0,0,0,0.5)";
@@ -534,11 +572,18 @@ export default function MediaCropperScreen({
 	);
 
 	return (
-		<>
-			<Stack.Screen options={headerOptions} />
-			<BAIInlineHeaderMount options={headerOptions} />
-
-			<BAIScreen padded={false} tabbed safeTop={false} style={styles.root}>
+		<BAIInlineHeaderScaffold
+			title={headerTitle}
+			variant={headerVariant}
+			onLeftPress={headerVariant === "back" ? onBack : onExit}
+			disabled={isNavLocked}
+		>
+			<BAIScreen
+				padded={false}
+				tabbed
+				safeTop={false}
+				style={[styles.root, { backgroundColor: theme.colors.background }]}
+			>
 				<BAISurface style={[styles.surface, { borderColor }]} padded>
 					<View style={styles.surfaceContent} onLayout={onSurfaceLayout}>
 						<BAIText variant='body' muted style={styles.muted}>
@@ -775,7 +820,7 @@ export default function MediaCropperScreen({
 					</View>
 				</BAISurface>
 			</BAIScreen>
-		</>
+		</BAIInlineHeaderScaffold>
 	);
 }
 

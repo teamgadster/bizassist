@@ -33,7 +33,6 @@ import type { Unit } from "@/modules/units/units.types";
 import { displayUnitAbbreviation, displayUnitLabel, isEachUnitLike } from "@/modules/units/units.display";
 import { clearUnitSelectionParams, SETTINGS_UNITS_ROUTE, UNITS_INDEX_ROUTE } from "@/modules/units/units.navigation";
 import { parseUnitSelectionParams, RETURN_TO_KEY, UNIT_ADD_ROUTE } from "@/modules/units/unitPicker.contract";
-import { BAIInlineHeaderMount } from "@/components/ui/BAIInlineHeaderMount";
 import { useAppHeader } from "@/modules/navigation/useAppHeader";
 import { useInventoryHeader } from "@/modules/inventory/useInventoryHeader";
 import { FIELD_LIMITS } from "@/shared/fieldLimits";
@@ -505,7 +504,6 @@ export function UnitsLedgerScreen({
 	return (
 		<>
 			<Stack.Screen options={headerOptions} />
-			<BAIInlineHeaderMount options={headerOptions} />
 			<BAIScreen tabbed padded={false} safeTop={false} safeBottom={false}>
 				{isTablet ? (
 					<View style={[styles.centerWrap, { paddingBottom: tabBarHeight + 12 }]}>

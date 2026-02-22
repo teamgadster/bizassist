@@ -3,10 +3,10 @@
 // NOTE: Content unchanged. Refactor adds a Top App Bar (back + title) and aligns layout with BizAssist design tokens.
 
 import React, { useMemo } from "react";
-import { useRouter } from "expo-router";
 import { StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
-import { Appbar, useTheme } from "react-native-paper";
+import { useTheme } from "react-native-paper";
 
+import { BAIInlineHeaderScaffold } from "@/components/ui/BAIInlineHeaderScaffold";
 import { BAIScreen } from "@/components/ui/BAIScreen";
 import { BAISurface } from "@/components/ui/BAISurface";
 import { BAIText } from "@/components/ui/BAIText";
@@ -26,11 +26,9 @@ function LegalDocShell({
 	lastUpdated: string;
 	children: React.ReactNode;
 }) {
-	const router = useRouter();
 	const theme = useTheme();
 
 	const borderColor = theme.colors.outlineVariant ?? theme.colors.outline;
-	const appbarBg = theme.colors.surface;
 
 	const cardStyle = useMemo<StyleProp<ViewStyle>>(
 		() => [
@@ -39,7 +37,7 @@ function LegalDocShell({
 				borderColor,
 			},
 		],
-		[borderColor]
+		[borderColor],
 	);
 
 	const dividerStyle = useMemo<StyleProp<ViewStyle>>(
@@ -49,20 +47,11 @@ function LegalDocShell({
 				backgroundColor: borderColor,
 			},
 		],
-		[borderColor]
+		[borderColor],
 	);
 
 	return (
-		<View style={styles.root}>
-			<Appbar.Header
-				mode='center-aligned'
-				style={[styles.appbar, { backgroundColor: appbarBg, borderBottomColor: borderColor }]}
-				elevated={false}
-			>
-				<Appbar.BackAction onPress={() => router.back()} accessibilityLabel='Go back' />
-				<Appbar.Content title={screenTitle} />
-			</Appbar.Header>
-
+		<BAIInlineHeaderScaffold title={screenTitle} variant='back'>
 			<BAIScreen padded={false} scroll contentContainerStyle={styles.screenContent} safeTop={false}>
 				<View style={styles.outer}>
 					<View style={styles.container}>
@@ -87,7 +76,7 @@ function LegalDocShell({
 					</View>
 				</View>
 			</BAIScreen>
-		</View>
+		</BAIInlineHeaderScaffold>
 	);
 }
 
@@ -283,10 +272,6 @@ export default function PrivacyScreen() {
 const styles = StyleSheet.create({
 	root: {
 		flex: 1,
-	},
-
-	appbar: {
-		borderBottomWidth: 0.5,
 	},
 
 	screenContent: {

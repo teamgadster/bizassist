@@ -10,7 +10,6 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import { BAIActivityIndicator } from "@/components/system/BAIActivityIndicator";
 import { BAITimeAgo } from "@/components/system/BAITimeAgo";
-import { BAIInlineHeaderMount } from "@/components/ui/BAIInlineHeaderMount";
 import { BAIScreen } from "@/components/ui/BAIScreen";
 import { BAISurface } from "@/components/ui/BAISurface";
 import { BAIText } from "@/components/ui/BAIText";
@@ -338,10 +337,19 @@ export default function InventoryProductActivityScreen() {
 		if (!productId) return;
 		movementsQuery.refetch();
 	}, [productId, movementsQuery]);
+	const onBack = useCallback(() => {
+		if (!productId) {
+			router.back();
+			return;
+		}
+		router.replace(`/(app)/(tabs)/inventory/products/${encodeURIComponent(productId)}` as any);
+	}, [productId, router]);
 
-	// Header Navigation Governance: activity list is a detail view → Back (history) only.
+	// Header Navigation Governance: activity list is a detail view → Back to product detail.
 	const headerOptions = useInventoryHeader("detail", {
 		title: "Item Activity List",
+		headerBackTitle: "Item Details",
+		onBack,
 	});
 
 	const onOpenMovement = useCallback(
@@ -482,7 +490,6 @@ export default function InventoryProductActivityScreen() {
 	return (
 		<>
 			<Stack.Screen options={headerOptions} />
-			<BAIInlineHeaderMount options={headerOptions} />
 
 			<BAIScreen tabbed padded={false} safeTop={false} style={styles.root} contentContainerStyle={styles.screen}>
 				{/* CONSOLIDATED CARD */}

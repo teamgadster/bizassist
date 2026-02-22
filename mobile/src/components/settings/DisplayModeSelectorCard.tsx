@@ -33,7 +33,7 @@ const ROWS: Row[] = [
 	},
 ];
 
-export function DisplayModeSelectorCard({ dense = false, showHelper = true }: { dense?: boolean; showHelper?: boolean }) {
+export function DisplayModeSelectorCard({ dense = false }: { dense?: boolean }) {
 	const theme = useTheme();
 	const { mode, setMode } = useColorSchemeController();
 
@@ -78,11 +78,9 @@ export function DisplayModeSelectorCard({ dense = false, showHelper = true }: { 
 				})}
 			</BAISurface>
 
-			{showHelper ? (
-				<BAIText variant='caption' muted style={styles.helper}>
-					System follows your device appearance settings.
-				</BAIText>
-			) : null}
+			<BAIText variant='caption' muted style={styles.helper}>
+				System follows your device appearance settings.
+			</BAIText>
 		</View>
 	);
 }

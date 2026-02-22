@@ -16,7 +16,6 @@ import * as ImagePicker from "expo-image-picker";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import { BAIScreen } from "@/components/ui/BAIScreen";
-import { BAIInlineHeaderMount } from "@/components/ui/BAIInlineHeaderMount";
 import { BAISurface } from "@/components/ui/BAISurface";
 import { BAIText } from "@/components/ui/BAIText";
 import { BAIButton } from "@/components/ui/BAIButton";
@@ -24,7 +23,11 @@ import { BAIGroupTabs, type BAIGroupTab } from "@/components/ui/BAIGroupTabs";
 import { BAITextInput } from "@/components/ui/BAITextInput";
 
 import { useInventoryHeader } from "@/modules/inventory/useInventoryHeader";
-import { inventoryScopeRoot, mapInventoryRouteToScope, type InventoryRouteScope } from "@/modules/inventory/navigation.scope";
+import {
+	inventoryScopeRoot,
+	mapInventoryRouteToScope,
+	type InventoryRouteScope,
+} from "@/modules/inventory/navigation.scope";
 import { useProcessExitGuard } from "@/modules/navigation/useProcessExitGuard";
 import { posTileLabelRegex } from "@/shared/validation/patterns";
 import { useProductCreateDraft } from "@/modules/inventory/drafts/useProductCreateDraft";
@@ -124,10 +127,7 @@ export default function PosTilePhoneScreen({ routeScope = "inventory" }: { route
 	const [tileColor, setTileColor] = useState<string | null>(draft.posTileColor ?? null);
 	const [tileImageUri, setTileImageUri] = useState(() => (draft.imageLocalUri ?? "").trim());
 	const [mediaError, setMediaError] = useState<string | null>(null);
-	const tileLabelPlaceholder = useMemo(
-		() => `Optional, Up to ${FIELD_LIMITS.posTileLabel} Characters`,
-		[],
-	);
+	const tileLabelPlaceholder = useMemo(() => `Optional, Up to ${FIELD_LIMITS.posTileLabel} Characters`, []);
 
 	const incomingLocalUri = useMemo(() => safeString(params[LOCAL_URI_KEY]).trim(), [params]);
 	const incomingTileLabelParam = (params as any)?.[TILE_LABEL_KEY];
@@ -182,6 +182,7 @@ export default function PosTilePhoneScreen({ routeScope = "inventory" }: { route
 		title: "Edit POS Tile",
 		disabled: isUiDisabled,
 		onExit: guardedOnExit,
+		exitFallbackRoute: "/(app)/(tabs)/inventory",
 	});
 
 	const onSave = useCallback(() => {
@@ -206,7 +207,19 @@ export default function PosTilePhoneScreen({ routeScope = "inventory" }: { route
 			return;
 		}
 		router.replace(rootRoute as any);
-	}, [draftId, isUiDisabled, lockNav, patch, rootReturnTo, rootRoute, router, tileColor, tileImageUri, tileLabel, tileMode]);
+	}, [
+		draftId,
+		isUiDisabled,
+		lockNav,
+		patch,
+		rootReturnTo,
+		rootRoute,
+		router,
+		tileColor,
+		tileImageUri,
+		tileLabel,
+		tileMode,
+	]);
 
 	const onChooseFromLibrary = useCallback(() => {
 		if (isUiDisabled) return;
@@ -282,7 +295,6 @@ export default function PosTilePhoneScreen({ routeScope = "inventory" }: { route
 					headerShadowVisible: false,
 				}}
 			/>
-						<BAIInlineHeaderMount options={headerOptions} />
 
 			<BAIScreen padded={false} safeTop={false} safeBottom={false} style={styles.root}>
 				<TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
@@ -291,90 +303,90 @@ export default function PosTilePhoneScreen({ routeScope = "inventory" }: { route
 							style={[styles.card, { borderColor: theme.colors.outlineVariant ?? theme.colors.outline }]}
 							padded
 						>
-						<BAITextInput
-							label='Tile Label'
-							value={tileLabel}
-							onChangeText={(t) => {
-								const cleaned = t.replace(/[^A-Za-z0-9 ]/g, "");
-								setTileLabel(cleaned);
-								patch({ posTileLabel: cleaned, posTileLabelTouched: true });
-							}}
-							maxLength={FIELD_LIMITS.posTileLabel}
-							placeholder={tileLabelPlaceholder}
-							disabled={isUiDisabled}
-						/>
-						{!isTileLabelValid ? (
-							<BAIText variant='caption' style={{ color: theme.colors.error }}>
-								Letters and Numbers Only.
-							</BAIText>
-						) : null}
-
-						<View style={{ height: 10 }} />
-
-						<BAIGroupTabs tabs={TABS} value={tileMode} onChange={setTileMode} disabled={isUiDisabled} />
-
-						<View style={{ height: 16 }} />
-
-						{tileMode === "IMAGE" ? (
-							<View style={styles.actions}>
-								<ActionRow
-									icon='image-multiple'
-									label='Photo Library'
-									onPress={onChooseFromLibrary}
-									disabled={isUiDisabled}
-								/>
-								<ActionRow icon='camera' label='Take Photo' onPress={onTakePhoto} disabled={isUiDisabled} />
-								<ActionRow
-									icon='trash-can-outline'
-									label='Remove Photo'
-									onPress={onRemoveImage}
-									disabled={isUiDisabled || !hasImage}
-									danger
-								/>
-								{hasImage ? (
-									<View style={styles.previewContainer}>
-										<View style={styles.previewWrap}>
-											<Image source={{ uri: tileImageUri }} style={styles.previewImage} resizeMode='cover' />
-										</View>
-									</View>
-								) : null}
-							</View>
-						) : (
-							<PosTileColorSelector value={tileColor} onChange={setTileColor} disabled={isUiDisabled} />
-						)}
-						{mediaError ? (
-							<BAIText variant='caption' style={{ color: theme.colors.error }}>
-								{mediaError}
-							</BAIText>
-						) : null}
-
-						<View
-							style={[styles.separator, { backgroundColor: theme.colors.outlineVariant ?? theme.colors.outline }]}
-						/>
-
-						<View style={[styles.actionBar, { borderColor: theme.colors.outlineVariant ?? theme.colors.outline }]}>
-							<BAIButton
-								intent='neutral'
-								variant='outline'
-								widthPreset='standard'
-								onPress={guardedOnExit}
+							<BAITextInput
+								label='Tile Label'
+								value={tileLabel}
+								onChangeText={(t) => {
+									const cleaned = t.replace(/[^A-Za-z0-9 ]/g, "");
+									setTileLabel(cleaned);
+									patch({ posTileLabel: cleaned, posTileLabelTouched: true });
+								}}
+								maxLength={FIELD_LIMITS.posTileLabel}
+								placeholder={tileLabelPlaceholder}
 								disabled={isUiDisabled}
-								style={{ flex: 1 }}
-							>
-								Cancel
-							</BAIButton>
+							/>
+							{!isTileLabelValid ? (
+								<BAIText variant='caption' style={{ color: theme.colors.error }}>
+									Letters and Numbers Only.
+								</BAIText>
+							) : null}
 
-							<BAIButton
-								intent='primary'
-								variant='solid'
-								widthPreset='standard'
-								onPress={onSave}
-								disabled={isUiDisabled || !isTileLabelValid}
-								style={{ flex: 1 }}
-							>
-								Save
-							</BAIButton>
-						</View>
+							<View style={{ height: 10 }} />
+
+							<BAIGroupTabs tabs={TABS} value={tileMode} onChange={setTileMode} disabled={isUiDisabled} />
+
+							<View style={{ height: 16 }} />
+
+							{tileMode === "IMAGE" ? (
+								<View style={styles.actions}>
+									<ActionRow
+										icon='image-multiple'
+										label='Photo Library'
+										onPress={onChooseFromLibrary}
+										disabled={isUiDisabled}
+									/>
+									<ActionRow icon='camera' label='Take Photo' onPress={onTakePhoto} disabled={isUiDisabled} />
+									<ActionRow
+										icon='trash-can-outline'
+										label='Remove Photo'
+										onPress={onRemoveImage}
+										disabled={isUiDisabled || !hasImage}
+										danger
+									/>
+									{hasImage ? (
+										<View style={styles.previewContainer}>
+											<View style={styles.previewWrap}>
+												<Image source={{ uri: tileImageUri }} style={styles.previewImage} resizeMode='cover' />
+											</View>
+										</View>
+									) : null}
+								</View>
+							) : (
+								<PosTileColorSelector value={tileColor} onChange={setTileColor} disabled={isUiDisabled} />
+							)}
+							{mediaError ? (
+								<BAIText variant='caption' style={{ color: theme.colors.error }}>
+									{mediaError}
+								</BAIText>
+							) : null}
+
+							<View
+								style={[styles.separator, { backgroundColor: theme.colors.outlineVariant ?? theme.colors.outline }]}
+							/>
+
+							<View style={[styles.actionBar, { borderColor: theme.colors.outlineVariant ?? theme.colors.outline }]}>
+								<BAIButton
+									intent='neutral'
+									variant='outline'
+									widthPreset='standard'
+									onPress={guardedOnExit}
+									disabled={isUiDisabled}
+									style={{ flex: 1 }}
+								>
+									Cancel
+								</BAIButton>
+
+								<BAIButton
+									intent='primary'
+									variant='solid'
+									widthPreset='standard'
+									onPress={onSave}
+									disabled={isUiDisabled || !isTileLabelValid}
+									style={{ flex: 1 }}
+								>
+									Save
+								</BAIButton>
+							</View>
 						</BAISurface>
 					</View>
 				</TouchableWithoutFeedback>
