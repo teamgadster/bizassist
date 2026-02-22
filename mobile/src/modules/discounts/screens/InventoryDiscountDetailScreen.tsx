@@ -14,6 +14,7 @@ import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 
 import { BAIActivityIndicator } from "@/components/system/BAIActivityIndicator";
 import { BAIButton } from "@/components/ui/BAIButton";
+import { BAIHeader } from "@/components/ui/BAIHeader";
 import { BAIRetryButton } from "@/components/ui/BAIRetryButton";
 import { BAIScreen } from "@/components/ui/BAIScreen";
 import { BAISurface } from "@/components/ui/BAISurface";
@@ -30,7 +31,6 @@ import {
 	resolveInventoryDiscountDetailBackFallbackRoute,
 } from "@/modules/discounts/discounts.navigation";
 import type { Discount } from "@/modules/discounts/discounts.types";
-import { useInventoryHeader } from "@/modules/inventory/useInventoryHeader";
 import { formatMoney } from "@/shared/money/money.format";
 
 function formatDiscountValue(discount: Discount, currencyCode: string): string {
@@ -129,12 +129,6 @@ export default function InventoryDiscountDetailScreen() {
 		const value = String(discount?.note ?? "").trim();
 		return value || "-";
 	}, [discount?.note]);
-	const headerOptions = useInventoryHeader("detail", {
-		title: "Discount Details",
-		disabled: isUiDisabled,
-		onBack,
-	});
-
 	useEffect(() => {
 		const sub = BackHandler.addEventListener("hardwareBackPress", () => {
 			if (isUiDisabled) return true;
@@ -150,7 +144,8 @@ export default function InventoryDiscountDetailScreen() {
 
 	return (
 		<>
-			<Stack.Screen options={headerOptions} />
+			<Stack.Screen options={{ headerShown: false }} />
+			<BAIHeader title='Discount Details' variant='back' onLeftPress={onBack} disabled={isUiDisabled} />
 			<BAIScreen
 				padded={false}
 				safeTop={false}

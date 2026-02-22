@@ -16,6 +16,7 @@ import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useTheme } from "react-native-paper";
 
 import { BAIButton } from "@/components/ui/BAIButton";
+import { BAIInlineHeaderMount } from "@/components/ui/BAIInlineHeaderMount";
 import { BAIScreen } from "@/components/ui/BAIScreen";
 import { BAISearchBar } from "@/components/ui/BAISearchBar";
 import { BAISurface } from "@/components/ui/BAISurface";
@@ -45,6 +46,7 @@ type RouteParams = {
 	draftId?: string;
 	optionSetId?: string;
 	returnTo?: string;
+	mode?: "SINGLE" | "MULTI";
 };
 
 function toggleInList(list: string[], id: string, checked: boolean): string[] {
@@ -68,6 +70,10 @@ export default function ProductOptionValuesScreen({ routeScope = "inventory" }: 
 
 	const optionSetId = normalizeString(params[OPTION_SET_ID_KEY]);
 	const returnTo = useMemo(() => normalizeRoutePath(params[RETURN_TO_KEY]), [params]);
+	const mode = useMemo<"SINGLE" | "MULTI">(() => {
+		const raw = String(params.mode ?? "").trim().toUpperCase();
+		return raw === "SINGLE" ? "SINGLE" : "MULTI";
+	}, [params.mode]);
 
 	const { draft, draftId, patch } = useProductCreateDraft(normalizeString(params[DRAFT_ID_KEY]) || undefined);
 	const optionSetQuery = useOptionSetById(optionSetId);
@@ -250,6 +256,7 @@ export default function ProductOptionValuesScreen({ routeScope = "inventory" }: 
 									onClear={qText ? () => setQText("") : undefined}
 								/>
 
+									<BAIInlineHeaderMount options={headerOptions} />
 								<BAIText variant='subtitle'>
 									{`${optionSet?.displayName || "Options"} (${activeValues.length}/${FIELD_LIMITS.optionValuesPerSet})`}
 								</BAIText>

@@ -19,6 +19,7 @@ import { SETTINGS_UNITS_ROUTE } from "@/modules/units/units.navigation";
 import { unitKeys } from "@/modules/units/units.queries";
 import type { Unit } from "@/modules/units/units.types";
 import { displayUnitAbbreviation, displayUnitName } from "@/modules/units/units.display";
+import { BAIInlineHeaderMount } from "@/components/ui/BAIInlineHeaderMount";
 import { useAppHeader } from "@/modules/navigation/useAppHeader";
 
 // Governance: "Each" is system-owned and cannot be edited or archived.
@@ -321,6 +322,7 @@ export default function UnitDetailScreen() {
 	return (
 		<>
 			<Stack.Screen options={headerOptions} />
+			<BAIInlineHeaderMount options={headerOptions} />
 			<BAIScreen
 				tabbed
 				padded={false}

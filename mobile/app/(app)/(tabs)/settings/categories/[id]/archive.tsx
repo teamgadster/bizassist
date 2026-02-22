@@ -22,6 +22,7 @@ import { categoriesApi } from "@/modules/categories/categories.api";
 import { syncCategoryCaches } from "@/modules/categories/categories.cache";
 import { categoryKeys } from "@/modules/categories/categories.queryKeys";
 import type { Category } from "@/modules/categories/categories.types";
+import { BAIInlineHeaderMount } from "@/components/ui/BAIInlineHeaderMount";
 import { useAppHeader } from "@/modules/navigation/useAppHeader";
 import { useProcessExitGuard } from "@/modules/navigation/useProcessExitGuard";
 import { useInventoryHeader } from "@/modules/inventory/useInventoryHeader";
@@ -121,6 +122,7 @@ export function CategoryArchiveScreen({ mode = "settings" }: { mode?: CategoryFl
 	return (
 		<>
 			<Stack.Screen options={headerOptions} />
+			<BAIInlineHeaderMount options={headerOptions} />
 			<BAIScreen tabbed padded={false} safeTop={false}>
 				<View style={styles.screen}>
 					<BAISurface style={[styles.card, { borderColor }]} padded bordered>

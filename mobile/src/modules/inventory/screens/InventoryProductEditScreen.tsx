@@ -16,6 +16,7 @@ import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { BAIMoneyInput } from "@/components/ui/BAIMoneyInput";
 import { BAIButton } from "@/components/ui/BAIButton";
 import { BAICTAPillButton } from "@/components/ui/BAICTAButton";
+import { BAIHeader } from "@/components/ui/BAIHeader";
 import { BAIIconButton } from "@/components/ui/BAIIconButton";
 import { BAIRetryButton } from "@/components/ui/BAIRetryButton";
 import { BAIScreen } from "@/components/ui/BAIScreen";
@@ -46,7 +47,6 @@ import {
 	ROOT_RETURN_TO_KEY as POS_TILE_ROOT_RETURN_TO_KEY,
 	TILE_LABEL_KEY as POS_TILE_TILE_LABEL_KEY,
 } from "@/modules/inventory/posTile.contract";
-import { useInventoryHeader } from "@/modules/inventory/useInventoryHeader";
 import { uploadProductImage } from "@/modules/media/media.upload";
 import { toMediaDomainError } from "@/modules/media/media.errors";
 import { FIELD_LIMITS } from "@/shared/fieldLimits";
@@ -705,17 +705,14 @@ export default function InventoryProductEditScreen({ routeScope = "inventory" }:
 		localImageUri,
 		reorderCheck,
 		router,
+		rootRoute,
 		tileLabel,
 		tileMode,
+		toScopedRoute,
 		withBusy,
 	]);
 
 	const borderColor = theme.colors.outlineVariant ?? theme.colors.outline;
-	const headerOptions = useInventoryHeader("process", {
-		title: "Edit Item",
-		disabled: isUiDisabled,
-		onExit: guardedOnExit,
-	});
 	const cardBottomPadding = useMemo(() => {
 		if (keyboardInset <= 0) return styles.formContainer.paddingBottom;
 		const keyboardLiftPad = Math.max(260, Math.min(520, Math.round(keyboardInset + 220)));
@@ -729,12 +726,8 @@ export default function InventoryProductEditScreen({ routeScope = "inventory" }:
 
 	return (
 		<>
-			<Stack.Screen
-				options={{
-					...headerOptions,
-					headerShadowVisible: false,
-				}}
-			/>
+			<Stack.Screen options={{ headerShown: false }} />
+			<BAIHeader title='Edit Item' variant='exit' onLeftPress={guardedOnExit} disabled={isUiDisabled} />
 			<BAIScreen padded={false} safeTop={false} safeBottom={false} style={styles.root}>
 				<TouchableWithoutFeedback onPress={dismissKeyboard} accessible={false}>
 					<View style={styles.keyboardContent}>

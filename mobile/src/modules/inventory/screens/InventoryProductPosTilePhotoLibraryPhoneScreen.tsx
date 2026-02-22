@@ -14,6 +14,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 
 import { BAIScreen } from "@/components/ui/BAIScreen";
+import { BAIInlineHeaderMount } from "@/components/ui/BAIInlineHeaderMount";
 import { BAISurface } from "@/components/ui/BAISurface";
 import { BAIText } from "@/components/ui/BAIText";
 import { BAIButton } from "@/components/ui/BAIButton";
@@ -444,6 +445,7 @@ export default function PosTilePhotoLibraryPhone({ routeScope = "inventory" }: {
 					headerRight: () => null,
 				}}
 			/>
+						<BAIInlineHeaderMount options={headerOptions} />
 
 			<BAIScreen padded={false} safeTop={false} tabbed style={styles.root}>
 				<View style={[styles.screen, { backgroundColor: theme.colors.background }]}>

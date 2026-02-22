@@ -10,17 +10,17 @@ import { useTheme } from "react-native-paper";
 import { BAIText } from "@/components/ui/BAIText";
 import { clampDurationMinutes, formatDurationLabel } from "@/modules/inventory/services/serviceDuration";
 
-const HOUR_ITEMS: ReadonlyArray<PickerItem<number>> = Array.from({ length: 25 }, (_, index) => ({
+const HOUR_ITEMS: readonly PickerItem<number>[] = Array.from({ length: 25 }, (_, index) => ({
 	value: index,
 	label: String(index).padStart(2, "0"),
 }));
 
-const MINUTE_ITEMS: ReadonlyArray<PickerItem<number>> = Array.from({ length: 60 }, (_, index) => ({
+const MINUTE_ITEMS: readonly PickerItem<number>[] = Array.from({ length: 60 }, (_, index) => ({
 	value: index,
 	label: String(index).padStart(2, "0"),
 }));
 
-const MINUTE_ZERO_ONLY_ITEMS: ReadonlyArray<PickerItem<number>> = [{ value: 0, label: "00" }];
+const MINUTE_ZERO_ONLY_ITEMS: readonly PickerItem<number>[] = [{ value: 0, label: "00" }];
 const WHEEL_ITEM_HEIGHT = 32;
 const WHEEL_VISIBLE_ROWS = 5; // Must be odd: 1, 3, 5, 7...
 const WHEEL_TOUCH_WIDTH = 134;

@@ -2,7 +2,7 @@
 import { useRouter } from "expo-router";
 import { useMemo, useRef, useState } from "react";
 import { KeyboardAvoidingView, Platform, StyleSheet, View } from "react-native";
-import { TextInput, useTheme } from "react-native-paper";
+import { TextInput } from "react-native-paper";
 
 import { useAppBusy } from "@/hooks/useAppBusy";
 
@@ -23,7 +23,6 @@ const CONTENT_MAX_WIDTH = 640;
 
 export default function ResetPasswordScreen() {
 	const router = useRouter();
-	const theme = useTheme();
 	const { withBusy } = useAppBusy();
 
 	const session = useMemo(() => getPasswordResetTicket(), []);

@@ -29,6 +29,7 @@ import type { PrecisionScale, Unit } from "@/modules/units/units.types";
 import { displayUnitAbbreviation, displayUnitLabel, isEachUnitLike } from "@/modules/units/units.display";
 import { getEachUnit, isProtectedEach } from "@/modules/units/units.visibility";
 import { SETTINGS_UNITS_ROUTE } from "@/modules/units/units.navigation";
+import { BAIInlineHeaderMount } from "@/components/ui/BAIInlineHeaderMount";
 import { useAppHeader } from "@/modules/navigation/useAppHeader";
 
 const COUNT_CATALOG_ID = "ea";
@@ -227,12 +228,13 @@ export default function UnitVisibilityScreen() {
 				</BAISurface>
 			);
 		},
-		[borderColor, hiddenUnitIds, isUiDisabled, onHideUnit, onRestoreUnit, theme.colors.onPrimary],
+		[hiddenUnitIds, isUiDisabled, onHideUnit, onRestoreUnit, surfaceInteractive, theme.colors.onPrimary],
 	);
 
 	return (
 		<>
 			<Stack.Screen options={headerOptions} />
+			<BAIInlineHeaderMount options={headerOptions} />
 			<BAIScreen tabbed padded={false} safeTop={false} safeBottom={false}>
 				<View style={[styles.screen, { paddingBottom: tabBarHeight + 12 }]}>
 					<View style={[styles.content, contentMaxWidth ? { maxWidth: contentMaxWidth } : null]}>

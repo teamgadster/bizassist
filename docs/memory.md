@@ -1,3 +1,14 @@
+## 2026-02-22 — CODEX Agent Governance Template (Patch-Only Mode)
+
+### Memory Lock
+
+- Mission: implement requested changes exactly as described with minimal diffs, no architectural drift, and zero TypeScript errors.
+- Token governance is mandatory: no full-file outputs, no unchanged code repetition, patch-style unified diffs only, concise technical notes only.
+- Global constraints always apply: tablet-first UI governance, Back vs Exit Navigation Law, Busy/Loading Overlay governance, UDQI precision, Money 2-decimal input enforcement, lifecycle archive-only rules where applicable.
+- Execution framework: Step 1 repo scan (components/modules/navigation/API/state/cross-module impact), Step 2 implement minimal diffs only.
+- Preserve existing patterns (React Query, feature-first modules), naming consistency, and business logic integrity; avoid new abstractions unless explicitly requested.
+- Output format lock: (1) Files Updated with one-line reason; (2) unified patch diffs only.
+
 ## 2026-02-22 — Modifiers Feature Flow Design (Masterplan + Memory)
 
 ### Memory Lock

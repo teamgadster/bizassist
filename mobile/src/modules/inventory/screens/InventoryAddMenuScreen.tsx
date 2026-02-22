@@ -6,6 +6,7 @@ import { Stack, useRouter } from "expo-router";
 import { useTheme } from "react-native-paper";
 
 import { BAIScreen } from "@/components/ui/BAIScreen";
+import { BAIInlineHeaderMount } from "@/components/ui/BAIInlineHeaderMount";
 import { BAISurface } from "@/components/ui/BAISurface";
 import { AddMenuList, type AddMenuListItem } from "@/components/system/AddMenuList";
 
@@ -98,6 +99,7 @@ export default function InventoryAddMenu({ routeScope = "inventory" }: { routeSc
 	return (
 		<>
 			<Stack.Screen options={headerOptions} />
+			<BAIInlineHeaderMount options={headerOptions} />
 			<BAIScreen padded={false} safeTop={false} style={styles.root}>
 				<View style={[styles.screen, { backgroundColor: theme.colors.background }]}>
 					<BAISurface style={[styles.card, { borderColor: dividerColor }]}>

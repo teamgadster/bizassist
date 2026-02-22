@@ -8,6 +8,19 @@ This document is the **north star** for how BizAssist is designed, built, and sh
 
 ---
 
+## 0. CODEX Agent Governance (Patch-Only Mode) — Locked
+
+1. **Mission:** implement requested change exactly as specified, with minimal diffs, no architectural drift, and zero TypeScript errors.
+2. **Token governance:** return patch-style unified diffs only; do not return full files; do not repeat unchanged code; keep explanations concise and technical.
+3. **Global constraints:** enforce tablet-first governance, Back vs Exit Navigation Law, Busy/Loading Overlay governance, UDQI precision rules, Money 2-decimal input enforcement, and archive-only lifecycle governance where applicable.
+4. **Execution framework:**
+  - Step 1: repo scan for relevant components/modules/navigation/API/state/cross-module impacts.
+  - Step 2: implement minimal diffs only, preserve existing patterns and business logic.
+5. **No drift rules:** no unrelated edits, no naming drift, no new abstractions unless explicitly requested.
+6. **Required delivery format:**
+  - Files Updated (path + one-line reason)
+  - Unified patch diffs only
+
 ## 1. Non‑Negotiable Product Principles
 
 1. **Correctness over cleverness.** Inventory and POS must be deterministic, auditable, and replay‑safe.

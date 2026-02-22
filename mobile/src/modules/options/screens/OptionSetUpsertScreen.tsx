@@ -20,6 +20,7 @@ import { useTheme } from "react-native-paper";
 import { BAIButton } from "@/components/ui/BAIButton";
 import { BAICTAPillButton } from "@/components/ui/BAICTAButton";
 import { BAIIconButton } from "@/components/ui/BAIIconButton";
+import { BAIInlineHeaderMount } from "@/components/ui/BAIInlineHeaderMount";
 import { BAIRetryButton } from "@/components/ui/BAIRetryButton";
 import { BAITextInput } from "@/components/ui/BAITextInput";
 import { BAIScreen } from "@/components/ui/BAIScreen";
@@ -420,10 +421,17 @@ export function OptionSetUpsertScreen({
 	]);
 
 	const headerTitle = isEdit ? "Edit Option" : "Create Option";
-	const headerOptions =
-		mode === "settings"
-			? useAppHeader("process", { title: headerTitle, disabled: isUiDisabled, onExit: guardedOnExit })
-			: useInventoryHeader("process", { title: headerTitle, disabled: isUiDisabled, onExit: guardedOnExit });
+	const appHeaderOptions = useAppHeader("process", {
+		title: headerTitle,
+		disabled: isUiDisabled,
+		onExit: guardedOnExit,
+	});
+	const inventoryHeaderOptions = useInventoryHeader("process", {
+		title: headerTitle,
+		disabled: isUiDisabled,
+		onExit: guardedOnExit,
+	});
+	const headerOptions = mode === "settings" ? appHeaderOptions : inventoryHeaderOptions;
 
 	const borderColor = theme.colors.outlineVariant ?? theme.colors.outline;
 	const cardBottomGap = 4;
@@ -432,6 +440,7 @@ export function OptionSetUpsertScreen({
 	return (
 		<>
 			<Stack.Screen options={headerOptions} />
+			<BAIInlineHeaderMount options={headerOptions} />
 			<BAIScreen tabbed padded={false} safeTop={false} safeBottom={false}>
 				<KeyboardAvoidingView style={styles.keyboardAvoider} behavior={Platform.OS === "ios" ? "padding" : "height"}>
 					<TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>

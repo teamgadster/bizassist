@@ -15,6 +15,7 @@ import { useTheme } from "react-native-paper";
 
 import { BAIButton } from "@/components/ui/BAIButton";
 import { BAIEmptyStateButton } from "@/components/ui/BAIEmptyStateButton";
+import { BAIInlineHeaderMount } from "@/components/ui/BAIInlineHeaderMount";
 import { BAIRetryButton } from "@/components/ui/BAIRetryButton";
 import { BAIScreen } from "@/components/ui/BAIScreen";
 import { BAISurface } from "@/components/ui/BAISurface";
@@ -226,7 +227,6 @@ export default function CategoryPickerScreen({ routeScope = "inventory" }: { rou
 	// Header Navigation Governance:
 	// - Category picker is a screen => Back.
 	const headerOptions = useInventoryHeader("picker", {
-		headerBackTitle: "Create Item",
 		disabled: isBusy,
 		onBack: guardedOnBack,
 	});
@@ -236,9 +236,9 @@ export default function CategoryPickerScreen({ routeScope = "inventory" }: { rou
 			<Stack.Screen
 				options={{
 					...headerOptions,
-					headerBackTitleStyle: styles.headerBackTitle,
 				}}
 			/>
+						<BAIInlineHeaderMount options={headerOptions} />
 
 			<BAIScreen padded={false} safeTop={false} safeBottom={false} style={styles.root}>
 				<TouchableWithoutFeedback onPress={dismissKeyboard} accessible={false}>
@@ -429,9 +429,6 @@ const styles = StyleSheet.create({
 		justifyContent: "center",
 	},
 
-	headerBackTitle: {
-		fontSize: 14,
-	},
 	emptyText: { textAlign: "center" },
 	emptyButton: { alignSelf: "center" },
 	retrybtn: { marginTop: 20 },

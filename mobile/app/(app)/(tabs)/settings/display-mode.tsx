@@ -6,6 +6,7 @@ import { Stack, useRouter } from "expo-router";
 import { useCallback } from "react";
 
 import { DisplayModeSelectorCard } from "@/components/settings/DisplayModeSelectorCard";
+import { BAIInlineHeaderMount } from "@/components/ui/BAIInlineHeaderMount";
 import { BAIScreen } from "@/components/ui/BAIScreen";
 import { BAISurface } from "@/components/ui/BAISurface";
 import { BAIText } from "@/components/ui/BAIText";
@@ -28,11 +29,12 @@ export default function DisplayModeScreen() {
 	return (
 		<>
 			<Stack.Screen options={headerOptions} />
+			<BAIInlineHeaderMount options={headerOptions} />
 			<BAIScreen tabbed padded={false} safeTop={false}>
 				<View style={styles.screen}>
 					<View style={styles.centerWrap}>
 						<View style={[styles.column, isTablet && { maxWidth: railMaxWidth }]}>
-							<DisplayModeSelectorCard />
+							<DisplayModeSelectorCard showHelper={false} />
 
 							<BAISurface style={styles.note} padded>
 								<BAIText variant='caption' muted>
@@ -50,7 +52,7 @@ export default function DisplayModeScreen() {
 const styles = StyleSheet.create({
 	screen: {
 		flex: 1,
-		paddingTop: 20,
+		paddingTop: 12,
 		paddingBottom: 12,
 	},
 	centerWrap: {

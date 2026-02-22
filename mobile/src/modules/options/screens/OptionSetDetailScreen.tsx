@@ -9,6 +9,7 @@ import { useTheme } from "react-native-paper";
 
 import { BAIActivityIndicator } from "@/components/system/BAIActivityIndicator";
 import { BAIButton } from "@/components/ui/BAIButton";
+import { BAIInlineHeaderMount } from "@/components/ui/BAIInlineHeaderMount";
 import { BAIRetryButton } from "@/components/ui/BAIRetryButton";
 import { BAIScreen } from "@/components/ui/BAIScreen";
 import { BAISurface } from "@/components/ui/BAISurface";
@@ -118,16 +119,20 @@ export function OptionSetDetailScreen({ mode = "settings" }: { mode?: OptionSetF
 		router.push(route as any);
 	}, [isUiDisabled, lockNav, mode, optionSet, returnTo, router]);
 
-	const headerOptions =
-		mode === "settings"
-			? useAppHeader("detail", { title: "Option Details", disabled: isUiDisabled, onBack })
-			: useInventoryHeader("detail", { title: "Option Details", disabled: isUiDisabled, onBack });
+	const appHeaderOptions = useAppHeader("detail", { title: "Option Details", disabled: isUiDisabled, onBack });
+	const inventoryHeaderOptions = useInventoryHeader("detail", {
+		title: "Option Details",
+		disabled: isUiDisabled,
+		onBack,
+	});
+	const headerOptions = mode === "settings" ? appHeaderOptions : inventoryHeaderOptions;
 
 	const borderColor = theme.colors.outlineVariant ?? theme.colors.outline;
 
 	return (
 		<>
 			<Stack.Screen options={headerOptions} />
+			<BAIInlineHeaderMount options={headerOptions} />
 			<BAIScreen tabbed padded={false} safeTop={false} scroll contentContainerStyle={styles.scrollContent}>
 				<View style={styles.screen}>
 					{query.isLoading ? (

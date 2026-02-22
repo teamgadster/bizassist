@@ -20,6 +20,7 @@ import { BAIButton } from "@/components/ui/BAIButton";
 import { BAICTAPillButton } from "@/components/ui/BAICTAButton";
 import { BAITextInput } from "@/components/ui/BAITextInput";
 import { BAIRadioRow } from "@/components/ui/BAIRadioRow";
+import { BAIInlineHeaderMount } from "@/components/ui/BAIInlineHeaderMount";
 import { useAppHeader } from "@/modules/navigation/useAppHeader";
 
 import { useAppBusy } from "@/providers/AppBusyProvider";
@@ -299,6 +300,7 @@ export default function UnitCustomCreateScreen() {
 					headerShadowVisible: false,
 				}}
 			/>
+			<BAIInlineHeaderMount options={headerOptions} />
 
 			<BAIScreen tabbed padded={false} safeTop={false}>
 				<Pressable style={styles.screen} onPress={Keyboard.dismiss}>

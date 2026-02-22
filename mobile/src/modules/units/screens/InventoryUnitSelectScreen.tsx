@@ -15,6 +15,7 @@ import { useNavigation } from "@react-navigation/native";
 
 import { mapInventoryRouteToScope, resolveInventoryRouteScope } from "@/modules/inventory/navigation.scope";
 import { BAIScreen } from "@/components/ui/BAIScreen";
+import { BAIInlineHeaderMount } from "@/components/ui/BAIInlineHeaderMount";
 import { BAISurface } from "@/components/ui/BAISurface";
 import { BAIText } from "@/components/ui/BAIText";
 import { BAIButton } from "@/components/ui/BAIButton";
@@ -347,6 +348,7 @@ export default function UnitSelectScreen() {
 					headerShadowVisible: false,
 				}}
 			/>
+						<BAIInlineHeaderMount options={headerOptions} />
 
 			<BAIScreen tabbed padded={false} safeTop={false} style={{ flex: 1 }}>
 				<BAISurface style={styles.card} padded>

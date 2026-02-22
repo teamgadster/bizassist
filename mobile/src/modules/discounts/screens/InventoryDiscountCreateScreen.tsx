@@ -15,6 +15,7 @@ import { BAISurface } from "@/components/ui/BAISurface";
 import { BAIText } from "@/components/ui/BAIText";
 import { BAIButton } from "@/components/ui/BAIButton";
 import { BAICTAButton } from "@/components/ui/BAICTAButton";
+import { BAIHeader } from "@/components/ui/BAIHeader";
 import { BAIMoneyInput } from "@/components/ui/BAIMoneyInput";
 import { BAITextarea } from "@/components/ui/BAITextarea";
 import { BAITextInput } from "@/components/ui/BAITextInput";
@@ -30,7 +31,6 @@ import {
 	sanitizeMoneyInput,
 	sanitizeNoteDraftInput,
 } from "@/shared/validation/sanitize";
-import { useInventoryHeader } from "@/modules/inventory/useInventoryHeader";
 import { useActiveBusinessMeta } from "@/modules/business/useActiveBusinessMeta";
 import {
 	buildInventoryDiscountDetailsRoute,
@@ -125,12 +125,6 @@ export default function InventoryDiscountCreateScreen() {
 	}, [isUiDisabled, returnTo, router, safeReplace]);
 	const onExit = useDiscountProcessExitGuard(onExitBase);
 
-	const headerOptions = useInventoryHeader("process", {
-		title: "Create Discount",
-		disabled: isUiDisabled,
-		onExit,
-	});
-
 	// NOTE governance:
 	// - Draft typing: preserve spaces/newlines as user enters them (no whitespace normalization).
 	// - Final normalization happens on blur + on save via normalizeNote.
@@ -200,7 +194,8 @@ export default function InventoryDiscountCreateScreen() {
 
 	return (
 		<>
-			<Stack.Screen options={headerOptions} />
+			<Stack.Screen options={{ headerShown: false }} />
+			<BAIHeader title='Create Discount' variant='exit' onLeftPress={onExit} disabled={isUiDisabled} />
 
 			<BAIScreen padded={false} safeTop={false} style={styles.root}>
 				<KeyboardAvoidingView

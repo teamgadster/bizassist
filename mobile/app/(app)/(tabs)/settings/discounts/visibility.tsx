@@ -29,6 +29,7 @@ import {
 } from "@/modules/discounts/discounts.queries";
 import { SETTINGS_DISCOUNTS_LEDGER_ROUTE } from "@/modules/discounts/discounts.navigation";
 import type { Discount, DiscountType } from "@/modules/discounts/discounts.types";
+import { BAIInlineHeaderMount } from "@/components/ui/BAIInlineHeaderMount";
 import { useAppHeader } from "@/modules/navigation/useAppHeader";
 import { formatCompactNumber } from "@/lib/locale/businessLocale";
 import { FIELD_LIMITS } from "@/shared/fieldLimits";
@@ -227,6 +228,7 @@ export default function DiscountVisibilityScreen() {
 	return (
 		<>
 			<Stack.Screen options={headerOptions} />
+			<BAIInlineHeaderMount options={headerOptions} />
 			<BAIScreen tabbed padded={false} safeTop={false}>
 				<View style={styles.screen}>
 					<View style={[styles.content, contentMaxWidth ? { maxWidth: contentMaxWidth } : null]}>

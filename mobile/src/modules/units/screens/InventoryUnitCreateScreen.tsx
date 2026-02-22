@@ -14,6 +14,7 @@ import { mapInventoryRouteToScope, resolveInventoryRouteScope } from "@/modules/
 import { useInventoryHeader } from "@/modules/inventory/useInventoryHeader";
 
 import { BAIScreen } from "@/components/ui/BAIScreen";
+import { BAIInlineHeaderMount } from "@/components/ui/BAIInlineHeaderMount";
 import { BAISurface } from "@/components/ui/BAISurface";
 import { BAIText } from "@/components/ui/BAIText";
 import { BAIButton } from "@/components/ui/BAIButton";
@@ -168,6 +169,7 @@ export default function UnitsCreateCategoryScreen() {
 					headerShadowVisible: false,
 				}}
 			/>
+						<BAIInlineHeaderMount options={headerOptions} />
 
 			<BAIScreen padded={false} safeTop={false} safeBottom={false} style={{ flex: 1 }}>
 				<BAISurface style={styles.card} padded>

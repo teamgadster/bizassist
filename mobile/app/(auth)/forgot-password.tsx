@@ -2,7 +2,6 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useMemo, useRef, useState } from "react";
 import { Image, KeyboardAvoidingView, Platform, StyleSheet, View } from "react-native";
-import { useTheme } from "react-native-paper";
 
 import { useAppBusy } from "@/hooks/useAppBusy";
 
@@ -27,7 +26,6 @@ const CONTENT_MAX_WIDTH = 640;
 
 export default function ForgotPasswordScreen() {
 	const router = useRouter();
-	const theme = useTheme();
 	const { withBusy } = useAppBusy();
 	const params = useLocalSearchParams<Params>();
 

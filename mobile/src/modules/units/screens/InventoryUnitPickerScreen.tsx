@@ -24,6 +24,7 @@ import { BAIButton } from "@/components/ui/BAIButton";
 import { BAICTAPillButton } from "@/components/ui/BAICTAButton";
 import { BAIRadioRow } from "@/components/ui/BAIRadioRow";
 import { BAIRetryButton } from "@/components/ui/BAIRetryButton";
+import { BAIInlineHeaderMount } from "@/components/ui/BAIInlineHeaderMount";
 import { BAIScreen } from "@/components/ui/BAIScreen";
 import { BAISearchBar } from "@/components/ui/BAISearchBar";
 import { BAISurface } from "@/components/ui/BAISurface";
@@ -530,6 +531,7 @@ export default function UnitPickerScreen() {
 					headerShadowVisible: false,
 				}}
 			/>
+						<BAIInlineHeaderMount options={headerOptions} />
 
 			<BAIScreen padded={false} safeTop={false} safeBottom={true} style={{ flex: 1 }}>
 				{unitsQuery.isLoading ? (

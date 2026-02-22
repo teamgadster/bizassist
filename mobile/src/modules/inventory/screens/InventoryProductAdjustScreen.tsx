@@ -40,6 +40,7 @@ import { FontAwesome6 } from "@expo/vector-icons";
 import { useAppBusy } from "@/hooks/useAppBusy";
 
 import { BAIScreen } from "@/components/ui/BAIScreen";
+import { BAIInlineHeaderMount } from "@/components/ui/BAIInlineHeaderMount";
 import { BAISurface } from "@/components/ui/BAISurface";
 import { BAIText } from "@/components/ui/BAIText";
 import { BAITextInput } from "@/components/ui/BAITextInput";
@@ -750,6 +751,7 @@ export default function InventoryProductAdjustScreen({ routeScope = "inventory" 
 	return (
 		<>
 			<Stack.Screen options={headerOptions} />
+			<BAIInlineHeaderMount options={headerOptions} />
 
 			<BAIScreen padded={false} tabbed safeTop={false} style={styles.root}>
 				<KeyboardAvoidingView

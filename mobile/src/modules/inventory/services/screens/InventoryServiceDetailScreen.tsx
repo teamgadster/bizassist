@@ -14,6 +14,7 @@ import { BAITimeAgo } from "@/components/system/BAITimeAgo";
 import { BAIButton } from "@/components/ui/BAIButton";
 import { BAICTAButton, BAICTAPillButton } from "@/components/ui/BAICTAButton";
 import { BAIIconButton } from "@/components/ui/BAIIconButton";
+import { BAIInlineHeaderMount } from "@/components/ui/BAIInlineHeaderMount";
 import { BAIRetryButton } from "@/components/ui/BAIRetryButton";
 import { BAIScreen } from "@/components/ui/BAIScreen";
 import { BAISurface } from "@/components/ui/BAISurface";
@@ -46,15 +47,6 @@ function formatReadableTime(value: unknown): string | null {
 	const datePart = date.toLocaleDateString();
 	const timePart = date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 	return `${datePart}, ${timePart}`;
-}
-
-function formatProductTypeLabel(value: unknown): string | null {
-	if (typeof value !== "string") return null;
-	const normalized = value.trim().toUpperCase();
-	if (!normalized) return null;
-	if (normalized === "SERVICE") return "Service";
-	if (normalized === "PHYSICAL" || normalized === "ITEM") return "Item";
-	return value.trim();
 }
 
 function formatUnitLabel(p: any): string | null {
@@ -182,7 +174,6 @@ export default function InventoryServiceDetailScreen({ routeScope = "inventory" 
 
 	const headerOptions = useInventoryHeader("detail", {
 		title: "Service Details Overview",
-		headerBackTitle: backLabel,
 		backLabel,
 		onBack: onBackToServices,
 	});
@@ -379,6 +370,7 @@ export default function InventoryServiceDetailScreen({ routeScope = "inventory" 
 	return (
 		<>
 			<Stack.Screen options={headerOptions} />
+			<BAIInlineHeaderMount options={headerOptions} />
 
 			<BAIScreen
 				padded={false}

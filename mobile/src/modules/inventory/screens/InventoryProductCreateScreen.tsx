@@ -28,6 +28,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { FontAwesome6 } from "@expo/vector-icons";
 
 import { BAIScreen } from "@/components/ui/BAIScreen";
+import { BAIInlineHeaderMount } from "@/components/ui/BAIInlineHeaderMount";
 import { BAISurface } from "@/components/ui/BAISurface";
 import { BAIText } from "@/components/ui/BAIText";
 import { BAIButton } from "@/components/ui/BAIButton";
@@ -962,6 +963,7 @@ export default function InventoryProductCreateScreen({ routeScope = "inventory" 
 			tileColor,
 			tileLabel,
 			tileMode,
+			toScopedRoute,
 			withBusy,
 		],
 	);
@@ -1028,6 +1030,7 @@ export default function InventoryProductCreateScreen({ routeScope = "inventory" 
 					headerShadowVisible: false,
 				}}
 			/>
+						<BAIInlineHeaderMount options={headerOptions} />
 
 			<BAIScreen padded={false} safeTop={false} safeBottom={false} style={styles.root}>
 				<View

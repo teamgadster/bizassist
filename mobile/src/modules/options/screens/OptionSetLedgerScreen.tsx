@@ -18,6 +18,7 @@ import { BAIText } from "@/components/ui/BAIText";
 import { useAppBusy } from "@/hooks/useAppBusy";
 import { useInventoryHeader } from "@/modules/inventory/useInventoryHeader";
 import { useAppHeader } from "@/modules/navigation/useAppHeader";
+import { BAIInlineHeaderMount } from "@/components/ui/BAIInlineHeaderMount";
 import {
 	appendReturnToQuery,
 	buildInventoryOptionDetailsRoute,
@@ -192,10 +193,13 @@ export function OptionSetLedgerScreen({ layout, mode = "settings" }: { layout: O
 		[isUiDisabled, mode, returnTo, router],
 	);
 
-	const headerOptions =
-		mode === "settings"
-			? useAppHeader("detail", { title: "Options", disabled: isUiDisabled, onBack })
-			: useInventoryHeader("detail", { title: "Options", disabled: isUiDisabled, onBack });
+	const appHeaderOptions = useAppHeader("detail", { title: "Options", disabled: isUiDisabled, onBack });
+	const inventoryHeaderOptions = useInventoryHeader("detail", {
+		title: "Options",
+		disabled: isUiDisabled,
+		onBack,
+	});
+	const headerOptions = mode === "settings" ? appHeaderOptions : inventoryHeaderOptions;
 
 	const emptyTitle = filter === "archived" ? "No archived option sets." : "No option sets yet.";
 	const searchEmptyTitle = `No option sets match: ${q}.`;
@@ -203,6 +207,7 @@ export function OptionSetLedgerScreen({ layout, mode = "settings" }: { layout: O
 	return (
 		<>
 			<Stack.Screen options={headerOptions} />
+			<BAIInlineHeaderMount options={headerOptions} />
 			<BAIScreen tabbed padded={false} safeTop={false}>
 				<TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
 					<View style={styles.screen}>

@@ -15,6 +15,7 @@ import { useInventoryHeader } from "@/modules/inventory/useInventoryHeader";
 import { useNavigation } from "@react-navigation/native";
 
 import { BAIScreen } from "@/components/ui/BAIScreen";
+import { BAIInlineHeaderMount } from "@/components/ui/BAIInlineHeaderMount";
 import { BAISurface } from "@/components/ui/BAISurface";
 import { BAIText } from "@/components/ui/BAIText";
 import { BAIButton } from "@/components/ui/BAIButton";
@@ -186,6 +187,7 @@ export default function UnitsAddCategoryScreen() {
 					headerShadowVisible: false,
 				}}
 			/>
+						<BAIInlineHeaderMount options={headerOptions} />
 
 			<BAIScreen padded={false} safeTop={false} style={{ flex: 1 }}>
 				<View style={styles.screen}>

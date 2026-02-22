@@ -13,6 +13,7 @@ import { useQuery } from "@tanstack/react-query";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import { BAIScreen } from "@/components/ui/BAIScreen";
+import { BAIInlineHeaderMount } from "@/components/ui/BAIInlineHeaderMount";
 import { BAISurface } from "@/components/ui/BAISurface";
 import { BAIText } from "@/components/ui/BAIText";
 import { BAIActivityIndicator } from "@/components/system/BAIActivityIndicator";
@@ -223,7 +224,6 @@ export default function InventoryMovementDetailScreen() {
 	const enabled = !!productId && !!movementId;
 	const headerOptions = useInventoryHeader("detail", {
 		title: "Activity Details",
-		headerBackTitle: "Activity",
 	});
 
 	// Identity anchor (product name + on-hand). Read-only and safe.
@@ -290,6 +290,7 @@ export default function InventoryMovementDetailScreen() {
 		<>
 			{/* ✅ BACK only. No Exit/cancel semantics here. */}
 			<Stack.Screen options={headerOptions} />
+			<BAIInlineHeaderMount options={headerOptions} />
 
 			<BAIScreen
 				padded={false}

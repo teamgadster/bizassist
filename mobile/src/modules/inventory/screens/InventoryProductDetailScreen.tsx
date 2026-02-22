@@ -13,6 +13,7 @@ import { BAIActivityIndicator } from "@/components/system/BAIActivityIndicator";
 import { BAITimeAgo } from "@/components/system/BAITimeAgo";
 import { BAIButton } from "@/components/ui/BAIButton";
 import { BAICTAPillButton } from "@/components/ui/BAICTAButton";
+import { BAIHeader } from "@/components/ui/BAIHeader";
 import { BAIIconButton } from "@/components/ui/BAIIconButton";
 import { BAIRetryButton } from "@/components/ui/BAIRetryButton";
 import { BAIScreen } from "@/components/ui/BAIScreen";
@@ -32,7 +33,6 @@ import {
 } from "@/modules/inventory/navigation.scope";
 import { inventoryKeys } from "@/modules/inventory/inventory.queries";
 import type { InventoryMovement, InventoryProductDetail } from "@/modules/inventory/inventory.types";
-import { useInventoryHeader } from "@/modules/inventory/useInventoryHeader";
 import { unitsApi } from "@/modules/units/units.api";
 import { unitDisplayToken } from "@/modules/units/units.format";
 import { unitKeys } from "@/modules/units/units.queries";
@@ -433,14 +433,6 @@ export default function InventoryProductDetailScreen({ routeScope = "inventory" 
 		if (!canNavigate) return;
 		router.replace(rootRoute as any);
 	}, [canNavigate, rootRoute, router]);
-	const backLabel = routeScope === "settings-items-services" ? "Items" : "Inventory";
-
-	const headerOptions = useInventoryHeader("detail", {
-		title: "Item Details Overview",
-		headerBackTitle: backLabel,
-		backLabel,
-		onBack: onBackToInventory,
-	});
 
 	const unitById = useMemo(() => {
 		const map = new Map<string, Unit>();
@@ -916,7 +908,8 @@ export default function InventoryProductDetailScreen({ routeScope = "inventory" 
 
 	return (
 		<>
-			<Stack.Screen options={headerOptions} />
+			<Stack.Screen options={{ headerShown: false }} />
+			<BAIHeader title='Item Details Overview' variant='back' onLeftPress={onBackToInventory} disabled={!canNavigate} />
 
 			<BAIScreen
 				padded={false}

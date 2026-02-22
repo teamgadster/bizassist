@@ -13,6 +13,7 @@ import { BAIActivityIndicator } from "@/components/system/BAIActivityIndicator";
 import { BAIButton } from "@/components/ui/BAIButton";
 import { BAICTAPillButton } from "@/components/ui/BAICTAButton";
 import { BAIIconButton } from "@/components/ui/BAIIconButton";
+import { BAIInlineHeaderMount } from "@/components/ui/BAIInlineHeaderMount";
 import { BAIMoneyInput } from "@/components/ui/BAIMoneyInput";
 import { BAIPressableRow } from "@/components/ui/BAIPressableRow";
 import { BAIScreen } from "@/components/ui/BAIScreen";
@@ -256,7 +257,7 @@ export function ServiceUpsertScreen(props: {
 	useEffect(() => {
 		if (!defaultServiceUnit) return;
 		setDraft((prev) => (prev.unitId ? prev : { ...prev, unitId: defaultServiceUnit.id }));
-	}, [defaultServiceUnit]);
+	}, [defaultServiceUnit, setDraft]);
 
 	const categorySelection = useMemo(() => parseCategorySelectionParams(params as any), [params]);
 	useEffect(() => {
@@ -272,7 +273,7 @@ export function ServiceUpsertScreen(props: {
 			[CATEGORY_SELECTED_NAME_KEY]: undefined,
 			[CATEGORY_SELECTION_SOURCE_KEY]: undefined,
 		});
-	}, [categorySelection, router]);
+	}, [categorySelection, router, setDraft]);
 
 	const durationSelection = useMemo(() => parseDurationSelectionParams(params as any), [params]);
 	useEffect(() => {
@@ -297,7 +298,7 @@ export function ServiceUpsertScreen(props: {
 			[DURATION_TARGET_KEY]: undefined,
 			[DURATION_MINUTES_KEY]: undefined,
 		});
-	}, [durationSelection, router]);
+	}, [durationSelection, router, setDraft]);
 
 	useEffect(() => {
 		if (mode !== "edit") return;
@@ -351,7 +352,7 @@ export function ServiceUpsertScreen(props: {
 		});
 
 		setInitializedEdit(true);
-	}, [defaultServiceUnit?.id, detailQuery.data, initializedEdit, mode, patchMediaDraft]);
+	}, [defaultServiceUnit?.id, detailQuery.data, initializedEdit, mode, patchMediaDraft, setDraft]);
 
 	const remoteImageUri = useMemo(() => {
 		if (mode !== "edit") return "";
@@ -445,7 +446,7 @@ export function ServiceUpsertScreen(props: {
 				durationTotalMinutes: defaults.initial + defaults.processing + defaults.final,
 			};
 		});
-	}, []);
+	}, [setDraft]);
 
 	const onDurationAccordionExpandedChange = useCallback((key: DurationAccordionKey, next: boolean) => {
 		setOpenDurationAccordion((prev) => {
@@ -602,6 +603,7 @@ export function ServiceUpsertScreen(props: {
 		return (
 			<BAIScreen style={styles.loadingScreen}>
 				<Stack.Screen options={headerOptions} />
+				<BAIInlineHeaderMount options={headerOptions} />
 				<BAIActivityIndicator />
 			</BAIScreen>
 		);

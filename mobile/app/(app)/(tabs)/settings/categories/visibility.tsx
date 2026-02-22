@@ -26,6 +26,7 @@ import { categoryKeys } from "@/modules/categories/categories.queryKeys";
 import { useCategoryVisibilityMutation, useCategoryVisibilityQuery } from "@/modules/categories/categories.queries";
 import type { Category } from "@/modules/categories/categories.types";
 import { useActiveBusinessMeta } from "@/modules/business/useActiveBusinessMeta";
+import { BAIInlineHeaderMount } from "@/components/ui/BAIInlineHeaderMount";
 import { useAppHeader } from "@/modules/navigation/useAppHeader";
 import { formatCompactNumber } from "@/lib/locale/businessLocale";
 import { FIELD_LIMITS } from "@/shared/fieldLimits";
@@ -225,6 +226,7 @@ export default function SettingsCategoryVisibilityScreen() {
 	return (
 		<>
 			<Stack.Screen options={headerOptions} />
+			<BAIInlineHeaderMount options={headerOptions} />
 			<BAIScreen tabbed padded={false} safeTop={false}>
 				<View style={styles.screen}>
 					<View style={[styles.content, contentMaxWidth ? { maxWidth: contentMaxWidth } : null]}>

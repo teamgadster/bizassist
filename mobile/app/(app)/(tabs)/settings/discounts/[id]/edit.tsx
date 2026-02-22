@@ -42,6 +42,7 @@ import {
 import { useDiscountById, useUpdateDiscount } from "@/modules/discounts/discounts.queries";
 import type { DiscountType } from "@/modules/discounts/discounts.types";
 import { normalizeNote, validateName, validateValueByType } from "@/modules/discounts/discounts.validators";
+import { BAIInlineHeaderMount } from "@/components/ui/BAIInlineHeaderMount";
 import { useAppHeader } from "@/modules/navigation/useAppHeader";
 import { useInventoryHeader } from "@/modules/inventory/useInventoryHeader";
 import { FIELD_LIMITS } from "@/shared/fieldLimits";
@@ -206,7 +207,6 @@ export function DiscountEditScreen({ mode = "settings" }: { mode?: DiscountFlowM
 		canSave,
 		isArchived,
 		isStackable,
-		mode,
 		name,
 		nameCheck,
 		noteText,
@@ -238,6 +238,7 @@ export function DiscountEditScreen({ mode = "settings" }: { mode?: DiscountFlowM
 	return (
 		<>
 			<Stack.Screen options={headerOptions} />
+			<BAIInlineHeaderMount options={headerOptions} />
 
 			<BAIScreen padded={false} safeTop={false} style={styles.root}>
 				<KeyboardAvoidingView

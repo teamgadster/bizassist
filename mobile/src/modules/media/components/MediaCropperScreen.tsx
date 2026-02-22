@@ -14,6 +14,7 @@ import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 
 import { BAIScreen } from "@/components/ui/BAIScreen";
+import { BAIInlineHeaderMount } from "@/components/ui/BAIInlineHeaderMount";
 import { BAISurface } from "@/components/ui/BAISurface";
 import { BAIText } from "@/components/ui/BAIText";
 import { BAICTAPillButton } from "@/components/ui/BAICTAButton";
@@ -535,6 +536,7 @@ export default function MediaCropperScreen({
 	return (
 		<>
 			<Stack.Screen options={headerOptions} />
+			<BAIInlineHeaderMount options={headerOptions} />
 
 			<BAIScreen padded={false} tabbed safeTop={false} style={styles.root}>
 				<BAISurface style={[styles.surface, { borderColor }]} padded>

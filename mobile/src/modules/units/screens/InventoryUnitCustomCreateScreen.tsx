@@ -18,6 +18,7 @@ import { useInventoryHeader } from "@/modules/inventory/useInventoryHeader";
 import { useProcessExitGuard } from "@/modules/navigation/useProcessExitGuard";
 
 import { BAIScreen } from "@/components/ui/BAIScreen";
+import { BAIInlineHeaderMount } from "@/components/ui/BAIInlineHeaderMount";
 import { BAISurface } from "@/components/ui/BAISurface";
 import { BAIText } from "@/components/ui/BAIText";
 import { BAIButton } from "@/components/ui/BAIButton";
@@ -298,6 +299,7 @@ export default function UnitCustomCreateScreen() {
 					headerShadowVisible: false,
 				}}
 			/>
+						<BAIInlineHeaderMount options={headerOptions} />
 
 			<BAIScreen tabbed padded={false} safeTop={false}>
 				<Pressable style={styles.screen} onPress={Keyboard.dismiss}>

@@ -11,7 +11,7 @@ import { Platform } from "react-native";
 import { useRouter } from "expo-router";
 import { useTheme } from "react-native-paper";
 
-import { BAIHeaderIconButton } from "@/components/system/BAIHeaderIconButton";
+import type { BAIHeaderProps } from "@/components/ui/BAIHeader";
 
 export type AppScreenClass = "workspace" | "detail" | "picker" | "process";
 
@@ -28,13 +28,19 @@ export type AppHeaderOptions = {
 	title?: string;
 	headerBackTitle?: string;
 	headerBackVisible?: boolean;
+	header?: (props?: unknown) => React.ReactNode;
 	headerLeft?: (props?: unknown) => React.ReactNode;
 	headerStyle?: Record<string, unknown>;
 	headerTintColor?: string;
 	headerTitleStyle?: Record<string, unknown>;
 	headerBackTitleStyle?: Record<string, unknown>;
+	headerShown?: boolean;
 	headerShadowVisible?: boolean;
 	headerTitleAlign?: "center" | "left";
+	__baiHeader?: Pick<
+		BAIHeaderProps,
+		"title" | "variant" | "onLeftPress" | "disabled" | "hideLeftAction" | "rightSlot" | "rightSlotDisabled"
+	>;
 	[key: string]: unknown;
 };
 
@@ -81,42 +87,31 @@ export function useAppHeader(screenClass: AppScreenClass, options?: UseAppHeader
 		if (title) base.title = title;
 		if (headerBackTitle) base.headerBackTitle = headerBackTitle;
 
-		if (screenClass === "workspace") {
-			return {
-				...base,
-				headerBackVisible: false,
-				headerLeft: () => null,
-			};
-		}
+		const onLeftPress = () => {
+			if (disabled) return;
+			if (screenClass === "process") {
+				if (onExit) return onExit();
+				router.back();
+				return;
+			}
+			if (onBack) return onBack();
+			router.back();
+		};
 
-		if (screenClass === "detail" || screenClass === "picker") {
-			return {
-				...base,
-				headerLeft: () =>
-					React.createElement(BAIHeaderIconButton as any, {
-						variant: "back",
-						disabled,
-						onPress: () => {
-							if (disabled) return;
-							if (onBack) return onBack();
-							router.back();
-						},
-					}),
-			};
-		}
+		const variant = screenClass === "process" ? "exit" : "back";
+		const hideLeftAction = screenClass === "workspace";
+		const headerTitle = title ?? "";
 
 		return {
 			...base,
-			headerLeft: () =>
-				React.createElement(BAIHeaderIconButton as any, {
-					variant: "exit",
-					disabled,
-					onPress: () => {
-						if (disabled) return;
-						if (onExit) return onExit();
-						router.back();
-					},
-				}),
+			headerShown: false,
+			__baiHeader: {
+				title: headerTitle,
+				variant,
+				onLeftPress,
+				disabled,
+				hideLeftAction,
+			},
 		};
 	}, [disabled, headerBackTitle, onBack, onExit, router, screenClass, sharedBase, title]);
 }

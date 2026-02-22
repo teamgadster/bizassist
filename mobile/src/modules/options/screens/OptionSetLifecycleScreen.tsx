@@ -16,6 +16,7 @@ import { useAppBusy } from "@/hooks/useAppBusy";
 import { useInventoryHeader } from "@/modules/inventory/useInventoryHeader";
 import { useAppHeader } from "@/modules/navigation/useAppHeader";
 import { useProcessExitGuard } from "@/modules/navigation/useProcessExitGuard";
+import { BAIInlineHeaderMount } from "@/components/ui/BAIInlineHeaderMount";
 import {
 	buildInventoryOptionDetailsRoute,
 	buildSettingsOptionDetailsRoute,
@@ -129,10 +130,17 @@ export function OptionSetLifecycleScreen({
 	}, [action, archive, canRun, detailRoute, isUiDisabled, ledgerRoute, lockNav, optionSet, resolveSafeRoute, restore, router, withBusy]);
 
 	const headerTitle = action === "archive" ? "Archive Option" : "Restore Option";
-	const headerOptions =
-		mode === "settings"
-			? useAppHeader("process", { title: headerTitle, disabled: isUiDisabled, onExit: guardedOnExit })
-			: useInventoryHeader("process", { title: headerTitle, disabled: isUiDisabled, onExit: guardedOnExit });
+	const appHeaderOptions = useAppHeader("process", {
+		title: headerTitle,
+		disabled: isUiDisabled,
+		onExit: guardedOnExit,
+	});
+	const inventoryHeaderOptions = useInventoryHeader("process", {
+		title: headerTitle,
+		disabled: isUiDisabled,
+		onExit: guardedOnExit,
+	});
+	const headerOptions = mode === "settings" ? appHeaderOptions : inventoryHeaderOptions;
 
 	const borderColor = theme.colors.outlineVariant ?? theme.colors.outline;
 	const helperText =
@@ -143,6 +151,7 @@ export function OptionSetLifecycleScreen({
 	return (
 		<>
 			<Stack.Screen options={headerOptions} />
+			<BAIInlineHeaderMount options={headerOptions} />
 			<BAIScreen tabbed padded={false} safeTop={false}>
 				<View style={styles.screen}>
 					<BAISurface style={[styles.card, { borderColor }]} padded bordered>

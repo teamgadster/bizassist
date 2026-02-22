@@ -18,6 +18,7 @@ import { BAIText } from "@/components/ui/BAIText";
 import { BAIButton } from "@/components/ui/BAIButton";
 import { BAICTAPillButton } from "@/components/ui/BAICTAButton";
 import { BAIRadioRow } from "@/components/ui/BAIRadioRow";
+import { BAIInlineHeaderMount } from "@/components/ui/BAIInlineHeaderMount";
 import { useAppHeader } from "@/modules/navigation/useAppHeader";
 
 import { useAppBusy } from "@/hooks/useAppBusy";
@@ -167,6 +168,7 @@ export default function UnitsAddCategoryScreen() {
 					headerShadowVisible: false,
 				}}
 			/>
+			<BAIInlineHeaderMount options={headerOptions} />
 
 			<BAIScreen padded={false} safeTop={false} style={{ flex: 1 }}>
 				<View style={styles.screen}>

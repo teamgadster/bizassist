@@ -13,6 +13,7 @@ import { useTheme } from "react-native-paper";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { BAICTAPillButton } from "@/components/ui/BAICTAButton";
+import { BAIInlineHeaderMount } from "@/components/ui/BAIInlineHeaderMount";
 import { BAIRetryButton } from "@/components/ui/BAIRetryButton";
 import { BAIScreen } from "@/components/ui/BAIScreen";
 import { BAISurface } from "@/components/ui/BAISurface";
@@ -120,6 +121,7 @@ export default function InventoryProductArchiveScreen({ routeScope = "inventory"
 	return (
 		<>
 			<Stack.Screen options={headerOptions} />
+			<BAIInlineHeaderMount options={headerOptions} />
 			<BAIScreen tabbed padded={false} safeTop={false}>
 				<View style={styles.screen}>
 					<BAISurface style={[styles.card, { borderColor }]} padded bordered>

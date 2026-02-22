@@ -15,6 +15,7 @@ import { useTheme } from "react-native-paper";
 
 import { BAIButton } from "@/components/ui/BAIButton";
 import { BAICTAPillButton } from "@/components/ui/BAICTAButton";
+import { BAIInlineHeaderMount } from "@/components/ui/BAIInlineHeaderMount";
 import { BAIScreen } from "@/components/ui/BAIScreen";
 import { BAISurface } from "@/components/ui/BAISurface";
 import { BAIText } from "@/components/ui/BAIText";
@@ -32,17 +33,17 @@ import { clampDurationMinutes, formatDurationLabel, SERVICE_DURATION_MAX_MINUTES
 
 const ControlPicker = withPickerControl(WheelPicker);
 
-const HOUR_ITEMS: ReadonlyArray<PickerItem<number>> = Array.from({ length: 25 }, (_, index) => ({
+const HOUR_ITEMS: readonly PickerItem<number>[] = Array.from({ length: 25 }, (_, index) => ({
 	value: index,
 	label: String(index).padStart(2, "0"),
 }));
 
-const MINUTE_ITEMS: ReadonlyArray<PickerItem<number>> = Array.from({ length: 60 }, (_, index) => ({
+const MINUTE_ITEMS: readonly PickerItem<number>[] = Array.from({ length: 60 }, (_, index) => ({
 	value: index,
 	label: String(index).padStart(2, "0"),
 }));
 
-const MINUTE_ZERO_ONLY_ITEMS: ReadonlyArray<PickerItem<number>> = [{ value: 0, label: "00" }];
+const MINUTE_ZERO_ONLY_ITEMS: readonly PickerItem<number>[] = [{ value: 0, label: "00" }];
 const WHEEL_ITEM_HEIGHT = 52;
 const WHEEL_VISIBLE_ROWS = 5;
 const PICKER_NAME_HOURS = "hours";
@@ -168,6 +169,7 @@ export default function DurationPickerScreen() {
 	return (
 		<>
 			<Stack.Screen options={headerOptions} />
+			<BAIInlineHeaderMount options={headerOptions} />
 			<BAIScreen style={styles.root}>
 				<View style={styles.screen}>
 					<BAISurface style={[styles.card, { borderColor }]} bordered>
