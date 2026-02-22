@@ -3,7 +3,7 @@
 
 import React, { useCallback, useMemo, useRef, useState } from "react";
 import { Image, StyleSheet, View } from "react-native";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useTheme } from "react-native-paper";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import * as ImagePicker from "expo-image-picker";
@@ -11,13 +11,13 @@ import { FontAwesome6 } from "@expo/vector-icons";
 
 import { BAIScreen } from "@/components/ui/BAIScreen";
 import { BAISurface } from "@/components/ui/BAISurface";
-import { BAIInlineHeaderScaffold } from "@/components/ui/BAIInlineHeaderScaffold";
 import { BAIText } from "@/components/ui/BAIText";
 import { BAICTAPillButton } from "@/components/ui/BAICTAButton";
 import { BAIRetryButton } from "@/components/ui/BAIRetryButton";
 import { ConfirmActionModal } from "@/components/settings/ConfirmActionModal";
 
 import { useAppBusy } from "@/hooks/useAppBusy";
+import { useInventoryHeader } from "@/modules/inventory/useInventoryHeader";
 import { runGovernedBack } from "@/modules/inventory/navigation.governance";
 import {
 	inventoryScopeRoot,
@@ -93,6 +93,11 @@ export default function InventoryServicePhotoScreen({
 			detailRoute,
 		);
 	}, [detailRoute, isUiDisabled, lockNav, router]);
+	const headerOptions = useInventoryHeader("detail", {
+		title: "Photo",
+		disabled: isUiDisabled,
+		onBack,
+	});
 	const borderColor = theme.colors.outlineVariant ?? theme.colors.outline;
 
 	const pickFromLibrary = useCallback(async () => {
@@ -200,7 +205,8 @@ export default function InventoryServicePhotoScreen({
 
 	if (serviceQuery.isError) {
 		return (
-			<BAIInlineHeaderScaffold title='Photo' variant='back' onLeftPress={onBack} disabled={isUiDisabled}>
+			<>
+				<Stack.Screen options={headerOptions} />
 				<BAIScreen padded={false} tabbed safeTop={false} style={styles.root}>
 					<BAISurface style={[styles.surface, { borderColor }]} padded>
 						<BAIText variant='title'>Photo</BAIText>
@@ -210,12 +216,13 @@ export default function InventoryServicePhotoScreen({
 						<BAIRetryButton onPress={() => serviceQuery.refetch()} />
 					</BAISurface>
 				</BAIScreen>
-			</BAIInlineHeaderScaffold>
+			</>
 		);
 	}
 
 	return (
-		<BAIInlineHeaderScaffold title='Photo' variant='back' onLeftPress={onBack} disabled={isUiDisabled}>
+		<>
+			<Stack.Screen options={headerOptions} />
 			<BAIScreen padded={false} tabbed safeTop={false} style={styles.root}>
 				<BAISurface style={[styles.surface, { borderColor }]} padded>
 					<BAIText variant='title' style={styles.title}>
@@ -299,7 +306,7 @@ export default function InventoryServicePhotoScreen({
 				onConfirm={onConfirmRemove}
 				disabled={isUiDisabled}
 			/>
-		</BAIInlineHeaderScaffold>
+		</>
 	);
 }
 
@@ -320,16 +327,14 @@ const styles = StyleSheet.create({
 		borderWidth: StyleSheet.hairlineWidth,
 		borderRadius: 16,
 		overflow: "hidden",
-		alignItems: "center",
-		justifyContent: "center",
-		marginBottom: 12,
+		marginBottom: 16,
 	},
 	previewImage: { width: "100%", height: "100%" },
-	previewEmpty: { alignItems: "center", justifyContent: "center" },
-	previewEmptyIcon: { marginBottom: 8 },
+	previewEmpty: { flex: 1, alignItems: "center", justifyContent: "center" },
+	previewEmptyIcon: { marginBottom: 6 },
 	actions: { gap: 10 },
-	primaryActions: { flexDirection: "row", gap: 10 },
-	secondaryActions: { flexDirection: "row", gap: 10 },
+	primaryActions: { flexDirection: "row", gap: 10, marginTop: 10 },
+	secondaryActions: { marginTop: 6, flexDirection: "row", gap: 10 },
 	actionButton: { flex: 1 },
 	secondaryButton: { flex: 1 },
 });

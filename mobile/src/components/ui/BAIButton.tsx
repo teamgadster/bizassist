@@ -147,7 +147,8 @@ export function BAIButton({
 
 	const normalizedLabel = nodeText(children).trim().toLowerCase();
 	const isCancelButton = normalizedLabel === "cancel";
-	const inferredShape: BAIButtonShape | undefined = shape ?? (isCancelButton ? "pill" : !isFullWidthButton ? "pill" : undefined);
+	const inferredShape: BAIButtonShape | undefined =
+		shape ?? (isCancelButton ? "pill" : !isFullWidthButton ? "pill" : undefined);
 
 	const resolvedShape = resolveButtonShape({
 		shape: inferredShape,
@@ -193,13 +194,13 @@ export function BAIButton({
 		? isPrimarySolid
 			? primaryDisabledCfg.background
 			: safeVariant === "outline"
-			? paperDisabledBg
-			: safeVariant === "ghost"
-			? "transparent"
-			: paperDisabledBg
+				? paperDisabledBg
+				: safeVariant === "ghost"
+					? "transparent"
+					: paperDisabledBg
 		: shouldUsePressed
-		? primaryPressedCfg.background
-		: cfg.background;
+			? primaryPressedCfg.background
+			: cfg.background;
 
 	/**
 	 * Critical: always reserve border space so "outlined + disabled" never increases height.
@@ -211,10 +212,10 @@ export function BAIButton({
 			? primaryDisabledCfg.border
 			: paperDisabledBorder
 		: shouldUsePressed
-		? primaryPressedCfg.border
-		: safeVariant === "outline"
-		? cfg.border
-		: "transparent";
+			? primaryPressedCfg.border
+			: safeVariant === "outline"
+				? cfg.border
+				: "transparent";
 
 	const height = HEIGHT_BY_SIZE[size];
 	const paddingHorizontal = H_PADDING_BY_SIZE[size];
@@ -225,19 +226,19 @@ export function BAIButton({
 	const computedBorderRadius = resolvedShape === "pill" ? Math.ceil(height / 2) : borderRadius;
 
 	const effectiveBgForText =
-		backgroundColor === "transparent" ? theme.colors.surface ?? paperDisabledBg : backgroundColor;
+		backgroundColor === "transparent" ? (theme.colors.surface ?? paperDisabledBg) : backgroundColor;
 
 	const isNeutralOutlineEnabled = !isVisuallyDisabled && safeIntent === "neutral" && safeVariant === "outline";
 
 	const resolvedTextColor = isPrimarySolid
 		? "#FFFFFF"
 		: isVisuallyDisabled
-		? getAccessibleTextColor(effectiveBgForText, DISABLED_PREFERRED_DARK_TEXT, 4.5)
-		: isNeutralOutlineEnabled
-		? getAccessibleTextColor(effectiveBgForText, NEUTRAL_OUTLINE_PREFERRED_DARK_TEXT, 4.5)
-		: backgroundColor === "transparent"
-		? cfg.text
-		: getAccessibleTextColor(backgroundColor, cfg.text, 4.5);
+			? getAccessibleTextColor(effectiveBgForText, DISABLED_PREFERRED_DARK_TEXT, 4.5)
+			: isNeutralOutlineEnabled
+				? getAccessibleTextColor(effectiveBgForText, NEUTRAL_OUTLINE_PREFERRED_DARK_TEXT, 4.5)
+				: backgroundColor === "transparent"
+					? cfg.text
+					: getAccessibleTextColor(backgroundColor, cfg.text, 4.5);
 
 	const hasIcon = Boolean(iconLeft);
 

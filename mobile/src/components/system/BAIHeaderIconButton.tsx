@@ -40,15 +40,15 @@ export type BAIHeaderIconButtonProps = {
 };
 
 // Deterministic Exit sizing (consistent across simulator + real devices)
-const EXIT_HIT_SIZE = 44; // stable touch target (>= 44 minimum)
-const EXIT_ICON_SIZE = 24; // stable glyph size
-const EXIT_RADIUS = 20;
+const EXIT_HIT_SIZE = 50; // stable touch target (>= 44 minimum)
+const EXIT_ICON_SIZE = 36; // exact requested glyph size
+const EXIT_RADIUS = 25;
 
 // Deterministic Back sizing (match Exit feel but use chevron glyph)
 // Enlarged for better tap target while keeping proportions.
-const BACK_HIT_SIZE = 44;
-const BACK_ICON_SIZE = 30; // chevrons tend to look smaller; slight bump keeps optical balance
-const BACK_RADIUS = 20;
+const BACK_HIT_SIZE = 50;
+const BACK_ICON_SIZE = 36; // exact requested glyph size
+const BACK_RADIUS = 25;
 
 export function BAIHeaderIconButton(props: BAIHeaderIconButtonProps) {
 	const theme = useTheme();

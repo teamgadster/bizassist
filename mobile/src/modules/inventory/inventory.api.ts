@@ -127,7 +127,9 @@ function formatDecimalRawWithScale(raw: string, scale: number): string {
 }
 
 function toProductType(value: unknown): ProductType {
-	return value === "SERVICE" ? "SERVICE" : "PHYSICAL";
+	const raw = typeof value === "string" ? value.trim().toUpperCase() : "";
+	if (raw === "SERVICE" || raw === "SERVICES") return "SERVICE";
+	return "PHYSICAL";
 }
 
 function toCategory(input: any): InventoryCategoryRef | null {
@@ -286,9 +288,19 @@ function normalizeInventoryProduct(input: any): InventoryProduct {
 			input?.processing_enabled,
 		) ?? false;
 
+	const explicitType = toTrimmedStringFromCandidates(input?.type, input?.productType, input?.kind, input?.itemType);
+	const unitCategory = toTrimmedStringFromCandidates(input?.unitCategory, input?.unit?.category)?.toUpperCase() ?? "";
+	const hasServiceDurationSignals =
+		durationTotalMinutesRaw !== null ||
+		durationInitialMinutes !== null ||
+		durationProcessingMinutes !== null ||
+		durationFinalMinutes !== null ||
+		processingEnabled;
+	const inferredType = explicitType ?? (hasServiceDurationSignals || unitCategory === "TIME" ? "SERVICE" : "PHYSICAL");
+
 	return {
 		id: toTrimmedString(input?.id) ?? "",
-		type: toProductType(input?.type),
+		type: toProductType(inferredType),
 		name: toTrimmedString(input?.name) ?? "Item",
 
 		sku: toTrimmedString(input?.sku),

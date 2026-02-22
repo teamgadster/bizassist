@@ -2,7 +2,7 @@
 // path: src/modules/inventory/services/ServiceUpsertScreen.tsx
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Image, ScrollView, StyleSheet, View } from "react-native";
+import { Image, Keyboard, ScrollView, StyleSheet, TouchableWithoutFeedback, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTheme } from "react-native-paper";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
@@ -10,6 +10,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { FontAwesome6 } from "@expo/vector-icons";
 
 import { BAIActivityIndicator } from "@/components/system/BAIActivityIndicator";
+import { ConfirmActionModal } from "@/components/settings/ConfirmActionModal";
 import { BAIButton } from "@/components/ui/BAIButton";
 import { BAICTAPillButton } from "@/components/ui/BAICTAButton";
 import { BAIInlineHeaderScaffold } from "@/components/ui/BAIInlineHeaderScaffold";
@@ -26,6 +27,7 @@ import { BAITextarea } from "@/components/ui/BAITextarea";
 import { useAppBusy } from "@/hooks/useAppBusy";
 import { useAppToast } from "@/providers/AppToastProvider";
 import { useActiveBusinessMeta } from "@/modules/business/useActiveBusinessMeta";
+import { useProcessExitGuard } from "@/modules/navigation/useProcessExitGuard";
 import {
 	CATEGORY_PICKER_ROUTE,
 	CATEGORY_SELECTED_ID_KEY,
@@ -112,7 +114,7 @@ function pickDefaultServiceUnit(units: Unit[]): Unit | null {
 		const name = unit.name.trim().toLowerCase();
 		const abbr = unit.abbreviation.trim().toLowerCase();
 		const catalogId = (unit.catalogId ?? "").trim().toLowerCase();
-		return name === "hour" || abbr === "hr" || catalogId === "hr";
+		return name === "hour" || abbr === "hr" || abbr === "h" || catalogId === "hr" || catalogId === "hour";
 	});
 	return preferredHour ?? activeTime[0] ?? null;
 }
@@ -120,6 +122,13 @@ function pickDefaultServiceUnit(units: Unit[]): Unit | null {
 function capText(raw: string, maxLen: number): string {
 	if (maxLen <= 0) return "";
 	return raw.length > maxLen ? raw.slice(0, maxLen) : raw;
+}
+
+function hasValue(v: unknown): boolean {
+	if (typeof v === "string") return v.trim().length > 0;
+	if (typeof v === "number") return Number.isFinite(v);
+	if (typeof v === "boolean") return v;
+	return v != null;
 }
 
 function sanitizeServiceNameInput(raw: string): string {
@@ -187,6 +196,50 @@ function evaluateServiceDraftValidity(draft: ServiceDraft) {
 	};
 }
 
+type ServiceEditBreadcrumbEvent =
+	| {
+			name: "service_edit_missing_id";
+			routeScope: InventoryRouteScope;
+	  }
+	| {
+			name: "service_edit_detail_load_failed";
+			routeScope: InventoryRouteScope;
+			serviceId: string;
+			code?: string;
+			status?: number;
+	  }
+	| {
+			name: "service_edit_hydrate_blocked_non_service";
+			routeScope: InventoryRouteScope;
+			serviceId: string;
+			detailType: string;
+	  }
+	| {
+			name: "service_edit_hydrate_succeeded";
+			routeScope: InventoryRouteScope;
+			serviceId: string;
+	  };
+
+function trackServiceEditBreadcrumb(evt: ServiceEditBreadcrumbEvent) {
+	const debug = __DEV__ && process.env.EXPO_PUBLIC_SERVICE_EDIT_DEBUG === "true";
+	if (evt.name === "service_edit_hydrate_succeeded" && !debug) return;
+
+	const payload: Record<string, unknown> = {
+		routeScope: evt.routeScope,
+	};
+	if ((evt as any).serviceId) payload.serviceId = (evt as any).serviceId;
+	if ((evt as any).code) payload.code = (evt as any).code;
+	if ((evt as any).status !== undefined) payload.status = (evt as any).status;
+	if ((evt as any).detailType) payload.detailType = (evt as any).detailType;
+
+	if (evt.name === "service_edit_hydrate_succeeded") {
+		console.log(`[services.edit] ${evt.name}`, payload);
+		return;
+	}
+
+	console.warn(`[services.edit] ${evt.name}`, payload);
+}
+
 export function ServiceUpsertScreen(props: {
 	mode: ServiceUpsertMode;
 	headerTitle: string;
@@ -199,6 +252,13 @@ export function ServiceUpsertScreen(props: {
 	const router = useRouter();
 	const theme = useTheme();
 	const params = useLocalSearchParams();
+	const resolvedServiceId = useMemo(() => {
+		const fromProp = String(serviceId ?? "").trim();
+		if (fromProp) return fromProp;
+		const fromRoute = (params as any)?.id;
+		if (Array.isArray(fromRoute)) return String(fromRoute[0] ?? "").trim();
+		return String(fromRoute ?? "").trim();
+	}, [params, serviceId]);
 	const tabBarHeight = useBottomTabBarHeight();
 	const { currencyCode } = useActiveBusinessMeta();
 	const appBusy = useAppBusy();
@@ -212,15 +272,27 @@ export function ServiceUpsertScreen(props: {
 		if (fromTile) return fromTile;
 		const fromDuration = String((params as any)?.[DURATION_DRAFT_ID_KEY] ?? "").trim();
 		if (fromDuration) return fromDuration;
-		if (mode === "edit" && serviceId) return `svc_edit_${serviceId}`;
+		if (mode === "edit" && resolvedServiceId) return `svc_edit_${resolvedServiceId}`;
 		return `svc_${Date.now()}`;
 	});
+	const routeDraftIdParam = useMemo(() => {
+		const fromCategory = String((params as any)?.[CATEGORY_DRAFT_ID_KEY] ?? "").trim();
+		if (fromCategory) return fromCategory;
+		const fromTile = String((params as any)?.[POS_TILE_DRAFT_ID_KEY] ?? "").trim();
+		if (fromTile) return fromTile;
+		const fromDuration = String((params as any)?.[DURATION_DRAFT_ID_KEY] ?? "").trim();
+		return fromDuration;
+	}, [params]);
+	const hasRouteDraftIdParam = routeDraftIdParam.length > 0;
 
 	const { draft: mediaDraft, patch: patchMediaDraft, reset: resetMediaDraft } = useProductCreateDraft(draftId);
 	const { draft, patch: setDraft, reset: resetServiceDraft } = useServiceCreateDraft(draftId);
 	const [error, setError] = useState<string | null>(null);
 	const [initializedEdit, setInitializedEdit] = useState(mode === "create");
 	const [openDurationAccordion, setOpenDurationAccordion] = useState<DurationAccordionKey | null>(null);
+	const [confirmExitOpen, setConfirmExitOpen] = useState(false);
+	const missingIdLoggedRef = useRef(false);
+	const loadErrorLoggedRef = useRef<string | null>(null);
 
 	const navLockRef = useRef(false);
 	const [isNavLocked, setIsNavLocked] = useState(false);
@@ -239,11 +311,54 @@ export function ServiceUpsertScreen(props: {
 	const toScopedRoute = useCallback((route: string) => mapInventoryRouteToScope(route, routeScope), [routeScope]);
 
 	const detailQuery = useQuery({
-		queryKey: inventoryKeys.productDetail(serviceId ?? ""),
-		queryFn: () => inventoryApi.getProductDetail(String(serviceId || "")),
-		enabled: mode === "edit" && !!serviceId,
+		queryKey: inventoryKeys.productDetail(resolvedServiceId),
+		queryFn: () => inventoryApi.getProductDetail(resolvedServiceId),
+		enabled: mode === "edit" && !!resolvedServiceId,
 		staleTime: 30_000,
 	});
+
+	useEffect(() => {
+		if (mode !== "edit") return;
+		if (!resolvedServiceId) {
+			if (missingIdLoggedRef.current) return;
+			trackServiceEditBreadcrumb({
+				name: "service_edit_missing_id",
+				routeScope,
+			});
+			missingIdLoggedRef.current = true;
+			return;
+		}
+		missingIdLoggedRef.current = false;
+	}, [mode, resolvedServiceId, routeScope]);
+
+	useEffect(() => {
+		if (mode !== "edit") return;
+		if (!resolvedServiceId) return;
+		if (!detailQuery.isError) {
+			loadErrorLoggedRef.current = null;
+			return;
+		}
+
+		const err = detailQuery.error as any;
+		const status = typeof err?.response?.status === "number" ? err.response.status : undefined;
+		const codeCandidate =
+			err?.response?.data?.code ??
+			err?.response?.data?.error?.code ??
+			err?.code ??
+			undefined;
+		const code = typeof codeCandidate === "string" ? codeCandidate : undefined;
+		const fingerprint = `${resolvedServiceId}:${String(code ?? "")}::${String(status ?? "")}`;
+		if (loadErrorLoggedRef.current === fingerprint) return;
+
+		trackServiceEditBreadcrumb({
+			name: "service_edit_detail_load_failed",
+			routeScope,
+			serviceId: resolvedServiceId,
+			code,
+			status,
+		});
+		loadErrorLoggedRef.current = fingerprint;
+	}, [detailQuery.error, detailQuery.isError, mode, resolvedServiceId, routeScope]);
 
 	const unitsQuery = useQuery<Unit[]>({
 		queryKey: unitKeys.list({ includeArchived: false }),
@@ -252,6 +367,48 @@ export function ServiceUpsertScreen(props: {
 	});
 
 	const defaultServiceUnit = useMemo(() => pickDefaultServiceUnit(unitsQuery.data ?? []), [unitsQuery.data]);
+	const isServiceDraftPristine = useMemo(() => {
+		if (hasValue(draft.name)) return false;
+		if (hasValue(draft.categoryId) || hasValue(draft.categoryName)) return false;
+		if (hasValue(draft.priceText)) return false;
+		if (hasValue(draft.description)) return false;
+		if (hasValue(draft.unitId)) return false;
+		if (draft.processingEnabled) return false;
+		if (draft.durationTotalMinutes !== DEFAULT_SERVICE_TOTAL_DURATION_MINUTES) return false;
+		const initial = normalizeDurationOrNull(draft.durationInitialMinutes);
+		const processing = normalizeDurationOrNull(draft.durationProcessingMinutes);
+		const final = normalizeDurationOrNull(draft.durationFinalMinutes);
+		if (initial !== DEFAULT_SERVICE_SEGMENT_DURATION_MINUTES) return false;
+		if (processing !== DEFAULT_SERVICE_SEGMENT_DURATION_MINUTES) return false;
+		if (final !== DEFAULT_SERVICE_SEGMENT_DURATION_MINUTES) return false;
+		return true;
+	}, [
+		draft.categoryId,
+		draft.categoryName,
+		draft.description,
+		draft.durationFinalMinutes,
+		draft.durationInitialMinutes,
+		draft.durationProcessingMinutes,
+		draft.durationTotalMinutes,
+		draft.name,
+		draft.priceText,
+		draft.processingEnabled,
+		draft.unitId,
+	]);
+	const mediaDraftTileLabelTouched = Boolean(mediaDraft.posTileLabelTouched);
+	const isMediaDraftPristine = useMemo(() => {
+		const draftImage = String(mediaDraft.imageLocalUri ?? "").trim();
+		const draftLabel = String(mediaDraft.posTileLabel ?? "").trim();
+		const draftMode = mediaDraft.posTileMode === "IMAGE" ? "IMAGE" : "COLOR";
+		const draftColor = typeof mediaDraft.posTileColor === "string" ? mediaDraft.posTileColor.trim() : "";
+		return !draftImage && !draftLabel && !mediaDraftTileLabelTouched && draftMode === "COLOR" && !draftColor;
+	}, [
+		mediaDraft.imageLocalUri,
+		mediaDraft.posTileColor,
+		mediaDraft.posTileLabel,
+		mediaDraft.posTileMode,
+		mediaDraftTileLabelTouched,
+	]);
 
 	useEffect(() => {
 		if (!defaultServiceUnit) return;
@@ -305,7 +462,14 @@ export function ServiceUpsertScreen(props: {
 		if (!detailQuery.data) return;
 
 		const detail = detailQuery.data as any;
-		if (String(detail.type || "").toUpperCase() !== "SERVICE") {
+		const detailType = String(detail?.type ?? "").trim().toUpperCase();
+		if (detailType && detailType !== "SERVICE") {
+			trackServiceEditBreadcrumb({
+				name: "service_edit_hydrate_blocked_non_service",
+				routeScope,
+				serviceId: resolvedServiceId,
+				detailType,
+			});
 			setError("This screen is only for services.");
 			setInitializedEdit(true);
 			return;
@@ -325,33 +489,81 @@ export function ServiceUpsertScreen(props: {
 			persistedProcessing && resolvedInitial != null && resolvedProcessing != null && resolvedFinal != null
 				? resolvedInitial + resolvedProcessing + resolvedFinal
 				: persistedTotal;
+		const resolvedCategoryName =
+			typeof detail.category?.name === "string"
+				? detail.category.name.trim()
+				: typeof detail.categoryName === "string"
+					? detail.categoryName.trim()
+					: "";
+		const resolvedUnitId =
+			typeof detail.unitId === "string" && detail.unitId.trim()
+				? detail.unitId.trim()
+				: typeof detail.unit?.id === "string" && detail.unit.id.trim()
+					? detail.unit.id.trim()
+					: (defaultServiceUnit?.id ?? "");
+		const remotePrimaryImageUrl = String(detail.primaryImageUrl ?? "").trim();
+		const resolvedPosTileMode =
+			detail.posTileMode === "IMAGE" || (!!remotePrimaryImageUrl && detail.posTileMode !== "COLOR") ? "IMAGE" : "COLOR";
+		const resolvedPosTileLabel =
+			typeof detail.posTileLabel === "string"
+				? detail.posTileLabel
+				: typeof detail.tileLabel === "string"
+					? detail.tileLabel
+					: typeof detail.posTileName === "string"
+						? detail.posTileName
+						: "";
 
-		setDraft({
-			name: sanitizeServiceNameInput(String(detail.name ?? "")),
-			categoryId: String(detail.categoryId ?? "").trim(),
-			categoryName: String(detail.category?.name ?? "").trim(),
-			priceText: detail.price != null ? sanitizeServicePriceInput(String(detail.price)) : "",
-			description: sanitizeServiceDescriptionFinal(String(detail.description ?? "")),
-			unitId:
-				typeof detail.unitId === "string" && detail.unitId.trim()
-					? detail.unitId.trim()
-					: (defaultServiceUnit?.id ?? ""),
-			durationTotalMinutes: resolvedTotal,
-			processingEnabled: persistedProcessing,
-			durationInitialMinutes: resolvedInitial,
-			durationProcessingMinutes: resolvedProcessing,
-			durationFinalMinutes: resolvedFinal,
-		});
+		const shouldSeedServiceFromDetail = !hasRouteDraftIdParam || isServiceDraftPristine;
+		if (shouldSeedServiceFromDetail) {
+			setDraft({
+				name: sanitizeServiceNameInput(String(detail.name ?? "")),
+				categoryId: String(detail.categoryId ?? "").trim(),
+				categoryName: resolvedCategoryName,
+				priceText: detail.price != null ? sanitizeServicePriceInput(String(detail.price)) : "",
+				description: sanitizeServiceDescriptionFinal(String(detail.description ?? "")),
+				unitId: resolvedUnitId,
+				durationTotalMinutes: resolvedTotal,
+				processingEnabled: persistedProcessing,
+				durationInitialMinutes: resolvedInitial,
+				durationProcessingMinutes: resolvedProcessing,
+				durationFinalMinutes: resolvedFinal,
+			});
+		}
 
-		patchMediaDraft({
-			posTileMode: detail.posTileMode === "IMAGE" ? "IMAGE" : "COLOR",
-			posTileColor: isHexColor(detail.posTileColor) ? detail.posTileColor : DEFAULT_SERVICE_TILE_COLOR,
-			posTileLabel: typeof detail.posTileLabel === "string" ? detail.posTileLabel : "",
-			imageLocalUri: "",
-		});
+		const shouldSeedMediaFromDetail = !hasRouteDraftIdParam || isMediaDraftPristine;
+		if (shouldSeedMediaFromDetail) {
+			patchMediaDraft({
+				posTileMode: resolvedPosTileMode,
+				posTileColor: isHexColor(detail.posTileColor) ? detail.posTileColor : DEFAULT_SERVICE_TILE_COLOR,
+				posTileLabel: resolvedPosTileLabel,
+				posTileLabelTouched: false,
+				imageLocalUri: "",
+			});
+		}
+
+		if (resolvedServiceId) {
+			trackServiceEditBreadcrumb({
+				name: "service_edit_hydrate_succeeded",
+				routeScope,
+				serviceId: resolvedServiceId,
+			});
+		}
 
 		setInitializedEdit(true);
-	}, [defaultServiceUnit?.id, detailQuery.data, initializedEdit, mode, patchMediaDraft, setDraft]);
+	}, [
+		draft,
+		defaultServiceUnit?.id,
+		detailQuery.data,
+		hasRouteDraftIdParam,
+		initializedEdit,
+		isMediaDraftPristine,
+		isServiceDraftPristine,
+		mode,
+		patchMediaDraft,
+		routeScope,
+		resolvedServiceId,
+		setDraft,
+	]);
 
 	const remoteImageUri = useMemo(() => {
 		if (mode !== "edit") return "";
@@ -378,14 +590,53 @@ export function ServiceUpsertScreen(props: {
 	const tileLabelBg = "rgba(0,0,0,0.45)";
 
 	const validation = useMemo(() => evaluateServiceDraftValidity(draft), [draft]);
+	const hasDirtyInput = useMemo(() => {
+		if (mode !== "create") return false;
+		if (hasValue(draft.name)) return true;
+		if (hasValue(draft.categoryId) || hasValue(draft.categoryName)) return true;
+		if (hasValue(draft.priceText)) return true;
+		if (hasValue(draft.description)) return true;
+		if (hasValue(draft.unitId)) return true;
+		if (draft.processingEnabled) return true;
+		if (draft.durationTotalMinutes !== DEFAULT_SERVICE_TOTAL_DURATION_MINUTES) return true;
+		if (hasValue(mediaDraft.imageLocalUri)) return true;
+		if (hasValue(mediaDraft.posTileLabel)) return true;
+		if (mediaDraft.posTileMode === "IMAGE") return true;
+		if (isHexColor(mediaDraft.posTileColor) && mediaDraft.posTileColor !== DEFAULT_SERVICE_TILE_COLOR) return true;
+		return false;
+	}, [draft, mediaDraft, mode]);
 
 	const onExit = useCallback(() => {
+		if (mode === "create" && hasDirtyInput) {
+			setConfirmExitOpen(true);
+			return;
+		}
 		runGovernedExitReplace(exitRoute, {
 			router: router as any,
 			lockNav,
 			disabled: isUiDisabled,
 		});
-	}, [exitRoute, isUiDisabled, lockNav, router]);
+	}, [exitRoute, hasDirtyInput, isUiDisabled, lockNav, mode, router]);
+	const guardedOnExit = useProcessExitGuard(onExit);
+
+	const onDiscardExit = useCallback(() => {
+		if (isUiDisabled) return;
+		setConfirmExitOpen(false);
+		const exited = runGovernedExitReplace(exitRoute, {
+			router: router as any,
+			lockNav,
+			disabled: isUiDisabled,
+		});
+		if (!exited) return;
+		resetServiceDraft({ unitId: defaultServiceUnit?.id ?? "" });
+		setOpenDurationAccordion(null);
+		resetMediaDraft();
+	}, [defaultServiceUnit?.id, exitRoute, isUiDisabled, lockNav, resetMediaDraft, resetServiceDraft, router]);
+
+	const onResumeEditing = useCallback(() => {
+		if (isUiDisabled) return;
+		setConfirmExitOpen(false);
+	}, [isUiDisabled]);
 
 	const openCategoryPicker = useCallback(() => {
 		if (isUiDisabled) return;
@@ -498,7 +749,7 @@ export function ServiceUpsertScreen(props: {
 				};
 
 				try {
-					let id = String(serviceId ?? "").trim();
+					let id = resolvedServiceId;
 					if (mode === "create") {
 						const created = await inventoryApi.createProduct(payload as any);
 						id = String((created as any)?.id ?? "").trim();
@@ -581,7 +832,7 @@ export function ServiceUpsertScreen(props: {
 			resetServiceDraft,
 			resetMediaDraft,
 			router,
-			serviceId,
+			resolvedServiceId,
 			showSuccess,
 			tileColor,
 			tileMode,
@@ -594,13 +845,18 @@ export function ServiceUpsertScreen(props: {
 
 	const screenBottomPad = tabBarHeight + 12;
 	const borderColor = theme.colors.outlineVariant ?? theme.colors.outline;
+	const dismissKeyboardOnBackgroundPress = useCallback(() => {
+		if (mode !== "create") return;
+		Keyboard.dismiss();
+	}, [mode]);
 
-	const detailLoadError = mode === "edit" && detailQuery.isError;
-	const shouldShowLoading = mode === "edit" && !initializedEdit && detailQuery.isLoading;
+	const hasMissingEditId = mode === "edit" && !resolvedServiceId;
+	const detailLoadError = mode === "edit" && (detailQuery.isError || hasMissingEditId);
+	const shouldShowLoading = mode === "edit" && !hasMissingEditId && !initializedEdit && detailQuery.isLoading;
 
 	if (shouldShowLoading) {
 		return (
-			<BAIInlineHeaderScaffold title={headerTitle} variant='exit' onLeftPress={onExit} disabled={isUiDisabled}>
+			<BAIInlineHeaderScaffold title={headerTitle} variant='exit' onLeftPress={guardedOnExit} disabled={isUiDisabled}>
 				<BAIScreen safeTop={false} padded={false} style={styles.root}>
 					<View style={styles.loadingScreen}>
 						<BAIActivityIndicator />
@@ -611,15 +867,17 @@ export function ServiceUpsertScreen(props: {
 	}
 
 	return (
-		<BAIInlineHeaderScaffold title={headerTitle} variant='exit' onLeftPress={onExit} disabled={isUiDisabled}>
-			<BAIScreen padded={false} safeTop={false} safeBottom={false} style={styles.root}>
-				<View
-					style={[
-						styles.screen,
-						styles.scroll,
-						{ backgroundColor: theme.colors.background, paddingBottom: screenBottomPad },
-					]}
-				>
+		<>
+			<BAIInlineHeaderScaffold title={headerTitle} variant='exit' onLeftPress={guardedOnExit} disabled={isUiDisabled}>
+				<BAIScreen padded={false} safeTop={false} safeBottom={false} style={styles.root}>
+				<TouchableWithoutFeedback onPress={dismissKeyboardOnBackgroundPress} accessible={false}>
+					<View
+						style={[
+							styles.screen,
+							styles.scroll,
+							{ backgroundColor: theme.colors.background, paddingBottom: screenBottomPad },
+						]}
+					>
 					<BAISurface style={[styles.card, { borderColor }]} padded={false}>
 						<View style={[styles.cardHeader, { borderBottomColor: borderColor }]}>
 							<BAIText variant='title'>{headerTitle}</BAIText>
@@ -636,7 +894,9 @@ export function ServiceUpsertScreen(props: {
 						>
 							{detailLoadError ? (
 								<BAIText variant='caption' style={{ color: theme.colors.error }}>
-									Could not load service details. You can retry by reopening this screen.
+									{hasMissingEditId
+										? "Missing service id. Reopen Edit Service from Service Details."
+										: "Could not load service details. You can retry by reopening this screen."}
 								</BAIText>
 							) : null}
 
@@ -670,9 +930,8 @@ export function ServiceUpsertScreen(props: {
 										{shouldShowTileTextOverlay ? (
 											<View style={styles.tileLabelWrap}>
 												{shouldShowNameOnlyOverlay ? (
-													<>
-														<View style={[styles.tileNameOnlyOverlay, { backgroundColor: tileLabelBg }]} />
-														<View style={styles.tileNameOnlyContent}>
+													<View style={styles.tileNameOnlyContent}>
+														<View style={[styles.tileNamePill, { backgroundColor: tileLabelBg }]}>
 															<BAIText
 																variant='caption'
 																numberOfLines={1}
@@ -682,7 +941,7 @@ export function ServiceUpsertScreen(props: {
 																{serviceName}
 															</BAIText>
 														</View>
-													</>
+													</View>
 												) : (
 													<>
 														<View style={[styles.tileLabelOverlay, { backgroundColor: tileLabelBg }]} />
@@ -700,14 +959,16 @@ export function ServiceUpsertScreen(props: {
 															</View>
 															<View style={styles.tileNameRow}>
 																{hasServiceName ? (
-																	<BAIText
-																		variant='caption'
-																		numberOfLines={1}
-																		ellipsizeMode='tail'
-																		style={[styles.tileItemName, { color: tileLabelColor }]}
-																	>
-																		{serviceName}
-																	</BAIText>
+																	<View style={[styles.tileNamePill, { backgroundColor: tileLabelBg }]}>
+																		<BAIText
+																			variant='caption'
+																			numberOfLines={1}
+																			ellipsizeMode='tail'
+																			style={[styles.tileItemName, { color: tileLabelColor }]}
+																		>
+																			{serviceName}
+																		</BAIText>
+																	</View>
 																) : null}
 															</View>
 														</View>
@@ -871,7 +1132,7 @@ export function ServiceUpsertScreen(props: {
 								<BAICTAPillButton
 									variant='outline'
 									intent='neutral'
-									onPress={onExit}
+									onPress={guardedOnExit}
 									disabled={isUiDisabled}
 									style={styles.actionButton}
 								>
@@ -898,9 +1159,25 @@ export function ServiceUpsertScreen(props: {
 							) : null}
 						</ScrollView>
 					</BAISurface>
-				</View>
-			</BAIScreen>
-		</BAIInlineHeaderScaffold>
+					</View>
+				</TouchableWithoutFeedback>
+				</BAIScreen>
+			</BAIInlineHeaderScaffold>
+
+			<ConfirmActionModal
+				visible={confirmExitOpen}
+				title='Unsaved changes'
+				message='Do you want to resume editing or discard this service?'
+				confirmLabel='Resume'
+				cancelLabel='Discard'
+				confirmIntent='primary'
+				cancelIntent='error'
+				onDismiss={onResumeEditing}
+				onConfirm={onResumeEditing}
+				onCancel={onDiscardExit}
+				disabled={isUiDisabled}
+			/>
+		</>
 	);
 }
 
@@ -930,7 +1207,7 @@ const styles = StyleSheet.create({
 	},
 	formContainer: {
 		paddingHorizontal: 14,
-		paddingBottom: 220,
+		paddingBottom: 250,
 		gap: 10,
 	},
 	formTextInput: {
@@ -961,22 +1238,15 @@ const styles = StyleSheet.create({
 	},
 	tileLabelWrap: {
 		position: "absolute",
-		left: 6,
-		right: 6,
-		bottom: 6,
+		left: 2,
+		right: 2,
+		bottom: 2,
 		borderRadius: 16,
 		overflow: "hidden",
-		minHeight: 68,
+		minHeight: 80,
 	},
 	tileLabelOverlay: {
 		...StyleSheet.absoluteFillObject,
-	},
-	tileNameOnlyOverlay: {
-		position: "absolute",
-		left: 0,
-		right: 0,
-		bottom: 0,
-		minHeight: 32,
 	},
 	tileLabelContent: {
 		paddingHorizontal: 10,
@@ -1002,6 +1272,13 @@ const styles = StyleSheet.create({
 	tileNameRow: {
 		minHeight: 20,
 		justifyContent: "flex-start",
+	},
+	tileNamePill: {
+		alignSelf: "stretch",
+		width: "100%",
+		borderRadius: 999,
+		paddingHorizontal: 10,
+		paddingVertical: 4,
 	},
 	tileLabelText: {
 		fontWeight: "700",
@@ -1029,9 +1306,10 @@ const styles = StyleSheet.create({
 	actions: {
 		flexDirection: "row",
 		gap: 10,
+		marginTop: 16,
 	},
 	saveAnotherButton: {
-		marginTop: 10,
+		marginTop: 14,
 	},
 	actionButton: { flex: 1 },
 });

@@ -3,6 +3,10 @@
 Date: 2026-02-16
 Scope: Process-screen parity and governance for archive, restore, create, and edit flows.
 
+## Focused Addendum
+
+- Service create/details/photo parity signoff: [docs/SERVICE_FLOW_PARITY_QA_CHECKLIST_2026-02-22.md](docs/SERVICE_FLOW_PARITY_QA_CHECKLIST_2026-02-22.md)
+
 ## Preconditions
 
 - App builds and opens on iOS simulator or device.

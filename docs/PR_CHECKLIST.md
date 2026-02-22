@@ -39,6 +39,7 @@ This checklist is mandatory for every BizAssist change that touches UI, API, sch
 - [ ] Smoke tested on phone (portrait) and tablet (portrait + landscape).
 - [ ] Verified error recovery paths (offline / server error / validation error).
 - [ ] Verified “happy path” completes with deterministic navigation result.
+- [ ] For Service flow parity changes, attach QA evidence from [docs/SERVICE_FLOW_PARITY_QA_CHECKLIST_2026-02-22.md](docs/SERVICE_FLOW_PARITY_QA_CHECKLIST_2026-02-22.md).
 
 ## E) Docs
 
