@@ -27,6 +27,7 @@ import {
 	CATALOG_LIST_DEFAULT_LIMIT,
 	CATALOG_LIST_MAX_LIMIT,
 	CATALOG_USAGE_WARNING_THRESHOLD,
+	MAX_MODIFIER_GROUPS_PER_PRODUCT,
 	MAX_PRODUCTS_PER_BUSINESS,
 } from "@/shared/catalogLimits";
 
@@ -186,6 +187,31 @@ async function resolveServiceTimeUnitId(businessId: string, unitId: string | nul
 	return unit.id;
 }
 
+async function validateModifierGroupIds(businessId: string, modifierGroupIds: string[] | undefined): Promise<string[] | undefined> {
+	if (modifierGroupIds === undefined) return undefined;
+	const uniqueIds = Array.from(new Set((modifierGroupIds ?? []).map((id) => String(id).trim()).filter(Boolean)));
+	if (uniqueIds.length > MAX_MODIFIER_GROUPS_PER_PRODUCT) {
+		throw new AppError(
+			StatusCodes.UNPROCESSABLE_ENTITY,
+			`Max ${MAX_MODIFIER_GROUPS_PER_PRODUCT} modifier groups per product.`,
+			"MODIFIER_GROUPS_PER_PRODUCT_LIMIT",
+		);
+	}
+	if (uniqueIds.length === 0) return [];
+	const groups = await prisma.modifierGroup.findMany({
+		where: { businessId, id: { in: uniqueIds }, isArchived: false },
+		select: { id: true },
+	});
+	if (groups.length !== uniqueIds.length) {
+		throw new AppError(
+			StatusCodes.UNPROCESSABLE_ENTITY,
+			"One or more modifier groups are invalid or archived.",
+			"MODIFIER_GROUP_INVALID",
+		);
+	}
+	return uniqueIds;
+}
+
 function validateDurationSegment(value: number | null, field: string): number {
 	if (value == null || value < 0 || value > SERVICE_DURATION_MAX_MINUTES) {
 		throw AppError.badRequest(
@@ -343,6 +369,7 @@ export class CatalogService {
 	}
 
 	async createProduct(businessId: string, input: CreateProductInput): Promise<CatalogProduct> {
+		const modifierGroupIds = await validateModifierGroupIds(businessId, input.modifierGroupIds);
 		const currentCount = await this.repo.countProductsByBusiness({ businessId });
 		const nextCount = currentCount + 1;
 		if (nextCount > MAX_PRODUCTS_PER_BUSINESS) {
@@ -479,6 +506,7 @@ export class CatalogService {
 				const created = await this.repo.createProductWithInitialStock({
 					product: productData,
 					initialOnHand: initialOnHandRaw,
+					modifierGroupIds,
 				});
 
 				return await toCatalogProduct(created);
@@ -506,6 +534,7 @@ export class CatalogService {
 					businessId,
 					product: productBase,
 					initialOnHand: initialOnHandRaw,
+					modifierGroupIds,
 					skuPrefix: SKU_PREFIX,
 				});
 
@@ -525,6 +554,7 @@ export class CatalogService {
 	}
 
 	async updateProduct(businessId: string, id: string, input: UpdateProductInput): Promise<CatalogProduct> {
+		const modifierGroupIds = await validateModifierGroupIds(businessId, input.modifierGroupIds);
 		const existing = await this.repo.getProductById({ businessId, id });
 		if (!existing) throw new AppError(StatusCodes.NOT_FOUND, "PRODUCT_NOT_FOUND", "Product not found.");
 		const existingPriceMinor = resolveMoneyMinor(existing.priceMinor, existing.price);
@@ -683,7 +713,7 @@ export class CatalogService {
 			posTileLabel: input.posTileLabel !== undefined ? input.posTileLabel : undefined,
 		};
 
-		const updated = await this.repo.updateProduct({ id, data });
+		const updated = await this.repo.updateProduct({ id, data, modifierGroupIds });
 		return await toCatalogProduct(updated);
 	}
 

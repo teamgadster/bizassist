@@ -1,5 +1,5 @@
-import { OptionSetDetailScreen } from "@/modules/options/screens/OptionSetDetailScreen";
+import { ModifierGroupDetailScreen } from "@/modules/modifiers/screens/ModifierGroupDetailScreen";
 
-export default function SettingsModifierDetailRoute() {
-	return <OptionSetDetailScreen mode='settings' />;
+export default function SettingsModifierDetailScreen() {
+	return <ModifierGroupDetailScreen mode='settings' />;
 }

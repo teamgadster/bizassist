@@ -57,6 +57,8 @@ export function PosModifiersPickerSheet({ visible, groups, onClose, onConfirm }:
 	}, [groups, selectionMap]);
 
 	function toggle(group: ProductModifierGroup, optionId: string) {
+		const option = group.options.find((entry) => entry.id === optionId);
+		if (option?.isSoldOut) return;
 		setSelectionMap((prev) => {
 			const current = prev[group.id] ?? [];
 			const has = current.includes(optionId);
@@ -99,15 +101,17 @@ export function PosModifiersPickerSheet({ visible, groups, onClose, onConfirm }:
 												<Pressable
 													key={option.id}
 													onPress={() => toggle(group, option.id)}
+													disabled={option.isSoldOut}
 													style={[
 														styles.optionRow,
 														{ borderColor: theme.colors.outline },
 														selected && { borderColor: theme.colors.primary },
+														option.isSoldOut && { opacity: 0.55 },
 													]}
 												>
 													<BAIText variant='body'>{option.name}</BAIText>
 													<BAIText variant='caption' muted>
-														{formatMinor(BigInt(option.priceDeltaMinor))}
+														{option.isSoldOut ? "Sold out" : formatMinor(BigInt(option.priceDeltaMinor))}
 													</BAIText>
 												</Pressable>
 											);

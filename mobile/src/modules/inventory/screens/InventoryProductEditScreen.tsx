@@ -49,6 +49,7 @@ import {
 import { useInventoryHeader } from "@/modules/inventory/useInventoryHeader";
 import { uploadProductImage } from "@/modules/media/media.upload";
 import { toMediaDomainError } from "@/modules/media/media.errors";
+import { ModifierGroupSelector } from "@/modules/modifiers/components/ModifierGroupSelector";
 import { FIELD_LIMITS } from "@/shared/fieldLimits";
 import { GTIN_MAX_LENGTH, sanitizeGtinInput, validateGtinValue } from "@/shared/validation/gtin";
 import {
@@ -280,6 +281,7 @@ export default function InventoryProductEditScreen({ routeScope = "inventory" }:
 	const [costText, setCostText] = useState("");
 	const [trackInventory, setTrackInventory] = useState(true);
 	const [reorderPointText, setReorderPointText] = useState("");
+	const [selectedModifierGroupIds, setSelectedModifierGroupIds] = useState<string[]>([]);
 
 	const [error, setError] = useState<string | null>(null);
 	const [isSubmitting, setIsSubmitting] = useState(false);
@@ -354,6 +356,9 @@ export default function InventoryProductEditScreen({ routeScope = "inventory" }:
 	const baseline = useMemo(() => {
 		if (!product) return null;
 		const reorderRaw = toTrimmedString(product.reorderPointRaw ?? product.reorderPoint);
+		const baselineModifierGroupIds = Array.isArray(product.modifierGroupIds)
+			? product.modifierGroupIds.map((id) => String(id ?? "").trim()).filter(Boolean)
+			: [];
 		return {
 			name: sanitizeProductNameInput(toTrimmedString(product.name)),
 			sku: sanitizeSkuInput(toTrimmedString(product.sku)),
@@ -366,6 +371,7 @@ export default function InventoryProductEditScreen({ routeScope = "inventory" }:
 			tileMode: baselineTileSnapshot.tileMode,
 			tileColor: baselineTileSnapshot.tileColor,
 			tileLabel: baselineTileSnapshot.tileLabel,
+			modifierGroupIds: baselineModifierGroupIds,
 		};
 	}, [
 		baselineTileSnapshot.tileColor,
@@ -398,6 +404,7 @@ export default function InventoryProductEditScreen({ routeScope = "inventory" }:
 		setCostText(baseline.cost);
 		setTrackInventory(baseline.trackInventory);
 		setReorderPointText(baseline.reorderPoint);
+		setSelectedModifierGroupIds(baseline.modifierGroupIds);
 		setError(null);
 		const shouldSeedMediaFromBaseline = !hasRouteDraftIdParam || isMediaDraftPristine;
 		if (!shouldSeedMediaFromBaseline) return;
@@ -516,8 +523,10 @@ export default function InventoryProductEditScreen({ routeScope = "inventory" }:
 			tileMode,
 			tileColor: selectedTileColor,
 			tileLabel,
+			modifierGroupIds: selectedModifierGroupIds,
 		};
 	}, [
+		selectedModifierGroupIds,
 		tileLabel,
 		tileMode,
 		costText,
@@ -544,6 +553,7 @@ export default function InventoryProductEditScreen({ routeScope = "inventory" }:
 			currentSnapshot.cost !== baseline.cost ||
 			currentSnapshot.trackInventory !== baseline.trackInventory ||
 			currentSnapshot.reorderPoint !== baseline.reorderPoint ||
+			currentSnapshot.modifierGroupIds.join("|") !== baseline.modifierGroupIds.join("|") ||
 			currentSnapshot.tileMode !== baseline.tileMode ||
 			currentSnapshot.tileColor !== baseline.tileColor ||
 			currentSnapshot.tileLabel !== baseline.tileLabel ||
@@ -651,6 +661,7 @@ export default function InventoryProductEditScreen({ routeScope = "inventory" }:
 			cost: costNum,
 			trackInventory: currentSnapshot.trackInventory,
 			reorderPoint: currentSnapshot.trackInventory ? reorderCheck.value : null,
+			modifierGroupIds: currentSnapshot.modifierGroupIds,
 		};
 		const imageUriForUpload = tileMode === "IMAGE" ? localImageUri : "";
 
@@ -983,6 +994,12 @@ export default function InventoryProductEditScreen({ routeScope = "inventory" }:
 											onChangeText={(t) => setSku(sanitizeSkuInput(t))}
 											maxLength={FIELD_LIMITS.sku}
 											placeholder='Optional'
+											disabled={isUiDisabled || isArchived}
+										/>
+
+										<ModifierGroupSelector
+											selectedIds={selectedModifierGroupIds}
+											onChange={setSelectedModifierGroupIds}
 											disabled={isUiDisabled || isArchived}
 										/>
 

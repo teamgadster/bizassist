@@ -7,7 +7,16 @@
 // - Abbreviation is capped to 5 characters (FIELD_LIMITS.unitAbbreviation)
 
 import React, { useCallback, useMemo, useRef, useState } from "react";
-import { Keyboard, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import {
+	Keyboard,
+	KeyboardAvoidingView,
+	Platform,
+	Pressable,
+	ScrollView,
+	StyleSheet,
+	TouchableWithoutFeedback,
+	View,
+} from "react-native";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useTheme } from "react-native-paper";
 import { useQueryClient } from "@tanstack/react-query";
@@ -320,13 +329,14 @@ export default function UnitCustomCreateScreen({ routeScope }: { routeScope?: In
 				}}
 			/>
 
-			<BAIScreen tabbed padded={false} safeTop={false}>
-				<Pressable style={styles.screen} onPress={Keyboard.dismiss}>
-					<BAISurface style={styles.card} padded>
-						<BAIText variant='title'>Create Custom Unit</BAIText>
-						<BAIText variant='caption' muted>
-							Create a custom unit for your business
-						</BAIText>
+			<BAIScreen tabbed padded={false} safeTop={false} safeBottom={false}>
+				<KeyboardAvoidingView style={styles.keyboardAvoider} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+					<TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+						<Pressable style={styles.screen} onPress={Keyboard.dismiss}>
+							<BAISurface style={styles.card} padded>
+								<BAIText variant='caption' muted>
+									Create a custom unit for your business.
+								</BAIText>
 
 						<View style={{ height: 4 }} />
 
@@ -384,10 +394,11 @@ export default function UnitCustomCreateScreen({ routeScope }: { routeScope?: In
 							style={styles.lowerScroll}
 							contentContainerStyle={styles.lowerScrollContent}
 							keyboardShouldPersistTaps='handled'
+							keyboardDismissMode='on-drag'
 							showsVerticalScrollIndicator={false}
 						>
-							<BAIText variant='title' muted>
-								✅ Precision
+							<BAIText variant='subtitle' muted>
+								Precision
 							</BAIText>
 
 							<View style={{ height: 8 }} />
@@ -427,14 +438,17 @@ export default function UnitCustomCreateScreen({ routeScope }: { routeScope?: In
 								</BAICTAPillButton>
 							</View>
 						</ScrollView>
-					</BAISurface>
-				</Pressable>
+							</BAISurface>
+						</Pressable>
+					</TouchableWithoutFeedback>
+				</KeyboardAvoidingView>
 			</BAIScreen>
 		</>
 	);
 }
 
 const styles = StyleSheet.create({
+	keyboardAvoider: { flex: 1 },
 	screen: { flex: 1 },
 	card: { marginHorizontal: 16, borderRadius: 24, flex: 1 },
 	abbreviationDivider: {

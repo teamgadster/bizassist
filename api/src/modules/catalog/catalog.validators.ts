@@ -14,7 +14,7 @@ import {
 	zSanitizedString,
 } from "@/shared/validators/zod.shared";
 import { FIELD_LIMITS } from "@/shared/fieldLimits.server";
-import { CATALOG_LIST_MAX_LIMIT } from "@/shared/catalogLimits";
+import { CATALOG_LIST_MAX_LIMIT, MAX_MODIFIER_GROUPS_PER_PRODUCT } from "@/shared/catalogLimits";
 
 const nonNegativeDecimalString = zSanitizedString(
 	z
@@ -232,6 +232,7 @@ const createProductBodyBase = z.object({
 	posTileMode: z.nativeEnum(PosTileMode).optional(),
 	posTileColor: HEX_COLOR.optional().nullable(),
 	posTileLabel: posTileLabelSchema.optional(),
+	modifierGroupIds: z.array(uuidSchema).max(MAX_MODIFIER_GROUPS_PER_PRODUCT).optional(),
 	initialOnHand: nonNegativeDecimalString.optional().nullable(),
 });
 

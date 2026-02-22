@@ -1,7 +1,5 @@
-import { useResponsiveLayout } from "@/lib/layout/useResponsiveLayout";
-import { OptionSetLedgerScreen } from "@/modules/options/screens/OptionSetLedgerScreen";
+import { ModifiersLedgerScreen } from "../../settings/modifiers/modifiers.ledger";
 
-export default function InventoryModifiersLedgerRoute() {
-	const { isTablet } = useResponsiveLayout();
-	return <OptionSetLedgerScreen layout={isTablet ? "tablet" : "phone"} mode='inventory' />;
+export default function InventoryModifiersIndexScreen() {
+	return <ModifiersLedgerScreen layout='phone' mode='inventory' />;
 }

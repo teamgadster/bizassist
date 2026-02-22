@@ -1,5 +1,5 @@
-import { OptionSetUpsertScreen } from "@/modules/options/screens/OptionSetUpsertScreen";
+import { ModifierGroupUpsertScreen } from "@/modules/modifiers/screens/ModifierGroupUpsertScreen";
 
-export default function InventoryModifierCreateRoute() {
-	return <OptionSetUpsertScreen mode='inventory' intent='create' />;
+export default function InventoryModifierCreateScreen() {
+	return <ModifierGroupUpsertScreen mode='inventory' intent='create' />;
 }

@@ -22,6 +22,25 @@ export type ProductWithRelations = Prisma.ProductGetPayload<{
 export class CatalogRepository {
 	constructor(private prisma: PrismaClient) {}
 
+	private async replaceProductModifierGroupsTx(params: {
+		tx: Prisma.TransactionClient;
+		businessId: string;
+		productId: string;
+		modifierGroupIds?: string[];
+	}) {
+		if (!Array.isArray(params.modifierGroupIds)) return;
+		await params.tx.productModifierGroup.deleteMany({ where: { businessId: params.businessId, productId: params.productId } });
+		if (params.modifierGroupIds.length === 0) return;
+		await params.tx.productModifierGroup.createMany({
+			data: params.modifierGroupIds.map((modifierGroupId, idx) => ({
+				businessId: params.businessId,
+				productId: params.productId,
+				modifierGroupId,
+				sortOrder: idx,
+			})),
+		});
+	}
+
 	async listProducts(params: {
 		businessId: string;
 		q?: string;
@@ -146,18 +165,31 @@ export class CatalogRepository {
 		};
 	}
 
-	async updateProduct(params: { id: string; data: Prisma.ProductUncheckedUpdateInput }): Promise<ProductWithRelations> {
-		// IMPORTANT: return relations for any DTO mapper that expects them
-		return this.prisma.product.update({
-			where: { id: params.id },
-			data: params.data,
-			include: PRODUCT_INCLUDE,
+	async updateProduct(params: {
+		id: string;
+		data: Prisma.ProductUncheckedUpdateInput;
+		modifierGroupIds?: string[];
+	}): Promise<ProductWithRelations> {
+		return this.prisma.$transaction(async (tx) => {
+			const updated = await tx.product.update({
+				where: { id: params.id },
+				data: params.data,
+				include: PRODUCT_INCLUDE,
+			});
+			await this.replaceProductModifierGroupsTx({
+				tx,
+				businessId: updated.businessId,
+				productId: updated.id,
+				modifierGroupIds: params.modifierGroupIds,
+			});
+			return updated;
 		});
 	}
 
 	async createProductWithInitialStock(params: {
 		product: Prisma.ProductUncheckedCreateInput;
 		initialOnHand: string | null; // decimal string
+		modifierGroupIds?: string[];
 	}): Promise<ProductWithRelations> {
 		return this.prisma.$transaction(async (tx) => {
 			const created = await tx.product.create({
@@ -190,6 +222,13 @@ export class CatalogRepository {
 				});
 			}
 
+			await this.replaceProductModifierGroupsTx({
+				tx,
+				businessId: created.businessId,
+				productId: created.id,
+				modifierGroupIds: params.modifierGroupIds,
+			});
+
 			// ✅ Hard guarantee: mapper always gets Unit + Category, never “half a product”
 			const full = await tx.product.findUnique({
 				where: { id: created.id },
@@ -209,6 +248,7 @@ export class CatalogRepository {
 		businessId: string;
 		product: Omit<Prisma.ProductUncheckedCreateInput, "sku">;
 		initialOnHand: string | null; // decimal string
+		modifierGroupIds?: string[];
 		skuPrefix: string;
 	}): Promise<ProductWithRelations | null> {
 		return this.prisma.$transaction(async (tx) => {
@@ -255,6 +295,13 @@ export class CatalogRepository {
 					select: { id: true },
 				});
 			}
+
+			await this.replaceProductModifierGroupsTx({
+				tx,
+				businessId: created.businessId,
+				productId: created.id,
+				modifierGroupIds: params.modifierGroupIds,
+			});
 
 			const full = await tx.product.findUnique({
 				where: { id: created.id },

@@ -1,5 +1,5 @@
-import { OptionSetLifecycleScreen } from "@/modules/options/screens/OptionSetLifecycleScreen";
+import { ModifierGroupRestoreScreen } from "@/modules/modifiers/screens/ModifierGroupRestoreScreen";
 
-export default function SettingsModifierRestoreRoute() {
-	return <OptionSetLifecycleScreen mode='settings' action='restore' />;
+export default function SettingsModifierRestoreScreen() {
+	return <ModifierGroupRestoreScreen mode='settings' />;
 }

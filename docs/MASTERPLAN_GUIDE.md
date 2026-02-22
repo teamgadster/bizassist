@@ -42,6 +42,29 @@ All new or modified UX for app and website must follow:
 
 Implementation details and release gates are canonical in `docs/COGNITIVE_EMOTIONAL_UX_MASTERPLAN.md`.
 
+### 1.2 Post-Action Navigation Flow Governance (Locked)
+
+Canonical term: **Post-Action Navigation Flow**.
+
+This governs screen redirection after completion actions including Save, Archive, Restore, and equivalent write/lifecycle actions.
+
+Rules:
+
+1. **Deterministic closure only.** Use controlled navigation outcomes (`replace()` and governed back behavior) for stable end states.
+2. **No ambiguous destinations.** Each action must resolve to one intended screen based on ownership context (operational vs management surface).
+3. **Safety before transition.** Write/navigation actions must be double-tap safe and Busy/Loading Overlay governed.
+4. **Clear completion signal.** Successful transitions must provide explicit closure feedback (toast/snackbar or equivalent pattern).
+5. **Error path stays local.** Failed actions must not redirect away from the current context; preserve correction flow in-place.
+
+### 1.3 Process Form and Lifecycle UX Governance (Locked)
+
+1. **Form draft persistence is required** for multi-field process forms (also called draft state persistence). In-progress form input must survive transient navigation interruptions until explicit save/discard.
+2. **Keyboard governance is required** on process forms with text input:
+  - Use keyboard avoidance behavior.
+  - Tapping outside inputs must dismiss keyboard.
+3. **Lifecycle process separation is required.** Archive and Restore must be handled on dedicated process screens (not inline in detail/edit cards).
+4. **Count formatting governance.** Compact numeric counts must use business-locale formatting utilities (not device-locale defaults or ad-hoc formatting).
+
 ---
 
 ## 2. Locked Development Order (Phased Roadmap)
@@ -147,6 +170,28 @@ Discounts follow **ledger-definition governance** (same class as Units, Categori
 - **Pickers show only active + not hidden** discounts, plus the **currently selected** discount even if hidden.
 - Selecting a hidden discount from a historical context auto-restores visibility.
 - Management surface: `Settings → Discounts → Discount visibility` screen with explicit Hide/Restore actions (no switches).
+
+### Phase 5 — Modifiers (Set Governance + Item/Service Attach)
+
+Modifier behavior is locked to a reusable-set model aligned to the approved UX reference.
+
+#### Phase 5 — Modifiers Governance (Locked)
+
+- **Canonical owner split:**
+  - Modifiers module owns modifier sets/options, set rules, and availability operations.
+  - Catalog module owns attaching selected modifier sets during Item/Service create/edit save.
+  - POS module owns checkout-time modifier selection validation and line-price application.
+- **Attach parity rule:** Create Item and Create Service must use the same modifier attach pattern and semantics.
+- **Operational status rule:** `Sold out` is an availability state for modifier options (not delete/archive).
+  - Sold-out options remain visible in modifier management screens.
+  - Sold-out options are excluded from POS selection but remain displayable with sold-out labeling.
+- **Ledger clarity rule:** Modifier set ledger rows must expose summary state (`x available`, `y sold out`) where sold-out options exist.
+- **Process UX rule (upsert/detail):**
+  - Deterministic process navigation (`Exit` with explicit fallback, `Save` explicit).
+  - Inline option name/price editing with reorder and remove affordances.
+  - Set-level destructive actions require explicit, globally-scoped warning language.
+- **Async safety rule:** bulk availability updates must use blocking Loading Overlay and completion toast/snackbar closure.
+- **Governance non-regression:** UDQI precision/quantity behavior, tablet-first parity, Back vs Exit law, and POS structural architecture must remain unchanged.
 
 ---
 

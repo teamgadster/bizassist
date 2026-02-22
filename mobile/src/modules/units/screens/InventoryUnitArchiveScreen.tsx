@@ -103,6 +103,14 @@ export default function UnitArchiveScreen() {
 	}, [canArchive, detailRoute, isUiDisabled, lockNav, queryClient, router, unit, withBusy]);
 
 	const borderColor = theme.colors.outlineVariant ?? theme.colors.outline;
+	const surfaceAlt = theme.colors.surfaceVariant ?? theme.colors.surface;
+	const surfaceInteractive = useMemo(
+		() => ({
+			borderColor,
+			backgroundColor: surfaceAlt,
+		}),
+		[borderColor, surfaceAlt],
+	);
 	const headerOptions = useInventoryHeader("process", {
 		title: "Archive Unit",
 		disabled: isUiDisabled,
@@ -115,7 +123,7 @@ export default function UnitArchiveScreen() {
 			<Stack.Screen options={headerOptions} />
 			<BAIScreen tabbed padded={false} safeTop={false}>
 				<View style={styles.screen}>
-					<BAISurface style={[styles.card, { borderColor }]} padded bordered>
+					<BAISurface style={[styles.card, surfaceInteractive]} padded bordered>
 						<BAIText variant='caption' muted>
 							Archived units remain in history but can’t be selected for new items.
 						</BAIText>

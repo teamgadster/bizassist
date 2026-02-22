@@ -1,7 +1,8 @@
 import { useResponsiveLayout } from "@/lib/layout/useResponsiveLayout";
-import { OptionSetLedgerScreen } from "@/modules/options/screens/OptionSetLedgerScreen";
+import ModifiersPhoneScreen from "./modifiers.phone";
+import ModifiersTabletScreen from "./modifiers.tablet";
 
-export default function SettingsModifiersLedgerRoute() {
+export default function SettingsModifiersIndexScreen() {
 	const { isTablet } = useResponsiveLayout();
-	return <OptionSetLedgerScreen layout={isTablet ? "tablet" : "phone"} mode='settings' />;
+	return isTablet ? <ModifiersTabletScreen /> : <ModifiersPhoneScreen />;
 }

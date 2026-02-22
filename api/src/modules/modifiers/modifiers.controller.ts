@@ -7,8 +7,10 @@ import {
 	createModifierGroupSchema,
 	createModifierOptionSchema,
 	groupIdParamSchema,
+	listModifierGroupsQuerySchema,
 	optionIdParamSchema,
 	productIdParamSchema,
+	replaceProductModifierGroupsSchema,
 	updateModifierGroupSchema,
 	updateModifierOptionSchema,
 } from "./modifiers.validators";
@@ -26,11 +28,32 @@ export const getProductModifiers = asyncHandler(async (req: Request, res: Respon
 	res.status(StatusCodes.OK).json({ success: true, data: { items: groups } });
 });
 
-export const createModifierGroup = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+export const replaceProductModifiers = asyncHandler(async (req: Request, res: Response): Promise<void> => {
 	const businessId = getBusinessId(req);
 	const { id } = productIdParamSchema.parse(req.params);
+	const body = replaceProductModifierGroupsSchema.parse(req.body);
+	const items = await service.replaceProductGroups(businessId, id, body);
+	res.status(StatusCodes.OK).json({ success: true, data: { items } });
+});
+
+export const listModifierGroups = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+	const businessId = getBusinessId(req);
+	const query = listModifierGroupsQuerySchema.parse(req.query);
+	const items = await service.listModifierGroups(businessId, query.includeArchived === true);
+	res.status(StatusCodes.OK).json({ success: true, data: { items } });
+});
+
+export const getModifierGroup = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+	const businessId = getBusinessId(req);
+	const { id } = groupIdParamSchema.parse(req.params);
+	const item = await service.getModifierGroupById(businessId, id);
+	res.status(StatusCodes.OK).json({ success: true, data: { item } });
+});
+
+export const createModifierGroup = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+	const businessId = getBusinessId(req);
 	const body = createModifierGroupSchema.parse(req.body);
-	const item = await service.createGroup(businessId, id, body);
+	const item = await service.createGroup(businessId, body);
 	res.status(StatusCodes.CREATED).json({ success: true, data: { item } });
 });
 

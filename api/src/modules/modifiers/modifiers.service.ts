@@ -1,12 +1,17 @@
 import { StatusCodes } from "http-status-codes";
-import { Prisma, type ModifierSelectionType, type PrismaClient } from "@prisma/client";
+import { type ModifierSelectionType, type PrismaClient } from "@prisma/client";
 import { AppError } from "@/core/errors/AppError";
-import { MAX_MODIFIER_GROUPS_PER_PRODUCT, MAX_MODIFIER_OPTIONS_PER_GROUP } from "@/shared/catalogLimits";
+import {
+	MAX_MODIFIER_GROUPS_PER_BUSINESS,
+	MAX_MODIFIER_GROUPS_PER_PRODUCT,
+	MAX_MODIFIER_OPTIONS_PER_GROUP,
+} from "@/shared/catalogLimits";
 import { ModifiersRepository } from "./modifiers.repository";
 import type {
 	CreateModifierGroupInput,
 	CreateModifierOptionInput,
 	ModifierGroupDto,
+	ReplaceProductModifierGroupsInput,
 	UpdateModifierGroupInput,
 	UpdateModifierOptionInput,
 } from "./modifiers.types";
@@ -19,11 +24,15 @@ function validateRules(
 ): void {
 	if (selectionType === "SINGLE") {
 		if (maxSelected !== 1) {
-			throw new AppError(StatusCodes.BAD_REQUEST, "SINGLE groups must have maxSelected=1.", "MODIFIER_RULES_INVALID");
+			throw new AppError(
+				StatusCodes.UNPROCESSABLE_ENTITY,
+				"SINGLE groups must have maxSelected=1.",
+				"MODIFIER_RULES_INVALID",
+			);
 		}
 		if (minSelected > 1) {
 			throw new AppError(
-				StatusCodes.BAD_REQUEST,
+				StatusCodes.UNPROCESSABLE_ENTITY,
 				"SINGLE groups must have minSelected <= 1.",
 				"MODIFIER_RULES_INVALID",
 			);
@@ -31,14 +40,14 @@ function validateRules(
 	}
 	if (minSelected > maxSelected) {
 		throw new AppError(
-			StatusCodes.BAD_REQUEST,
+			StatusCodes.UNPROCESSABLE_ENTITY,
 			"minSelected cannot be greater than maxSelected.",
 			"MODIFIER_RULES_INVALID",
 		);
 	}
 	if (isRequired && minSelected < 1) {
 		throw new AppError(
-			StatusCodes.BAD_REQUEST,
+			StatusCodes.UNPROCESSABLE_ENTITY,
 			"Required groups must have minSelected >= 1.",
 			"MODIFIER_RULES_INVALID",
 		);
@@ -46,9 +55,21 @@ function validateRules(
 }
 
 function mapGroup(group: any): ModifierGroupDto {
+	const options = (group.options ?? []).map((option: any) => ({
+		id: option.id,
+		modifierGroupId: option.modifierGroupId,
+		name: option.name,
+		priceDeltaMinor: String(option.priceDeltaMinor),
+		sortOrder: option.sortOrder,
+		isSoldOut: Boolean(option.isSoldOut),
+		isArchived: option.isArchived,
+		createdAt: option.createdAt.toISOString(),
+		updatedAt: option.updatedAt.toISOString(),
+	}));
+	const soldOutOptionsCount = options.filter((option: { isSoldOut: boolean }) => option.isSoldOut).length;
+	const availableOptionsCount = options.length - soldOutOptionsCount;
 	return {
 		id: group.id,
-		productId: group.productId,
 		name: group.name,
 		selectionType: group.selectionType,
 		isRequired: group.isRequired,
@@ -56,17 +77,12 @@ function mapGroup(group: any): ModifierGroupDto {
 		maxSelected: group.maxSelected,
 		sortOrder: group.sortOrder,
 		isArchived: group.isArchived,
+		attachedProductCount: Array.isArray(group.productLinks) ? group.productLinks.length : 0,
+		availableOptionsCount,
+		soldOutOptionsCount,
 		createdAt: group.createdAt.toISOString(),
 		updatedAt: group.updatedAt.toISOString(),
-		options: (group.options ?? []).map((option: any) => ({
-			id: option.id,
-			name: option.name,
-			priceDeltaMinor: String(option.priceDeltaMinor),
-			sortOrder: option.sortOrder,
-			isArchived: option.isArchived,
-			createdAt: option.createdAt.toISOString(),
-			updatedAt: option.updatedAt.toISOString(),
-		})),
+		options,
 	};
 }
 
@@ -76,21 +92,83 @@ export class ModifiersService {
 		this.repo = new ModifiersRepository(prisma);
 	}
 
-	async getProductModifiers(businessId: string, productId: string): Promise<ModifierGroupDto[]> {
-		const product = await this.prisma.product.findFirst({ where: { id: productId, businessId }, select: { id: true } });
-		if (!product) throw new AppError(StatusCodes.NOT_FOUND, "Product not found.", "PRODUCT_NOT_FOUND");
-		const groups = await this.repo.getActiveByProduct(businessId, productId);
+	async listModifierGroups(businessId: string, includeArchived = false): Promise<ModifierGroupDto[]> {
+		const groups = await this.repo.listGroups(businessId, includeArchived);
 		return groups.map(mapGroup);
 	}
 
-	async createGroup(businessId: string, productId: string, input: CreateModifierGroupInput): Promise<ModifierGroupDto> {
+	async getModifierGroupById(businessId: string, id: string): Promise<ModifierGroupDto> {
+		const group = await this.prisma.modifierGroup.findFirst({
+			where: { id, businessId },
+			include: {
+				options: { orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }] },
+				productLinks: { select: { productId: true } },
+			},
+		});
+		if (!group) throw new AppError(StatusCodes.NOT_FOUND, "Modifier group not found.", "MODIFIER_GROUP_NOT_FOUND");
+		return mapGroup(group);
+	}
+
+	async getProductModifiers(businessId: string, productId: string): Promise<ModifierGroupDto[]> {
 		const product = await this.prisma.product.findFirst({ where: { id: productId, businessId }, select: { id: true } });
 		if (!product) throw new AppError(StatusCodes.NOT_FOUND, "Product not found.", "PRODUCT_NOT_FOUND");
-		const groupsCount = await this.repo.countGroups(businessId, productId);
-		if (groupsCount >= MAX_MODIFIER_GROUPS_PER_PRODUCT) {
+		const links = await this.repo.getActiveByProduct(businessId, productId);
+		return links.map((link) => mapGroup(link.ModifierGroup));
+	}
+
+	async replaceProductGroups(
+		businessId: string,
+		productId: string,
+		input: ReplaceProductModifierGroupsInput,
+	): Promise<ModifierGroupDto[]> {
+		const product = await this.prisma.product.findFirst({ where: { id: productId, businessId }, select: { id: true } });
+		if (!product) throw new AppError(StatusCodes.NOT_FOUND, "Product not found.", "PRODUCT_NOT_FOUND");
+
+		const uniqueIds = Array.from(new Set((input.modifierGroupIds ?? []).map((id) => String(id).trim()).filter(Boolean)));
+		if (uniqueIds.length > MAX_MODIFIER_GROUPS_PER_PRODUCT) {
 			throw new AppError(
-				StatusCodes.CONFLICT,
+				StatusCodes.UNPROCESSABLE_ENTITY,
 				`Max ${MAX_MODIFIER_GROUPS_PER_PRODUCT} modifier groups per product.`,
+				"MODIFIER_GROUPS_PER_PRODUCT_LIMIT",
+			);
+		}
+
+		if (uniqueIds.length > 0) {
+			const validGroups = await this.prisma.modifierGroup.findMany({
+				where: { businessId, id: { in: uniqueIds }, isArchived: false },
+				select: { id: true },
+			});
+			if (validGroups.length !== uniqueIds.length) {
+				throw new AppError(
+					StatusCodes.UNPROCESSABLE_ENTITY,
+					"One or more modifier groups are invalid or archived.",
+					"MODIFIER_GROUP_INVALID",
+				);
+			}
+		}
+
+		await this.prisma.$transaction(async (tx) => {
+			await tx.productModifierGroup.deleteMany({ where: { businessId, productId } });
+			if (uniqueIds.length === 0) return;
+			await tx.productModifierGroup.createMany({
+				data: uniqueIds.map((modifierGroupId, idx) => ({
+					businessId,
+					productId,
+					modifierGroupId,
+					sortOrder: idx,
+				})),
+			});
+		});
+
+		return this.getProductModifiers(businessId, productId);
+	}
+
+	async createGroup(businessId: string, input: CreateModifierGroupInput): Promise<ModifierGroupDto> {
+		const groupsCount = await this.repo.countGroups(businessId);
+		if (groupsCount >= MAX_MODIFIER_GROUPS_PER_BUSINESS) {
+			throw new AppError(
+				StatusCodes.UNPROCESSABLE_ENTITY,
+				`Max ${MAX_MODIFIER_GROUPS_PER_BUSINESS} modifier groups per business.`,
 				"MODIFIER_GROUP_LIMIT_REACHED",
 			);
 		}
@@ -98,7 +176,6 @@ export class ModifiersService {
 		const created = await this.prisma.modifierGroup.create({
 			data: {
 				businessId,
-				productId,
 				name: input.name,
 				selectionType: input.selectionType,
 				isRequired: input.isRequired,
@@ -106,7 +183,10 @@ export class ModifiersService {
 				maxSelected: input.maxSelected,
 				sortOrder: input.sortOrder ?? groupsCount,
 			},
-			include: { options: { orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }] } },
+			include: {
+				options: { orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }] },
+				productLinks: { select: { productId: true } },
+			},
 		});
 		return mapGroup(created);
 	}
@@ -132,7 +212,10 @@ export class ModifiersService {
 				maxSelected: input.maxSelected,
 				sortOrder: input.sortOrder,
 			},
-			include: { options: { orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }] } },
+			include: {
+				options: { orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }] },
+				productLinks: { select: { productId: true } },
+			},
 		});
 		return mapGroup(updated);
 	}
@@ -146,7 +229,7 @@ export class ModifiersService {
 		const optionsCount = await this.repo.countOptions(businessId, groupId);
 		if (optionsCount >= MAX_MODIFIER_OPTIONS_PER_GROUP) {
 			throw new AppError(
-				StatusCodes.CONFLICT,
+				StatusCodes.UNPROCESSABLE_ENTITY,
 				`Max ${MAX_MODIFIER_OPTIONS_PER_GROUP} options per modifier group.`,
 				"MODIFIER_OPTION_LIMIT_REACHED",
 			);
@@ -162,7 +245,10 @@ export class ModifiersService {
 		});
 		const hydrated = await this.prisma.modifierGroup.findUnique({
 			where: { id: groupId },
-			include: { options: { orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }] } },
+			include: {
+				options: { orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }] },
+				productLinks: { select: { productId: true } },
+			},
 		});
 		return mapGroup(hydrated);
 	}
@@ -178,12 +264,16 @@ export class ModifiersService {
 			data: {
 				name: input.name,
 				priceDeltaMinor: input.priceDeltaMinor != null ? BigInt(input.priceDeltaMinor) : undefined,
+				isSoldOut: input.isSoldOut,
 				sortOrder: input.sortOrder,
 			},
 		});
 		const hydrated = await this.prisma.modifierGroup.findUnique({
 			where: { id: existing.modifierGroupId },
-			include: { options: { orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }] } },
+			include: {
+				options: { orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }] },
+				productLinks: { select: { productId: true } },
+			},
 		});
 		return mapGroup(hydrated);
 	}
@@ -212,12 +302,24 @@ export class ModifiersService {
 				businessId,
 				id: { in: optionIds },
 				isArchived: false,
-				ModifierGroup: { productId, isArchived: false },
+				ModifierGroup: {
+					isArchived: false,
+					productLinks: {
+						some: { productId, businessId },
+					},
+				},
 			},
 			include: { ModifierGroup: true },
 		});
 		if (options.length !== optionIds.length) {
 			throw new AppError(StatusCodes.BAD_REQUEST, "One or more modifiers are invalid.", "MODIFIER_SELECTION_INVALID");
+		}
+		if (options.some((option) => option.isSoldOut)) {
+			throw new AppError(
+				StatusCodes.UNPROCESSABLE_ENTITY,
+				"One or more selected modifiers are sold out.",
+				"MODIFIER_OPTION_SOLD_OUT",
+			);
 		}
 		const byGroup = new Map<string, typeof options>();
 		for (const option of options) {
@@ -225,7 +327,14 @@ export class ModifiersService {
 			list.push(option);
 			byGroup.set(option.modifierGroupId, list);
 		}
-		const groups = await this.prisma.modifierGroup.findMany({ where: { businessId, productId, isArchived: false } });
+
+		const groups = await this.prisma.modifierGroup.findMany({
+			where: {
+				businessId,
+				isArchived: false,
+				productLinks: { some: { productId, businessId } },
+			},
+		});
 		for (const group of groups) {
 			const selectedCount = (byGroup.get(group.id) ?? []).length;
 			if (group.isRequired && selectedCount < group.minSelected) {
@@ -246,6 +355,7 @@ export class ModifiersService {
 				);
 			}
 		}
+
 		let deltaMinor = 0n;
 		const selectedOptionRows = options.map((option) => {
 			deltaMinor += BigInt(option.priceDeltaMinor);

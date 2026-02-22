@@ -1,5 +1,5 @@
-import { OptionSetLifecycleScreen } from "@/modules/options/screens/OptionSetLifecycleScreen";
+import { ModifierGroupArchiveScreen } from "@/modules/modifiers/screens/ModifierGroupArchiveScreen";
 
-export default function SettingsModifierArchiveRoute() {
-	return <OptionSetLifecycleScreen mode='settings' action='archive' />;
+export default function SettingsModifierArchiveScreen() {
+	return <ModifierGroupArchiveScreen mode='settings' />;
 }

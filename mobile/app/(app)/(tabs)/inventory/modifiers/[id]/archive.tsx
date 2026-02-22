@@ -1,5 +1,5 @@
-import { OptionSetLifecycleScreen } from "@/modules/options/screens/OptionSetLifecycleScreen";
+import { ModifierGroupArchiveScreen } from "@/modules/modifiers/screens/ModifierGroupArchiveScreen";
 
-export default function InventoryModifierArchiveRoute() {
-	return <OptionSetLifecycleScreen mode='inventory' action='archive' />;
+export default function InventoryModifierArchiveScreen() {
+	return <ModifierGroupArchiveScreen mode='inventory' />;
 }

@@ -56,3 +56,4 @@ apiRouter.use("/discounts", discountsRoutes);
 // ─────────────────────────────────────────────────────────────
 apiRouter.use("/units", unitsRoutes);
 apiRouter.use("/modifiers", modifiersRoutes);
+apiRouter.use("/catalog/modifiers", modifiersRoutes);

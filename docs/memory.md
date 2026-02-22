@@ -1,3 +1,23 @@
+## 2026-02-23 — Process Form + Lifecycle UX Governance Lock
+
+### Memory Lock
+
+- Form draft persistence (draft state persistence) is required for multi-field process forms.
+- Process forms with text input must implement keyboard avoidance and tap-outside keyboard dismiss.
+- Archive and Restore must run on dedicated lifecycle process screens with deterministic post-action navigation closure.
+- Management count labels must use business-locale compact number formatting helpers.
+- Status/system copy must be sentence case, and duplicate in-card process titles must be avoided when header title already communicates process context.
+
+## 2026-02-23 — Post-Action Navigation Flow Governance (Masterplan + Memory)
+
+### Memory Lock
+
+- Canonical term is **Post-Action Navigation Flow** (also acceptable in implementation notes: **post-action navigation** or **redirect logic**).
+- Scope includes screen redirection after write/lifecycle actions such as Save, Archive, Restore, and equivalent completion actions.
+- Post-action navigation must be deterministic and use governed navigation primitives (`replace`/controlled back behavior) for stable closure.
+- Any action that writes or navigates must remain double-tap safe and Busy/Loading Overlay governed.
+- Success path must land users on the correct operational/management surface with clear closure feedback (toast/snackbar where applicable).
+
 ## 2026-02-22 — CODEX Agent Governance Template (Patch-Only Mode)
 
 ### Memory Lock
@@ -21,6 +41,33 @@
 - All flows must compile with zero TypeScript errors.
 - UX governance: Halo Effect, Cognitive Fluency, Peak-End Rule, immediate feedback, one dominant job per screen, clear closure.
 - See `docs/features/modifiers.md` for full design and implementation plan.
+
+## 2026-02-22 — Modifiers Flow Finalization (Photo-Referenced Lock)
+
+### Memory Lock
+
+- The uploaded modifier UX sequence is approved as the canonical behavior reference for this cycle.
+- Modifier sets are business-scoped and reusable across both Items and Services.
+- Create Item and Create Service must expose the same modifier attach section (multi-select sets) and persist in one save transaction with the parent entity.
+- Modifier Set detail must show availability status and aggregate summary (`x available`, `y sold out`) at ledger level.
+- `Sold out` is an operational availability state for modifier options (not archive/delete):
+  - Sold-out options remain visible in management.
+  - Sold-out options are not selectable in POS add flow.
+  - POS must still render sold-out labels where applicable.
+- Modifier Set upsert flow lock:
+  - Process header with deterministic exit and explicit Save.
+  - Inline modifier option name + price editing.
+  - Option reorder support and option removal affordance.
+  - Set-level delete action remains lifecycle-governed and explicit about global impact.
+- Async governance lock:
+  - Bulk availability updates must show blocking Loading Overlay.
+  - Completion feedback must show toast/snackbar closure.
+  - Navigation/write actions must remain double-tap safe.
+- Ownership lock:
+  - Modifiers module owns set/option rules and availability operations.
+  - Catalog module owns Item/Service attach-on-save orchestration.
+  - POS module owns runtime validation and modifier line-price application.
+- Non-touch lock remains in force: UDQI quantity semantics, tablet-first parity, Back vs Exit governance, POS structure, and existing inventory ledger semantics.
 
 ## 2026-02-21 — Button Shape Governance Locked (Masterplan + Implementation)
 

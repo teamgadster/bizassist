@@ -10,6 +10,13 @@ This checklist is mandatory for every BizAssist change that touches UI, API, sch
 - [ ] Tablet adds spatial persistence only (two‑pane/inspector), not hidden interactions.
 - [ ] Navigation uses deterministic “hard transitions” for critical flows.
 
+## A.1) Post-Action Navigation Flow Governance
+
+- [ ] Save/Archive/Restore (and equivalent write/lifecycle actions) redirect to one intended destination only.
+- [ ] Success path uses deterministic closure (`replace()` / governed back behavior), with explicit completion feedback.
+- [ ] Failed actions stay on the current screen/context (no unintended redirect on error).
+- [ ] Write/navigation actions are double-tap safe and Busy/Loading Overlay governed.
+
 ## B) UI Quality
 
 - [ ] Screen uses `BAIScreen` + primary `BAISurface` container.

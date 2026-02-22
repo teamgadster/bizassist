@@ -249,6 +249,9 @@ function normalizeInventoryProduct(input: any): InventoryProduct {
 		posTileNode?.tileLabel,
 		posTileNode?.tileTitle,
 	);
+	const modifierGroupIds = Array.isArray(input?.modifierGroupIds)
+		? input.modifierGroupIds.map((value: unknown) => String(value ?? "").trim()).filter(Boolean)
+		: [];
 
 	const durationInitialMinutes = toNumberFromCandidates(
 		input?.durationInitialMinutes,
@@ -330,6 +333,7 @@ function normalizeInventoryProduct(input: any): InventoryProduct {
 		unitId: unit.unitId,
 		unitName: unit.unitName,
 		unitAbbreviation: unit.unitAbbreviation,
+			modifierGroupIds,
 		unitCategory: unit.unitCategory,
 		unitPrecisionScale: unit.unitPrecisionScale ?? undefined,
 

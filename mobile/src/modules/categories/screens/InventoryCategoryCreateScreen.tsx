@@ -92,7 +92,7 @@ export default function InventoryCategoryCreateScreen() {
 			setError(null);
 			setIsSubmitting(true);
 
-			await withBusy("Creating Category...", async () => {
+			await withBusy("Creating category...", async () => {
 				try {
 					const created = await categoriesApi.create({ name: v.name, color: v.color });
 					syncCategoryCaches(qc, created);
@@ -119,10 +119,10 @@ export default function InventoryCategoryCreateScreen() {
 					const { code, message, limit } = extractCategoryApiError(e);
 					if (code === "CATEGORY_LIMIT_REACHED") {
 						const cap = limit ?? CATEGORY_LIMIT_FALLBACK;
-						setError(`You've Reached The Maximum Of ${cap} Categories.`);
+						setError(`You've reached the maximum of ${cap} categories.`);
 						return;
 					}
-					setError(message ?? "Failed To Create Category. Please Try Again.");
+					setError(message ?? "Could not create category. Please try again.");
 				} finally {
 					setIsSubmitting(false);
 				}

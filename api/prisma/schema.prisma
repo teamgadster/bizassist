@@ -118,6 +118,7 @@ model Business {
   DiscountVisibility     DiscountVisibility[]
   InventoryMovements     InventoryMovement[]
   ModifierGroups         ModifierGroup[]
+  ProductModifierGroups  ProductModifierGroup[]
   ModifierOptions        ModifierOption[]
   SaleLineItemModifiers  SaleLineItemModifier[]
   Products               Product[]
@@ -195,7 +196,7 @@ model Product {
   Store                     Store?              @relation(fields: [storeId], references: [id])
   Unit                      Unit?               @relation(fields: [unitId], references: [id], onDelete: SetNull)
   images                    ProductImage[]
-  modifierGroups            ModifierGroup[]
+  productModifierGroups     ProductModifierGroup[]
   lineItems                 SaleLineItem[]
 
   @@unique([businessId, sku])
@@ -390,7 +391,6 @@ model Discount {
 model ModifierGroup {
   id            String                  @id @default(uuid())
   businessId    String
-  productId     String
   name          String                  @db.VarChar(120)
   selectionType ModifierSelectionType
   isRequired    Boolean                 @default(false)
@@ -401,11 +401,28 @@ model ModifierGroup {
   createdAt     DateTime                @default(now())
   updatedAt     DateTime                @updatedAt
   Business      Business                @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  Product       Product                 @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productLinks  ProductModifierGroup[]
   options       ModifierOption[]
 
-  @@index([businessId, productId, isArchived, sortOrder])
+  @@index([businessId, isArchived, sortOrder])
   @@index([businessId, createdAt])
+}
+
+model ProductModifierGroup {
+  id              String        @id @default(uuid())
+  businessId      String
+  productId       String
+  modifierGroupId String
+  sortOrder       Int           @default(0)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  Business        Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  Product         Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
+  ModifierGroup   ModifierGroup @relation(fields: [modifierGroupId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, modifierGroupId])
+  @@index([businessId, productId, sortOrder])
+  @@index([businessId, modifierGroupId])
 }
 
 model ModifierOption {
@@ -415,6 +432,7 @@ model ModifierOption {
   name                  String                 @db.VarChar(120)
   priceDeltaMinor       BigInt                 @default(0)
   sortOrder             Int                    @default(0)
+  isSoldOut             Boolean                @default(false)
   isArchived            Boolean                @default(false)
   createdAt             DateTime               @default(now())
   updatedAt             DateTime               @updatedAt

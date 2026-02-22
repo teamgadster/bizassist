@@ -372,10 +372,7 @@ export default function UnitSelectScreen({ routeScope }: { routeScope?: Inventor
 
 			<BAIScreen tabbed padded={false} safeTop={false} style={{ flex: 1 }}>
 				<BAISurface style={styles.card} padded>
-					<View style={styles.titleRow}>
-						<BAIText variant='title'>{`Add Unit · ${categoryLabel(category)}`}</BAIText>
-					</View>
-					<View style={{ height: 6 }} />
+					<View style={{ height: 2 }} />
 					<BAIText variant='caption' muted>
 						{`Unit group: ${unitGroupLabel}`}
 					</BAIText>
@@ -436,8 +433,8 @@ export default function UnitSelectScreen({ routeScope }: { routeScope?: Inventor
 							<BAIDivider thickness={0.75} inset={14} />
 							<View style={{ height: 18 }} />
 
-							<BAIText variant='title' muted>
-								✅ Precision
+							<BAIText variant='subtitle' muted>
+								Precision
 							</BAIText>
 
 							<View style={{ height: 8 }} />
@@ -473,7 +470,6 @@ export default function UnitSelectScreen({ routeScope }: { routeScope?: Inventor
 
 const styles = StyleSheet.create({
 	card: { marginHorizontal: 16, marginTop: 0, borderRadius: 24, flex: 1, paddingBottom: 0 },
-	titleRow: { flexDirection: "row", alignItems: "center" },
 	actionsRow: { flexDirection: "row", alignItems: "center", gap: 10 },
 	inlineSave: { flex: 1 },
 	inlineCancel: { flex: 1 },

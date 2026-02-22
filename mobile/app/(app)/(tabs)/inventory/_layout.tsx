@@ -93,8 +93,6 @@ export default function InventoryStackLayout() {
 			/>
 			<Stack.Screen name='units/[id]/archive' options={{ title: "Archive Unit" }} />
 			<Stack.Screen name='units/[id]/restore' options={{ title: "Restore Unit" }} />
-			<Stack.Screen name='products/modifiers/select' options={{ title: "Select Modifiers" }} />
-			<Stack.Screen name='products/modifiers/values' options={{ title: "Modifier Values" }} />
 			<Stack.Screen name='products/pos-tile' options={{ headerShown: false, animation: "none" }} />
 			<Stack.Screen name='products/pos-tile-photo-library' options={{ headerShown: false, animation: "none" }} />
 			<Stack.Screen name='products/pos-tile-recents' options={{ headerShown: false, animation: "none" }} />

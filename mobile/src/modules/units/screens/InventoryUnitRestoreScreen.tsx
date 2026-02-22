@@ -102,6 +102,14 @@ export default function UnitRestoreScreen() {
 	}, [canRestore, detailRoute, isUiDisabled, lockNav, queryClient, router, unit, withBusy]);
 
 	const borderColor = theme.colors.outlineVariant ?? theme.colors.outline;
+	const surfaceAlt = theme.colors.surfaceVariant ?? theme.colors.surface;
+	const surfaceInteractive = useMemo(
+		() => ({
+			borderColor,
+			backgroundColor: surfaceAlt,
+		}),
+		[borderColor, surfaceAlt],
+	);
 	const headerOptions = useInventoryHeader("process", {
 		title: "Restore Unit",
 		disabled: isUiDisabled,
@@ -114,7 +122,7 @@ export default function UnitRestoreScreen() {
 			<Stack.Screen options={headerOptions} />
 			<BAIScreen tabbed padded={false} safeTop={false}>
 				<View style={styles.screen}>
-					<BAISurface style={[styles.card, { borderColor }]} padded bordered>
+					<BAISurface style={[styles.card, surfaceInteractive]} padded bordered>
 						<BAIText variant='caption' muted>
 							Restored units can be selected for new items again.
 						</BAIText>

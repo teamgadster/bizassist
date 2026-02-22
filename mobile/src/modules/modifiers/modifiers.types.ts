@@ -1,6 +1,4 @@
-import { ModifierSelectionType } from "@prisma/client";
-
-export type ModifierOptionDto = {
+export type ModifierOption = {
 	id: string;
 	modifierGroupId: string;
 	name: string;
@@ -8,14 +6,14 @@ export type ModifierOptionDto = {
 	sortOrder: number;
 	isSoldOut: boolean;
 	isArchived: boolean;
-	createdAt: string;
-	updatedAt: string;
 };
 
-export type ModifierGroupDto = {
+export type ModifierSelectionType = "SINGLE" | "MULTI";
+
+export type ModifierGroup = {
 	id: string;
 	name: string;
-	selectionType: ModifierSelectionType;
+	selectionType: "SINGLE" | "MULTI";
 	isRequired: boolean;
 	minSelected: number;
 	maxSelected: number;
@@ -24,12 +22,10 @@ export type ModifierGroupDto = {
 	attachedProductCount: number;
 	availableOptionsCount: number;
 	soldOutOptionsCount: number;
-	createdAt: string;
-	updatedAt: string;
-	options: ModifierOptionDto[];
+	options: ModifierOption[];
 };
 
-export type CreateModifierGroupInput = {
+export type CreateModifierGroupPayload = {
 	name: string;
 	selectionType: ModifierSelectionType;
 	isRequired: boolean;
@@ -38,18 +34,18 @@ export type CreateModifierGroupInput = {
 	sortOrder?: number;
 };
 
-export type UpdateModifierGroupInput = Partial<CreateModifierGroupInput>;
+export type UpdateModifierGroupPayload = Partial<CreateModifierGroupPayload>;
 
-export type CreateModifierOptionInput = {
+export type CreateModifierOptionPayload = {
 	name: string;
 	priceDeltaMinor: string;
 	sortOrder?: number;
 };
 
-export type UpdateModifierOptionInput = Partial<CreateModifierOptionInput> & {
+export type UpdateModifierOptionPayload = Partial<CreateModifierOptionPayload> & {
 	isSoldOut?: boolean;
 };
 
-export type ReplaceProductModifierGroupsInput = {
+export type ProductModifierAttachmentPayload = {
 	modifierGroupIds: string[];
 };

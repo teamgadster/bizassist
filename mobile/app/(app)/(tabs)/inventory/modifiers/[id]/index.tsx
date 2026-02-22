@@ -1,5 +1,5 @@
-import { OptionSetDetailScreen } from "@/modules/options/screens/OptionSetDetailScreen";
+import { ModifierGroupDetailScreen } from "@/modules/modifiers/screens/ModifierGroupDetailScreen";
 
-export default function InventoryModifierDetailRoute() {
-	return <OptionSetDetailScreen mode='inventory' />;
+export default function InventoryModifierDetailScreen() {
+	return <ModifierGroupDetailScreen mode='inventory' />;
 }

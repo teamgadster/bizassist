@@ -129,6 +129,7 @@ export type InventoryProduct = {
 	posTileMode?: "COLOR" | "IMAGE";
 	posTileColor?: string | null;
 	posTileLabel?: string | null;
+	modifierGroupIds?: string[];
 	isActive: boolean;
 
 	createdAt?: string;
@@ -209,6 +210,7 @@ export type CreateProductInput = {
 
 	trackInventory: boolean;
 	unitId?: string;
+	modifierGroupIds?: string[];
 	durationTotalMinutes?: number;
 	processingEnabled?: boolean;
 	durationInitialMinutes?: number | null;
@@ -219,12 +221,6 @@ export type CreateProductInput = {
 	posTileMode?: "COLOR" | "IMAGE";
 	posTileColor?: string | null;
 	posTileLabel?: string | null;
-
-	optionSelections?: {
-		optionSetId: string;
-		selectedValueIds: string[];
-		sortOrder?: number;
-	}[];
 
 	/**
 	 * UDQI Phase-1 (Compatibility Mode):
@@ -264,6 +260,7 @@ export type UpdateProductInput = {
 	durationProcessingMinutes?: number | null;
 	durationFinalMinutes?: number | null;
 	isActive?: boolean;
+	modifierGroupIds?: string[];
 };
 
 export type AdjustInventoryInput = {

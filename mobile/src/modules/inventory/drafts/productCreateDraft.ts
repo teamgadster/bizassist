@@ -11,6 +11,7 @@ export type ProductCreateDraft = {
 	// category
 	categoryId: string;
 	categoryName: string;
+	modifierGroupIds: string[];
 
 	// ✅ unit (UoM)
 	unitId: string;
@@ -38,14 +39,6 @@ export type ProductCreateDraft = {
 	posTileColor: string | null;
 	posTileLabel: string;
 	posTileLabelTouched: boolean;
-
-	// options
-	optionSelections: {
-		optionSetId: string;
-		optionSetName: string;
-		displayName: string;
-		selectedValueIds: string[];
-	}[];
 };
 
 const drafts = new Map<string, ProductCreateDraft>();
@@ -65,6 +58,7 @@ export function createProductDraft(forcedDraftId?: string): ProductCreateDraft {
 
 		categoryId: "",
 		categoryName: "",
+		modifierGroupIds: [],
 
 		// ✅ unit defaults (Each is resolved at screen level via unitsApi list)
 		unitId: "",
@@ -88,8 +82,6 @@ export function createProductDraft(forcedDraftId?: string): ProductCreateDraft {
 		posTileColor: null,
 		posTileLabel: "",
 		posTileLabelTouched: false,
-
-		optionSelections: [],
 	};
 
 	drafts.set(draftId, draft);

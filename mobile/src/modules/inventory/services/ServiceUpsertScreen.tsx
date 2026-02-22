@@ -63,6 +63,7 @@ import { DurationWheelAccordion } from "@/modules/inventory/services/components/
 import { clampDurationMinutes, SERVICE_DURATION_MAX_MINUTES } from "@/modules/inventory/services/serviceDuration";
 import { uploadProductImage } from "@/modules/media/media.upload";
 import { toMediaDomainError } from "@/modules/media/media.errors";
+import { ModifierGroupSelector } from "@/modules/modifiers/components/ModifierGroupSelector";
 import { unitsApi } from "@/modules/units/units.api";
 import { unitKeys } from "@/modules/units/units.queries";
 import type { Unit } from "@/modules/units/units.types";
@@ -501,6 +502,9 @@ export function ServiceUpsertScreen(props: {
 				: typeof detail.unit?.id === "string" && detail.unit.id.trim()
 					? detail.unit.id.trim()
 					: (defaultServiceUnit?.id ?? "");
+		const resolvedModifierGroupIds = Array.isArray(detail.modifierGroupIds)
+			? detail.modifierGroupIds.map((id: unknown) => String(id ?? "").trim()).filter(Boolean)
+			: [];
 		const remotePrimaryImageUrl = String(detail.primaryImageUrl ?? "").trim();
 		const resolvedPosTileMode =
 			detail.posTileMode === "IMAGE" || (!!remotePrimaryImageUrl && detail.posTileMode !== "COLOR") ? "IMAGE" : "COLOR";
@@ -519,6 +523,7 @@ export function ServiceUpsertScreen(props: {
 				name: sanitizeServiceNameInput(String(detail.name ?? "")),
 				categoryId: String(detail.categoryId ?? "").trim(),
 				categoryName: resolvedCategoryName,
+				modifierGroupIds: resolvedModifierGroupIds,
 				priceText: detail.price != null ? sanitizeServicePriceInput(String(detail.price)) : "",
 				description: sanitizeServiceDescriptionFinal(String(detail.description ?? "")),
 				unitId: resolvedUnitId,
@@ -594,6 +599,7 @@ export function ServiceUpsertScreen(props: {
 		if (mode !== "create") return false;
 		if (hasValue(draft.name)) return true;
 		if (hasValue(draft.categoryId) || hasValue(draft.categoryName)) return true;
+		if ((draft.modifierGroupIds?.length ?? 0) > 0) return true;
 		if (hasValue(draft.priceText)) return true;
 		if (hasValue(draft.description)) return true;
 		if (hasValue(draft.unitId)) return true;
@@ -734,6 +740,7 @@ export function ServiceUpsertScreen(props: {
 					type: "SERVICE" as const,
 					name: safeName,
 					categoryId: draft.categoryId.trim() || undefined,
+					modifierGroupIds: draft.modifierGroupIds,
 					description: sanitizeServiceDescriptionFinal(draft.description).trim() || undefined,
 					price: safePrice,
 					trackInventory: false,
@@ -782,6 +789,7 @@ export function ServiceUpsertScreen(props: {
 					if (mode === "create" && saveTarget === "addAnother") {
 						resetServiceDraft({
 							unitId: defaultServiceUnit?.id ?? "",
+							modifierGroupIds: [],
 						});
 						setOpenDurationAccordion(null);
 						resetMediaDraft();
@@ -1031,6 +1039,12 @@ export function ServiceUpsertScreen(props: {
 								label='Category'
 								value={draft.categoryName || "None"}
 								onPress={openCategoryPicker}
+								disabled={isUiDisabled}
+							/>
+
+							<ModifierGroupSelector
+								selectedIds={draft.modifierGroupIds ?? []}
+								onChange={(modifierGroupIds) => setDraft((prev) => ({ ...prev, modifierGroupIds }))}
 								disabled={isUiDisabled}
 							/>
 

@@ -119,6 +119,12 @@ No hard-coded title colors.
 - Validate on submit; show deterministic error messages.
 - For large text (Description/Notes), prefer drill-in editor screens over huge inline textareas.
 
+### 5.1 Process Form Keyboard + Draft Governance (locked)
+
+- Process forms with text input must implement keyboard avoidance.
+- Process forms with text input must support tap-outside keyboard dismiss.
+- Multi-field process forms must use **form draft persistence** (aka draft state persistence) so in-progress values survive transient interruptions until explicit save/discard.
+
 ---
 
 ## 6. Switches (BAISwitchRow)
@@ -156,6 +162,21 @@ Every list and picker must implement all three:
 - Empty state (with guidance and a CTA)
 
 Do not ship screens that assume “data always exists”.
+
+### 8.1 Copy Casing + Process Copy Proof (locked)
+
+- Status/system copy must be sentence case (for example: `Loading ...`, `Could not load ...`, `... not found.`).
+- Avoid duplicate process titles inside cards when the same title is already in the header.
+
+## 8.2 Lifecycle Process Screens (Archive/Restore)
+
+- Archive and Restore actions must navigate to dedicated process screens.
+- Lifecycle process cards should apply interactive surface treatment (`surfaceInteractive`) to keep visual parity with governance rows/cards.
+- Confirm success with deterministic post-action navigation closure.
+
+## 8.3 Compact Number Format (Business Locale)
+
+- Count labels on management/ledger screens must use business-locale compact formatting helpers (for example `formatCompactNumber`) rather than ad-hoc `toLocaleString` or raw numeric rendering.
 
 ---
 

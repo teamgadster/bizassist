@@ -280,7 +280,8 @@ export class InventoryService {
 				cost: moneyToString(product as any, "cost", "costMinor"),
 
 				trackInventory: Boolean(product.trackInventory),
-				durationTotalMinutes: typeof (product as any).durationTotalMinutes === "number" ? (product as any).durationTotalMinutes : null,
+				durationTotalMinutes:
+					typeof (product as any).durationTotalMinutes === "number" ? (product as any).durationTotalMinutes : null,
 				processingEnabled: Boolean((product as any).processingEnabled),
 				durationInitialMinutes:
 					typeof (product as any).durationInitialMinutes === "number" ? (product as any).durationInitialMinutes : null,
@@ -288,7 +289,8 @@ export class InventoryService {
 					typeof (product as any).durationProcessingMinutes === "number"
 						? (product as any).durationProcessingMinutes
 						: null,
-				durationFinalMinutes: typeof (product as any).durationFinalMinutes === "number" ? (product as any).durationFinalMinutes : null,
+				durationFinalMinutes:
+					typeof (product as any).durationFinalMinutes === "number" ? (product as any).durationFinalMinutes : null,
 
 				// UDQI: decimal-string output
 				reorderPoint: decimalToString((product as any).reorderPoint),

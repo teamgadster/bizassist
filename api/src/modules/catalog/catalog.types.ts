@@ -109,6 +109,7 @@ export type CreateProductInput = {
 	posTileMode?: "COLOR" | "IMAGE";
 	posTileColor?: string | null;
 	posTileLabel?: string | null;
+	modifierGroupIds?: string[];
 };
 
 export type UpdateProductInput = Partial<Omit<CreateProductInput, "initialOnHand">> & {
@@ -120,4 +121,5 @@ export type UpdateProductInput = Partial<Omit<CreateProductInput, "initialOnHand
 	posTileMode?: "COLOR" | "IMAGE";
 	posTileColor?: string | null;
 	posTileLabel?: string | null;
+	modifierGroupIds?: string[];
 };

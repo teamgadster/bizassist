@@ -7,6 +7,7 @@ export type ProductModifierOption = {
 	name: string;
 	priceDeltaMinor: string;
 	sortOrder: number;
+	isSoldOut?: boolean;
 };
 
 export type ProductModifierGroup = {

@@ -9,6 +9,7 @@ export type ServiceCreateDraft = {
 	name: string;
 	categoryId: string;
 	categoryName: string;
+	modifierGroupIds: string[];
 	priceText: string;
 	description: string;
 	unitId: string;
@@ -31,6 +32,7 @@ function makeDefaultDraft(draftId: string): ServiceCreateDraft {
 		name: "",
 		categoryId: "",
 		categoryName: "",
+		modifierGroupIds: [],
 		priceText: "",
 		description: "",
 		unitId: "",

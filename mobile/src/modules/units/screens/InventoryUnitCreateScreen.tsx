@@ -189,14 +189,9 @@ export default function UnitsCreateCategoryScreen({ routeScope }: { routeScope?:
 
 			<BAIScreen padded={false} safeTop={false} safeBottom={false} style={{ flex: 1 }}>
 				<BAISurface style={styles.card} padded>
-					<View style={styles.titleRow}>
-						<View style={{ flex: 1 }}>
-							<BAIText variant='title'>Create Custom Unit</BAIText>
-							<BAIText variant='caption' muted>
-								Custom units are created under the Custom category.
-							</BAIText>
-						</View>
-					</View>
+					<BAIText variant='caption' muted>
+						Custom units are created under the Custom category.
+					</BAIText>
 
 					<View style={{ height: 12 }} />
 
@@ -245,12 +240,6 @@ const styles = StyleSheet.create({
 		marginTop: 0,
 		borderRadius: 24,
 		paddingBottom: 0,
-	},
-	titleRow: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "space-between",
-		gap: 12,
 	},
 	actionsRow: { flexDirection: "row", alignItems: "center", gap: 12 },
 	inlineCancel: { flex: 1 },

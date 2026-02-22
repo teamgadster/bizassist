@@ -1,5 +1,5 @@
-import { OptionSetUpsertScreen } from "@/modules/options/screens/OptionSetUpsertScreen";
+import { ModifierGroupUpsertScreen } from "@/modules/modifiers/screens/ModifierGroupUpsertScreen";
 
-export default function SettingsModifierEditRoute() {
-	return <OptionSetUpsertScreen mode='settings' intent='edit' />;
+export default function SettingsModifierEditScreen() {
+	return <ModifierGroupUpsertScreen mode='settings' intent='edit' />;
 }

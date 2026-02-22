@@ -1,5 +1,5 @@
-import { OptionSetLifecycleScreen } from "@/modules/options/screens/OptionSetLifecycleScreen";
+import { ModifierGroupRestoreScreen } from "@/modules/modifiers/screens/ModifierGroupRestoreScreen";
 
-export default function InventoryModifierRestoreRoute() {
-	return <OptionSetLifecycleScreen mode='inventory' action='restore' />;
+export default function InventoryModifierRestoreScreen() {
+	return <ModifierGroupRestoreScreen mode='inventory' />;
 }

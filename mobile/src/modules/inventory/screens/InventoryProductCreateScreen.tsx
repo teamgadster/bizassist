@@ -68,6 +68,7 @@ import { invalidateInventoryAfterMutation } from "@/modules/inventory/inventory.
 import type { CreateProductInput } from "@/modules/inventory/inventory.types";
 import { uploadProductImage } from "@/modules/media/media.upload";
 import { toMediaDomainError } from "@/modules/media/media.errors";
+import { ModifierGroupSelector } from "@/modules/modifiers/components/ModifierGroupSelector";
 
 import {
 	CATEGORY_PICKER_ROUTE,
@@ -900,6 +901,7 @@ export default function InventoryProductCreateScreen({
 				const apiPayload = {
 					...input,
 					unitId: finalUnitId,
+					modifierGroupIds: draft.modifierGroupIds,
 					posTileMode: tileMode,
 					posTileColor: tileColor ?? null,
 					posTileLabel: tileLabel || undefined,
@@ -1231,6 +1233,12 @@ export default function InventoryProductCreateScreen({
 								onPress={openCategoryPicker}
 								disabled={isUiDisabled}
 								style={{ marginTop: 10 }}
+							/>
+
+							<ModifierGroupSelector
+								selectedIds={draft.modifierGroupIds}
+								onChange={(modifierGroupIds) => patch({ modifierGroupIds })}
+								disabled={isUiDisabled}
 							/>
 
 							<BAIPressableRow

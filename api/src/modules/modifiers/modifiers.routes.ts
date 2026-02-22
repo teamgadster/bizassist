@@ -6,9 +6,12 @@ import {
 	archiveModifierOption,
 	createModifierGroup,
 	createModifierOption,
+	getModifierGroup,
+	listModifierGroups,
 	getProductModifiers,
 	patchModifierGroup,
 	patchModifierOption,
+	replaceProductModifiers,
 	restoreModifierGroup,
 	restoreModifierOption,
 } from "./modifiers.controller";
@@ -19,7 +22,10 @@ modifiersRoutes.use(authMiddleware);
 modifiersRoutes.use(requireActiveBusiness);
 
 modifiersRoutes.get("/products/:id/modifiers", getProductModifiers);
-modifiersRoutes.post("/products/:id/modifier-groups", createModifierGroup);
+modifiersRoutes.put("/products/:id/modifiers", replaceProductModifiers);
+modifiersRoutes.get("/groups", listModifierGroups);
+modifiersRoutes.get("/groups/:id", getModifierGroup);
+modifiersRoutes.post("/groups", createModifierGroup);
 modifiersRoutes.patch("/modifier-groups/:id", patchModifierGroup);
 modifiersRoutes.post("/modifier-groups/:id/options", createModifierOption);
 modifiersRoutes.patch("/modifier-options/:id", patchModifierOption);

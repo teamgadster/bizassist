@@ -208,14 +208,9 @@ export default function UnitsAddCategoryScreen({ routeScope }: { routeScope?: In
 			<BAIScreen padded={false} safeTop={false} style={{ flex: 1 }}>
 				<View style={styles.screen}>
 					<BAISurface style={styles.card} padded>
-						<View style={styles.titleRow}>
-							<View style={{ flex: 1 }}>
-								<BAIText variant='title'>Select Unit Category</BAIText>
-								<BAIText variant='caption' muted>
-									Choose a unit category to add from the catalog.
-								</BAIText>
-							</View>
-						</View>
+						<BAIText variant='caption' muted>
+							Choose a unit category to add from the catalog.
+						</BAIText>
 
 						<View style={{ height: 12 }} />
 
@@ -270,12 +265,6 @@ export default function UnitsAddCategoryScreen({ routeScope }: { routeScope?: In
 const styles = StyleSheet.create({
 	screen: { flex: 1, paddingHorizontal: 16, paddingTop: 0 },
 	card: { marginHorizontal: 0, marginTop: 0, borderRadius: 24, paddingBottom: 14 },
-	titleRow: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "space-between",
-		gap: 12,
-	},
 	actionsRow: { flexDirection: "row", alignItems: "center", gap: 12 },
 	inlineCancel: { flex: 1 },
 	inlineNext: { flex: 1 },

@@ -51,7 +51,7 @@ const cartItemSchema = z
 		quantity: quantityString,
 		unitPriceMinor: minorUnitsString.optional(),
 		unitPrice: legacyUnitPriceDecimal.optional(),
-		selectedModifierOptionIds: z.array(uuidSchema).max(50, "Too many selected modifiers.").optional(),
+		selectedModifierOptionIds: z.array(uuidSchema).max(250, "Too many selected modifiers.").optional(),
 		totalModifiersDeltaMinor: minorUnitsString.optional(),
 	})
 	.superRefine((val, ctx) => {

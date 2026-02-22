@@ -72,6 +72,13 @@ Route: `/(app)/(tabs)/settings/items-services/services/[id]/photo`
 - [ ] Back/Exit behavior remains deterministic in both route scopes.
 - [ ] Route scope mapping is preserved (Inventory stays in Inventory, Settings stays in Settings).
 
+### 4.1) Post-Action Navigation Flow checks
+
+- [ ] Save/Archive/Restore actions route to one intended destination only per flow.
+- [ ] Success transitions use deterministic closure (`replace()` / governed back behavior) with explicit completion feedback.
+- [ ] Failed actions remain on current screen context (no unintended redirect).
+- [ ] Write/navigation actions remain double-tap safe and Busy/Loading Overlay governed.
+
 ## 5) Signoff
 
 Tester: ____________________  
