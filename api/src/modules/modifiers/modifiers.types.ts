@@ -53,3 +53,14 @@ export type UpdateModifierOptionInput = Partial<CreateModifierOptionInput> & {
 export type ReplaceProductModifierGroupsInput = {
 	modifierGroupIds: string[];
 };
+
+export type SyncModifierGroupProductsInput = {
+	modifierGroupId: string;
+	selectedProductIds: string[];
+};
+
+export type SyncModifierGroupProductsResult = {
+	updatedProductCount: number;
+	attachedCount: number;
+	detachedCount: number;
+};

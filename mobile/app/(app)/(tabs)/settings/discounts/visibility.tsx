@@ -7,7 +7,6 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { FlatList, StyleSheet, View, useWindowDimensions } from "react-native";
-import Ionicons from "@expo/vector-icons/Ionicons";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { Stack, useRouter } from "expo-router";
 import { useTheme } from "react-native-paper";
@@ -184,7 +183,7 @@ export default function DiscountVisibilityScreen() {
 								) : isHidden ? (
 									<MaterialCommunityIcons name='eye-off' size={18} color={iconColor} />
 								) : (
-									<Ionicons name='pricetag-outline' size={18} color={iconColor} />
+									<MaterialCommunityIcons name='tag-outline' size={18} color={iconColor} />
 								)}
 								<BAIText variant='body' numberOfLines={1} style={styles.rowNameText}>
 									{discount.name}

@@ -13,6 +13,7 @@ export type BAIHeaderProps = {
 	title: string;
 	variant: "back" | "exit";
 	rightSlot?: ReactNode | ((options: { disabled: boolean }) => ReactNode);
+	barHeight?: number;
 	onLeftPress?: () => void;
 	onRightPress?: () => void;
 	disabled?: boolean;
@@ -27,6 +28,7 @@ export function BAIHeader({
 	title,
 	variant,
 	rightSlot,
+	barHeight = HEADER_BAR_HEIGHT,
 	onLeftPress,
 	onRightPress,
 	disabled = false,
@@ -83,10 +85,13 @@ export function BAIHeader({
 		return rightSlot;
 	}, [rightActionDisabled, rightSlot]);
 
+	const resolvedBarHeight = Math.max(56, barHeight || HEADER_BAR_HEIGHT);
+	const railSize = Math.max(56, resolvedBarHeight);
+
 	return (
 		<View testID={testID} style={[styles.root, { paddingTop: insets.top, backgroundColor: theme.colors.background }]}>
-			<View style={[styles.bar, { paddingHorizontal: paddingX || 16 }]}>
-				<View style={styles.leftRail}>
+			<View style={[styles.bar, { height: resolvedBarHeight, paddingHorizontal: paddingX || 16 }]}>
+				<View style={[styles.leftRail, { width: railSize }]}>
 					<BAIHeaderIconButton
 						variant={variant}
 						disabled={leftDisabled}
@@ -101,7 +106,7 @@ export function BAIHeader({
 					</BAIText>
 				</View>
 
-				<View style={styles.rightRail}>
+				<View style={[styles.rightRail, { width: railSize }]}>
 					{onRightPress ? (
 						<Pressable
 							onPress={handleRightPress}

@@ -27,13 +27,17 @@ export function ModifierGroupRestoreScreen({ mode }: { mode: "settings" | "inven
 
 	const onConfirm = useCallback(() => {
 		if (!groupId) return;
-		withBusy("Restoring modifier...", async () => {
+		withBusy("Restoring modifier set...", async () => {
 			await modifiersApi.restoreGroup(groupId);
 			router.replace(detailRoute as any);
 		});
 	}, [detailRoute, groupId, router, withBusy]);
 
-	const appHeader = useAppHeader("process", { title: "Restore Modifier", onExit: guardedExit, exitFallbackRoute: detailRoute });
+	const appHeader = useAppHeader("process", {
+		title: "Restore Modifier",
+		onExit: guardedExit,
+		exitFallbackRoute: detailRoute,
+	});
 	const inventoryHeader = useInventoryHeader("process", {
 		title: "Restore Modifier",
 		onExit: guardedExit,
@@ -43,19 +47,33 @@ export function ModifierGroupRestoreScreen({ mode }: { mode: "settings" | "inven
 	return (
 		<>
 			<Stack.Screen options={mode === "settings" ? appHeader : inventoryHeader} />
-			<BAIScreen tabbed>
-				<View style={styles.screen}>
-					<BAISurface bordered variant='interactive' style={styles.card}>
-						<BAIText variant='body'>Restored modifier groups become available for new product and service attachments.</BAIText>
-						<View style={styles.footer}>
-							<BAIButton variant='outline' style={styles.footerBtn} onPress={guardedExit}>
-								Cancel
-							</BAIButton>
-							<BAIButton style={styles.footerBtn} onPress={onConfirm}>
-								Restore
-							</BAIButton>
-						</View>
-					</BAISurface>
+			<BAIScreen tabbed padded={false} safeTop={false} safeBottom={false} style={styles.root}>
+				<View style={styles.wrap}>
+					<View style={styles.content}>
+						<BAISurface bordered padded style={styles.card}>
+							<View style={styles.header}>
+									<BAIText variant='title'>Restore Modifier</BAIText>
+							</View>
+							<BAIText variant='body'>
+								Restored modifier sets become available for new product and service attachments.
+							</BAIText>
+							<View style={styles.actionsRow}>
+								<BAIButton
+									variant='outline'
+									intent='neutral'
+									shape='pill'
+									widthPreset='standard'
+									style={styles.actionButton}
+									onPress={guardedExit}
+								>
+									Cancel
+								</BAIButton>
+								<BAIButton shape='pill' widthPreset='standard' style={styles.actionButton} onPress={onConfirm}>
+									Restore Modifier Set
+								</BAIButton>
+							</View>
+						</BAISurface>
+					</View>
 				</View>
 			</BAIScreen>
 		</>
@@ -63,8 +81,11 @@ export function ModifierGroupRestoreScreen({ mode }: { mode: "settings" | "inven
 }
 
 const styles = StyleSheet.create({
-	screen: { flex: 1, padding: 12 },
-	card: { borderRadius: 14, padding: 12, gap: 10 },
-	footer: { flexDirection: "row", gap: 10 },
-	footerBtn: { flex: 1 },
+	root: { flex: 1 },
+	wrap: { flex: 1, paddingHorizontal: 12 },
+	content: { flex: 1, width: "100%", maxWidth: 720, alignSelf: "center" },
+	card: { borderRadius: 18, gap: 12 },
+	header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
+	actionsRow: { flexDirection: "row", gap: 10 },
+	actionButton: { flex: 1 },
 });

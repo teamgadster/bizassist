@@ -14,12 +14,15 @@ This document is the **north star** for how BizAssist is designed, built, and sh
 2. **Token governance:** return patch-style unified diffs only; do not return full files; do not repeat unchanged code; keep explanations concise and technical.
 3. **Global constraints:** enforce tablet-first governance, Back vs Exit Navigation Law, Busy/Loading Overlay governance, UDQI precision rules, Money 2-decimal input enforcement, and archive-only lifecycle governance where applicable.
 4. **Execution framework:**
-  - Step 1: repo scan for relevant components/modules/navigation/API/state/cross-module impacts.
-  - Step 2: implement minimal diffs only, preserve existing patterns and business logic.
+
+- Step 1: repo scan for relevant components/modules/navigation/API/state/cross-module impacts.
+- Step 2: implement minimal diffs only, preserve existing patterns and business logic.
+
 5. **No drift rules:** no unrelated edits, no naming drift, no new abstractions unless explicitly requested.
 6. **Required delivery format:**
-  - Files Updated (path + one-line reason)
-  - Unified patch diffs only
+
+- Files Updated (path + one-line reason)
+- Unified patch diffs only
 
 ## 1. Non‑Negotiable Product Principles
 
@@ -60,10 +63,18 @@ Rules:
 
 1. **Form draft persistence is required** for multi-field process forms (also called draft state persistence). In-progress form input must survive transient navigation interruptions until explicit save/discard.
 2. **Keyboard governance is required** on process forms with text input:
-  - Use keyboard avoidance behavior.
-  - Tapping outside inputs must dismiss keyboard.
+
+- Use keyboard avoidance behavior.
+- Tapping outside inputs must dismiss keyboard.
+
 3. **Lifecycle process separation is required.** Archive and Restore must be handled on dedicated process screens (not inline in detail/edit cards).
 4. **Count formatting governance.** Compact numeric counts must use business-locale formatting utilities (not device-locale defaults or ad-hoc formatting).
+
+### 1.4 Inventory + Settings Feature Flow Parity (Locked)
+
+1. **Parity is mandatory.** Any approved feature flow update must be implemented in both **Inventory** and **Settings** when that flow exists in both contexts.
+2. **Scope of parity.** Implementation parity includes behavior, navigation closure, lifecycle actions, and core UX structure.
+3. **Release gate.** Work is not complete until both Inventory and Settings paths are updated and validated within the same implementation cycle.
 
 ---
 
@@ -125,6 +136,7 @@ Settings-owned category lifecycle under `Settings → Categories`:
 - User-scoped visibility under `Settings → Categories → Category visibility` (Hide/Restore, non-destructive).
 - Category Visibility list filtering must use a **Switch** (`Show hidden categories`) because this is a boolean include/exclude filter on the current dataset.
 - Do **not** use `GroupTabs` for hidden visibility filtering; tabs are reserved for peer view modes (e.g., Active/Archived lifecycle browsing).
+- **Create Category post-save redirect lock:** After a successful Category Create save (outside picker-return flows), redirect to the **Manage Categories** ledger screen for the active context (Settings create -> `Settings → Categories`; Inventory create -> `Inventory Categories` ledger), not to Category Detail.
 - Inventory/POS operational flows expose only category pickers plus `+ Add Category` shortcut to Settings create flow.
 
 ### Phase 3 — Services (ProductType=SERVICE)
@@ -248,7 +260,6 @@ Rules:
 - Avoids lifecycle drift across modules.
 
 ---
-
 
 ## 3. Architecture Decisions (Locked)
 
@@ -443,9 +454,11 @@ Every screen must define:
 
 ### 5.7 Status icon defaults (archived/hidden)
 
-- For Categories and Discounts management surfaces, status icons are locked to the following defaults:
+- For inventory/settings management surfaces, default/status icons are locked to the following defaults:
+  - **All Services default:** `Ionicons` with `name="briefcase-outline"`
   - **Category default:** `Ionicons` with `name="layers-outline"`
-  - **Discount default:** `Ionicons` with `name="pricetag-outline"`
+  - **Discount default:** `MaterialCommunityIcons` with `name="tag-outline"`
+  - **Units default:** `MaterialCommunityIcons` with `name="ruler-square"`
   - **Archived:** `MaterialCommunityIcons` with `name="archive-outline"`
   - **Hidden:** `MaterialCommunityIcons` with `name="eye-off"`
 - Moving forward, Archive icon implementations must use this same archived default (`MaterialCommunityIcons` + `archive-outline`) on management surfaces.
@@ -453,12 +466,22 @@ Every screen must define:
   - **Restore action:** `MaterialCommunityIcons` with `name="eye"`
 - Canonical snippets:
   - `import Ionicons from '@expo/vector-icons/Ionicons';`
+  - `<Ionicons name="briefcase-outline" size={24} color="black" />`
   - `<Ionicons name="layers-outline" size={24} color="black" />`
-  - `<Ionicons name="pricetag-outline" size={24} color="black" />`
   - `import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';`
+  - `<MaterialCommunityIcons name="tag-outline" size={24} color="black" />`
+  - `<MaterialCommunityIcons name="ruler-square" size={24} color="black" />`
   - `<MaterialCommunityIcons name="archive-outline" size={24} color="black" />`
   - `<MaterialCommunityIcons name="eye-off" size={24} color="black" />`
   - `<MaterialCommunityIcons name="eye" size={24} color="black" />`
+- Icon tint/shade standardization is locked for consistency:
+  - On management list rows, all icon families (leading icons + trailing chevrons) must use the same theme tint token.
+  - Default icon tint token is `theme.colors.onSurfaceVariant` (or fallback `onSurface` if unavailable).
+  - Do not mix icon shades within the same row.
+- Canonical tint pattern:
+  - `const iconTint = theme.colors.onSurfaceVariant ?? theme.colors.onSurface;`
+  - `<Ionicons name="layers-outline" size={20} color={iconTint} />`
+  - `<MaterialCommunityIcons name="chevron-right" size={30} color={iconTint} />`
 - When both states can apply, archived takes precedence for status representation.
 
 ### 5.8 Count label pluralization (dynamic titles)

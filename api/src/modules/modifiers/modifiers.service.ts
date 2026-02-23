@@ -12,6 +12,8 @@ import type {
 	CreateModifierOptionInput,
 	ModifierGroupDto,
 	ReplaceProductModifierGroupsInput,
+	SyncModifierGroupProductsInput,
+	SyncModifierGroupProductsResult,
 	UpdateModifierGroupInput,
 	UpdateModifierOptionInput,
 } from "./modifiers.types";
@@ -161,6 +163,107 @@ export class ModifiersService {
 		});
 
 		return this.getProductModifiers(businessId, productId);
+	}
+
+	async syncModifierGroupProducts(
+		businessId: string,
+		input: SyncModifierGroupProductsInput,
+	): Promise<SyncModifierGroupProductsResult> {
+		const modifierGroupId = String(input.modifierGroupId ?? "").trim();
+		const selectedProductIds = Array.from(
+			new Set((input.selectedProductIds ?? []).map((id) => String(id ?? "").trim()).filter(Boolean)),
+		);
+
+		const group = await this.prisma.modifierGroup.findFirst({
+			where: { id: modifierGroupId, businessId, isArchived: false },
+			select: { id: true },
+		});
+		if (!group) {
+			throw new AppError(StatusCodes.NOT_FOUND, "Modifier group not found.", "MODIFIER_GROUP_NOT_FOUND");
+		}
+
+		if (selectedProductIds.length > 0) {
+			const validProducts = await this.prisma.product.findMany({
+				where: {
+					businessId,
+					isActive: true,
+					id: { in: selectedProductIds },
+				},
+				select: { id: true },
+			});
+			if (validProducts.length !== selectedProductIds.length) {
+				throw new AppError(
+					StatusCodes.UNPROCESSABLE_ENTITY,
+					"One or more selected products are invalid or inactive.",
+					"PRODUCT_INVALID",
+				);
+			}
+		}
+
+		const allActiveProducts = await this.prisma.product.findMany({
+			where: { businessId, isActive: true },
+			select: { id: true },
+		});
+		const candidateProductIds = allActiveProducts.map((product) => product.id);
+		if (candidateProductIds.length === 0) {
+			return { updatedProductCount: 0, attachedCount: 0, detachedCount: 0 };
+		}
+
+		const currentLinks = await this.prisma.productModifierGroup.findMany({
+			where: {
+				businessId,
+				modifierGroupId,
+				productId: { in: candidateProductIds },
+			},
+			select: { productId: true },
+		});
+
+		const selectedSet = new Set(selectedProductIds);
+		const linkedSet = new Set(currentLinks.map((link) => link.productId));
+
+		const toAttach = candidateProductIds.filter((productId) => selectedSet.has(productId) && !linkedSet.has(productId));
+		const toDetach = candidateProductIds.filter((productId) => !selectedSet.has(productId) && linkedSet.has(productId));
+
+		if (toAttach.length > 0) {
+			const currentCounts = await this.prisma.productModifierGroup.groupBy({
+				by: ["productId"],
+				where: { businessId, productId: { in: toAttach } },
+				_count: { _all: true },
+			});
+			const countByProduct = new Map(currentCounts.map((row) => [row.productId, row._count._all]));
+			const limitExceededProductId = toAttach.find(
+				(productId) => (countByProduct.get(productId) ?? 0) >= MAX_MODIFIER_GROUPS_PER_PRODUCT,
+			);
+			if (limitExceededProductId) {
+				throw new AppError(
+					StatusCodes.UNPROCESSABLE_ENTITY,
+					`Max ${MAX_MODIFIER_GROUPS_PER_PRODUCT} modifier groups per product.`,
+					"MODIFIER_GROUPS_PER_PRODUCT_LIMIT",
+				);
+			}
+
+			await this.prisma.productModifierGroup.createMany({
+				data: toAttach.map((productId) => ({
+					businessId,
+					productId,
+					modifierGroupId,
+					sortOrder: countByProduct.get(productId) ?? 0,
+				})),
+				skipDuplicates: true,
+			});
+		}
+
+		if (toDetach.length > 0) {
+			await this.prisma.productModifierGroup.deleteMany({
+				where: { businessId, modifierGroupId, productId: { in: toDetach } },
+			});
+		}
+
+		return {
+			updatedProductCount: toAttach.length + toDetach.length,
+			attachedCount: toAttach.length,
+			detachedCount: toDetach.length,
+		};
 	}
 
 	async createGroup(businessId: string, input: CreateModifierGroupInput): Promise<ModifierGroupDto> {

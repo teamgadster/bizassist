@@ -1,8 +1,7 @@
 // BizAssist_mobile
 // path: app/(app)/(tabs)/settings/settings.phone.tsx
 
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-import Ionicons from "@expo/vector-icons/Ionicons";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useRouter } from "expo-router";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
@@ -19,7 +18,6 @@ import { useAppBusy } from "@/hooks/useAppBusy";
 import { useAuth } from "@/modules/auth/AuthContext";
 
 type MaterialIconName = keyof typeof MaterialCommunityIcons.glyphMap;
-type IonIconName = keyof typeof Ionicons.glyphMap;
 
 type SettingsRowBase = {
 	key: string;
@@ -29,20 +27,20 @@ type SettingsRowBase = {
 	disabled?: boolean;
 };
 
-type SettingsRow =
-	| (SettingsRowBase & { iconFamily?: "material"; icon: MaterialIconName })
-	| (SettingsRowBase & { iconFamily: "ion"; icon: IonIconName });
+type SettingsRow = SettingsRowBase & { icon: MaterialIconName };
 
 function Row({
 	item,
 	borderColor,
 	onSurface,
 	onSurfaceVariant,
+	iconTint,
 }: {
 	item: SettingsRow;
 	borderColor: string;
 	onSurface: string;
 	onSurfaceVariant: string;
+	iconTint: string;
 }) {
 	const chevronVisible = !!item.onPress && !item.disabled;
 
@@ -58,11 +56,7 @@ function Row({
 		>
 			<View style={styles.rowLeft}>
 				<View style={[styles.iconCircle, { borderColor }]}>
-					{item.iconFamily === "ion" ? (
-						<Ionicons name={item.icon} size={20} color={onSurface} />
-					) : (
-						<MaterialCommunityIcons name={item.icon} size={20} color={onSurface} />
-					)}
+					<MaterialCommunityIcons name={item.icon} size={20} color={iconTint} />
 				</View>
 
 				<View style={styles.rowText}>
@@ -79,7 +73,7 @@ function Row({
 
 			{chevronVisible ? (
 				<View style={styles.rowRight}>
-					<MaterialCommunityIcons name='chevron-right' size={30} color={onSurfaceVariant} />
+					<MaterialCommunityIcons name='chevron-right' size={30} color={iconTint} />
 				</View>
 			) : null}
 		</Pressable>
@@ -109,7 +103,8 @@ export default function SettingsPhoneScreen() {
 
 	const borderColor = theme.colors.outlineVariant ?? theme.colors.outline;
 	const onSurface = theme.colors.onSurface;
-	const onSurfaceVariant = theme.colors.onSurfaceVariant;
+	const onSurfaceVariant = theme.colors.onSurfaceVariant ?? theme.colors.onSurface;
+	const iconTint = onSurfaceVariant;
 
 	const rows: SettingsRow[] = useMemo(
 		() => [
@@ -124,8 +119,7 @@ export default function SettingsPhoneScreen() {
 				key: "items",
 				title: "Items",
 				subtitle: "All items, services, and catalog definitions",
-				iconFamily: "ion",
-				icon: "cube-outline",
+				icon: "package-variant-closed",
 				onPress: () => router.push("/(app)/(tabs)/settings/items"),
 			},
 			{
@@ -198,6 +192,7 @@ export default function SettingsPhoneScreen() {
 							borderColor={borderColor}
 							onSurface={onSurface}
 							onSurfaceVariant={onSurfaceVariant}
+							iconTint={iconTint}
 						/>
 					))}
 				</BAISurface>

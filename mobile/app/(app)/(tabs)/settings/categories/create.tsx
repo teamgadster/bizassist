@@ -119,7 +119,7 @@ export default function SettingsCategoryCreateScreen() {
 						return;
 					}
 
-					router.replace(`/(app)/(tabs)/settings/categories/${encodeURIComponent(created.id)}` as any);
+					router.replace(SETTINGS_CATEGORIES_ROUTE as any);
 				} catch (e: any) {
 					const { code, message, limit } = extractCategoryApiError(e);
 					if (code === "CATEGORY_LIMIT_REACHED") {
@@ -137,7 +137,11 @@ export default function SettingsCategoryCreateScreen() {
 	);
 
 	const dividerColor = theme.colors.outlineVariant ?? theme.colors.outline;
-	const headerOptions = useAppHeader("process", { title: "Create Category", disabled: isHeaderDisabled, onExit: guardedOnExit });
+	const headerOptions = useAppHeader("process", {
+		title: "Create Category",
+		disabled: isHeaderDisabled,
+		onExit: guardedOnExit,
+	});
 
 	return (
 		<>

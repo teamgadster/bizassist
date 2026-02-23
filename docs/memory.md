@@ -1,3 +1,20 @@
+## 2026-02-23 — Category Create Save Redirect Lock (Manage Categories)
+
+### Memory Lock
+
+- After successful **Create Category** save (outside picker-return flows), redirect to **Manage Categories** ledger for the active context.
+- Settings create must redirect to `Settings → Categories`.
+- Inventory create must redirect to `Inventory Categories` ledger.
+- Post-save create flow must not redirect to Category Detail unless explicitly requested by a future governance change.
+
+## 2026-02-23 — Inventory + Settings Feature Flow Parity Lock
+
+### Memory Lock
+
+- Any approved feature flow update must be implemented in both **Inventory** and **Settings** surfaces when that flow exists in both contexts.
+- Parity is mandatory for behavior, navigation outcomes, lifecycle actions, and core UX structure (not optional follow-up work).
+- Delivery is incomplete until both Inventory and Settings paths are updated and validated in the same implementation cycle.
+
 ## 2026-02-23 — Process Form + Lifecycle UX Governance Lock
 
 ### Memory Lock
@@ -411,12 +428,12 @@ Lock the default Discount icon for management surfaces moving forward.
 
 ### Locked Rule
 
-- Discount default icon must be `Ionicons` with `name="pricetag-outline"`.
+- Discount default icon must be `MaterialCommunityIcons` with `name="tag-outline"`.
 
 Canonical snippet:
 
-- `import Ionicons from '@expo/vector-icons/Ionicons';`
-- `<Ionicons name="pricetag-outline" size={24} color="black" />`
+- `import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';`
+- `<MaterialCommunityIcons name="tag-outline" size={24} color="black" />`
 
 ## 2026-02-12 — Category Default Icon Locked
 
@@ -432,6 +449,54 @@ Canonical snippet:
 
 - `import Ionicons from '@expo/vector-icons/Ionicons';`
 - `<Ionicons name="layers-outline" size={24} color="black" />`
+
+## 2026-02-23 — Units Default Icon Locked
+
+### Summary
+
+Lock the default Units icon for management surfaces moving forward.
+
+### Locked Rule
+
+- Units default icon must be `MaterialCommunityIcons` with `name="ruler-square"`.
+
+Canonical snippet:
+
+- `import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';`
+- `<MaterialCommunityIcons name="ruler-square" size={24} color="black" />`
+
+## 2026-02-23 — All Services Default Icon Locked
+
+### Summary
+
+Lock the default All Services icon for settings management surfaces moving forward.
+
+### Locked Rule
+
+- All Services default icon must be `Ionicons` with `name="briefcase-outline"`.
+
+Canonical snippet:
+
+- `import Ionicons from '@expo/vector-icons/Ionicons';`
+- `<Ionicons name="briefcase-outline" size={24} color="black" />`
+
+## 2026-02-23 — Icon Color + Shade Standardization Locked
+
+### Summary
+
+Lock icon color and shade consistency for management surfaces moving forward.
+
+### Locked Rule
+
+- On list rows, all icon families must use one shared tint token for visual consistency.
+- Leading row icons and trailing chevrons must use the same shade.
+- Default shared tint token is `theme.colors.onSurfaceVariant` with fallback `theme.colors.onSurface`.
+
+Canonical snippet:
+
+- `const iconTint = theme.colors.onSurfaceVariant ?? theme.colors.onSurface;`
+- `<Ionicons name="layers-outline" size={20} color={iconTint} />`
+- `<MaterialCommunityIcons name="chevron-right" size={30} color={iconTint} />`
 
 ## 2026-02-12 — Discounts Visibility Restore Icon Locked
 

@@ -12,6 +12,7 @@ import {
 	patchModifierGroup,
 	patchModifierOption,
 	replaceProductModifiers,
+	syncModifierGroupProducts,
 	restoreModifierGroup,
 	restoreModifierOption,
 } from "./modifiers.controller";
@@ -23,6 +24,7 @@ modifiersRoutes.use(requireActiveBusiness);
 
 modifiersRoutes.get("/products/:id/modifiers", getProductModifiers);
 modifiersRoutes.put("/products/:id/modifiers", replaceProductModifiers);
+modifiersRoutes.post("/products/modifiers/sync", syncModifierGroupProducts);
 modifiersRoutes.get("/groups", listModifierGroups);
 modifiersRoutes.get("/groups/:id", getModifierGroup);
 modifiersRoutes.post("/groups", createModifierGroup);

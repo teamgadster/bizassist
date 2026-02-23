@@ -4,6 +4,8 @@ import type {
 	CreateModifierOptionPayload,
 	ModifierGroup,
 	ProductModifierAttachmentPayload,
+	SyncModifierGroupProductsPayload,
+	SyncModifierGroupProductsResult,
 	UpdateModifierGroupPayload,
 	UpdateModifierOptionPayload,
 } from "./modifiers.types";
@@ -81,5 +83,13 @@ export const modifiersApi = {
 			input,
 		);
 		return res.data.data.items ?? [];
+	},
+
+	async syncModifierGroupProducts(input: SyncModifierGroupProductsPayload): Promise<SyncModifierGroupProductsResult> {
+		const res = await apiClient.post<{ success: true; data: SyncModifierGroupProductsResult }>(
+			"/catalog/modifiers/products/modifiers/sync",
+			input,
+		);
+		return res.data.data;
 	},
 };

@@ -1,8 +1,7 @@
 // BizAssist_mobile
 // path: app/(app)/(tabs)/settings/settings.tablet.tsx
 
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-import Ionicons from "@expo/vector-icons/Ionicons";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useRouter } from "expo-router";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
@@ -19,7 +18,6 @@ import { useAppBusy } from "@/hooks/useAppBusy";
 import { useAuth } from "@/modules/auth/AuthContext";
 
 type IconName = keyof typeof MaterialCommunityIcons.glyphMap;
-type IonIconName = keyof typeof Ionicons.glyphMap;
 
 type SettingsRowBase = {
 	key: string;
@@ -29,9 +27,7 @@ type SettingsRowBase = {
 	disabled?: boolean;
 };
 
-type SettingsRow =
-	| (SettingsRowBase & { iconFamily?: "material"; icon: IconName })
-	| (SettingsRowBase & { iconFamily: "ion"; icon: IonIconName });
+type SettingsRow = SettingsRowBase & { icon: IconName };
 
 function Row({
 	item,
@@ -58,11 +54,7 @@ function Row({
 		>
 			<View style={styles.rowLeft}>
 				<View style={[styles.iconCircle, { borderColor }]}>
-					{item.iconFamily === "ion" ? (
-						<Ionicons name={item.icon} size={20} color={onSurface} />
-					) : (
-						<MaterialCommunityIcons name={item.icon} size={20} color={onSurface} />
-					)}
+					<MaterialCommunityIcons name={item.icon} size={20} color={onSurface} />
 				</View>
 
 				<View style={styles.rowText}>
@@ -126,8 +118,7 @@ export default function SettingsTabletScreen() {
 				key: "items",
 				title: "Items",
 				subtitle: "All items, services, and catalog definitions",
-				iconFamily: "ion",
-				icon: "cube-outline",
+				icon: "package-variant-closed",
 				onPress: () => router.push("/(app)/(tabs)/settings/items"),
 			},
 			{

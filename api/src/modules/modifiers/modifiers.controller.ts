@@ -11,6 +11,7 @@ import {
 	optionIdParamSchema,
 	productIdParamSchema,
 	replaceProductModifierGroupsSchema,
+	syncModifierGroupProductsSchema,
 	updateModifierGroupSchema,
 	updateModifierOptionSchema,
 } from "./modifiers.validators";
@@ -34,6 +35,13 @@ export const replaceProductModifiers = asyncHandler(async (req: Request, res: Re
 	const body = replaceProductModifierGroupsSchema.parse(req.body);
 	const items = await service.replaceProductGroups(businessId, id, body);
 	res.status(StatusCodes.OK).json({ success: true, data: { items } });
+});
+
+export const syncModifierGroupProducts = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+	const businessId = getBusinessId(req);
+	const body = syncModifierGroupProductsSchema.parse(req.body);
+	const result = await service.syncModifierGroupProducts(businessId, body);
+	res.status(StatusCodes.OK).json({ success: true, data: result });
 });
 
 export const listModifierGroups = asyncHandler(async (req: Request, res: Response): Promise<void> => {

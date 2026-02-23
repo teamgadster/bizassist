@@ -65,3 +65,8 @@ export const updateModifierOptionSchema = z
 export const replaceProductModifierGroupsSchema = z.object({
 	modifierGroupIds: z.array(uuidSchema).max(MAX_MODIFIER_GROUPS_PER_PRODUCT),
 });
+
+export const syncModifierGroupProductsSchema = z.object({
+	modifierGroupId: uuidSchema,
+	selectedProductIds: z.array(uuidSchema).max(5_000),
+});

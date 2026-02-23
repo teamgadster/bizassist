@@ -5,7 +5,8 @@ import { Stack, useRouter } from "expo-router";
 import { useCallback, useMemo } from "react";
 import { Pressable, StyleSheet, View, useWindowDimensions } from "react-native";
 import { useTheme } from "react-native-paper";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 
 import { BAIScreen } from "@/components/ui/BAIScreen";
 import { BAISurface } from "@/components/ui/BAISurface";
@@ -16,7 +17,9 @@ type ItemSettingsRow = {
 	key: string;
 	title: string;
 	subtitle?: string;
-	icon: keyof typeof MaterialCommunityIcons.glyphMap;
+	iconFamily?: "material" | "ion";
+	icon: keyof typeof MaterialCommunityIcons.glyphMap | keyof typeof Ionicons.glyphMap;
+	iconSize?: number;
 	onPress?: () => void;
 	disabled?: boolean;
 };
@@ -26,11 +29,13 @@ function ItemRow({
 	borderColor,
 	onSurface,
 	onSurfaceVariant,
+	iconTint,
 }: {
 	item: ItemSettingsRow;
 	borderColor: string;
 	onSurface: string;
 	onSurfaceVariant: string;
+	iconTint: string;
 }) {
 	return (
 		<Pressable
@@ -44,7 +49,19 @@ function ItemRow({
 		>
 			<View style={styles.rowLeft}>
 				<View style={[styles.iconCircle, { borderColor }]}>
-					<MaterialCommunityIcons name={item.icon} size={20} color={onSurface} />
+					{item.iconFamily === "ion" ? (
+						<Ionicons
+							name={item.icon as keyof typeof Ionicons.glyphMap}
+							size={item.iconSize ?? 20}
+							color={iconTint}
+						/>
+					) : (
+						<MaterialCommunityIcons
+							name={item.icon as keyof typeof MaterialCommunityIcons.glyphMap}
+							size={item.iconSize ?? 20}
+							color={iconTint}
+						/>
+					)}
 				</View>
 				<View style={styles.rowTextWrap}>
 					<BAIText variant='body' style={{ color: onSurface }}>
@@ -58,7 +75,7 @@ function ItemRow({
 				</View>
 			</View>
 			<View style={styles.rowRight}>
-				<MaterialCommunityIcons name='chevron-right' size={30} color={onSurfaceVariant} />
+				<MaterialCommunityIcons name='chevron-right' size={30} color={iconTint} />
 			</View>
 		</Pressable>
 	);
@@ -83,6 +100,7 @@ export default function SettingsItemsScreen() {
 	const borderColor = theme.colors.outlineVariant ?? theme.colors.outline;
 	const onSurface = theme.colors.onSurface;
 	const onSurfaceVariant = theme.colors.onSurfaceVariant ?? theme.colors.onSurface;
+	const iconTint = onSurfaceVariant;
 
 	const goToInventoryItems = useCallback(() => {
 		router.push({
@@ -104,13 +122,15 @@ export default function SettingsItemsScreen() {
 				key: "allItems",
 				title: "All Items",
 				subtitle: "Browse and manage all item products",
-				icon: "cube-outline",
+				icon: "package-variant-closed",
+				iconSize: 21,
 				onPress: goToInventoryItems,
 			},
 			{
 				key: "allServices",
 				title: "All Services",
 				subtitle: "Browse and manage all service products",
+				iconFamily: "ion",
 				icon: "briefcase-outline",
 				onPress: goToInventoryServices,
 			},
@@ -118,14 +138,16 @@ export default function SettingsItemsScreen() {
 				key: "categories",
 				title: "Categories",
 				subtitle: "Organize items and services",
-				icon: "shape-outline",
+				iconFamily: "ion",
+				icon: "layers-outline",
 				onPress: () => router.push("/(app)/(tabs)/settings/categories" as any),
 			},
 			{
 				key: "discounts",
 				title: "Discounts",
 				subtitle: "Configure discount rules",
-				icon: "ticket-percent-outline",
+				iconFamily: "ion",
+				icon: "pricetag-outline",
 				onPress: () => router.push("/(app)/(tabs)/settings/discounts" as any),
 			},
 			{
@@ -139,7 +161,7 @@ export default function SettingsItemsScreen() {
 				key: "units",
 				title: "Units",
 				subtitle: "Manage units and measurements",
-				icon: "ruler-square-compass",
+				icon: "ruler-square",
 				onPress: () => router.push("/(app)/(tabs)/settings/units" as any),
 			},
 		],
@@ -165,6 +187,7 @@ export default function SettingsItemsScreen() {
 										borderColor={borderColor}
 										onSurface={onSurface}
 										onSurfaceVariant={onSurfaceVariant}
+										iconTint={iconTint}
 									/>
 								))}
 							</BAISurface>

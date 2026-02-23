@@ -49,3 +49,14 @@ export type UpdateModifierOptionPayload = Partial<CreateModifierOptionPayload> &
 export type ProductModifierAttachmentPayload = {
 	modifierGroupIds: string[];
 };
+
+export type SyncModifierGroupProductsPayload = {
+	modifierGroupId: string;
+	selectedProductIds: string[];
+};
+
+export type SyncModifierGroupProductsResult = {
+	updatedProductCount: number;
+	attachedCount: number;
+	detachedCount: number;
+};

@@ -20,6 +20,7 @@ export type ModifierGroupDraft = {
 	minSelected: string;
 	maxSelected: string;
 	options: ModifierOptionDraft[];
+	appliedProductIds: string[];
 	hydratedFromServer: boolean;
 };
 
@@ -41,6 +42,7 @@ function makeDefaultDraft(draftId: string, mode: "settings" | "inventory", inten
 		minSelected: "0",
 		maxSelected: "1",
 		options: [{ key: makeOptionKey(), name: "", priceText: "0.00", isSoldOut: false }],
+		appliedProductIds: [],
 		hydratedFromServer: intent === "create",
 	};
 }

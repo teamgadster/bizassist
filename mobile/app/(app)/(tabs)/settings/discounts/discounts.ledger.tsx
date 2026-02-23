@@ -76,7 +76,10 @@ function formatCompactCount(value: number, countryCode?: string | null): string 
 }
 
 function normalizeRoutePath(route: string | null | undefined): string {
-	return String(route ?? "").split("?")[0].split("#")[0].trim();
+	return String(route ?? "")
+		.split("?")[0]
+		.split("#")[0]
+		.trim();
 }
 
 function DiscountRow({ item, onPress, disabled, currencyCode, isHidden }: RowProps) {

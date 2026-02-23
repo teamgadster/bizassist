@@ -8,7 +8,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 type IconName = keyof typeof MaterialCommunityIcons.glyphMap;
 
-type Size = "sm" | "md" | "lg";
+type Size = "sm" | "md" | "lg" | "xxl" | "2xxl";
 type Variant = "filled" | "outlined" | "ghost";
 
 type Props = Omit<PressableProps, "children"> & {
@@ -49,12 +49,16 @@ type Props = Omit<PressableProps, "children"> & {
 
 function sizePx(size: Size): number {
 	if (size === "sm") return 36;
+	if (size === "xxl") return 58;
+	if (size === "2xxl") return 64;
 	if (size === "lg") return 52;
 	return 44; // md
 }
 
 function iconPx(size: Size): number {
 	if (size === "sm") return 18;
+	if (size === "xxl") return 28;
+	if (size === "2xxl") return 30;
 	if (size === "lg") return 24;
 	return 20; // md
 }

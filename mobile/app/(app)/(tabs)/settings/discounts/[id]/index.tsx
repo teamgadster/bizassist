@@ -212,7 +212,13 @@ export default function SettingsDiscountDetailScreen() {
 									<BAIText variant='caption' muted style={styles.stateMessage}>
 										Discount not found.
 									</BAIText>
-									<BAIButton mode='outlined' onPress={onBack} disabled={isUiDisabled} shape='pill' widthPreset='standard'>
+									<BAIButton
+										mode='outlined'
+										onPress={onBack}
+										disabled={isUiDisabled}
+										shape='pill'
+										widthPreset='standard'
+									>
 										Back
 									</BAIButton>
 								</View>

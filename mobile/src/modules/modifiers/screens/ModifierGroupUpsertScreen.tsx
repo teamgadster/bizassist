@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
 	Keyboard,
 	KeyboardAvoidingView,
@@ -13,17 +13,15 @@ import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTheme } from "react-native-paper";
 import { useQueryClient } from "@tanstack/react-query";
-import Swipeable from "react-native-gesture-handler/Swipeable";
 
 import { ConfirmActionModal } from "@/components/settings/ConfirmActionModal";
 import { BAIButton } from "@/components/ui/BAIButton";
+import { BAIHeader } from "@/components/ui/BAIHeader";
 import { BAIScreen } from "@/components/ui/BAIScreen";
 import { BAISurface } from "@/components/ui/BAISurface";
 import { BAIText } from "@/components/ui/BAIText";
 import { BAITextInput } from "@/components/ui/BAITextInput";
 import { useAppBusy } from "@/hooks/useAppBusy";
-import { useInventoryHeader } from "@/modules/inventory/useInventoryHeader";
-import { useAppHeader } from "@/modules/navigation/useAppHeader";
 import { useProcessExitGuard } from "@/modules/navigation/useProcessExitGuard";
 import {
 	buildModifierGroupDraftId,
@@ -88,7 +86,10 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 	const params = useLocalSearchParams<{ id?: string }>();
 	const groupId = String(params.id ?? "").trim();
 	const normalizedGroupId = intent === "edit" ? groupId : "";
-	const draftId = useMemo(() => buildModifierGroupDraftId(mode, intent, normalizedGroupId), [intent, mode, normalizedGroupId]);
+	const draftId = useMemo(
+		() => buildModifierGroupDraftId(mode, intent, normalizedGroupId),
+		[intent, mode, normalizedGroupId],
+	);
 	const { withBusy } = useAppBusy();
 	const queryClient = useQueryClient();
 
@@ -97,15 +98,16 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 	const [isRequired, setIsRequired] = useState(false);
 	const [minSelected, setMinSelected] = useState("0");
 	const [maxSelected, setMaxSelected] = useState("1");
-	const [options, setOptions] = useState<ModifierOptionDraft[]>([{ key: makeOptionKey(), name: "", priceText: "0.00", isSoldOut: false }]);
+	const [options, setOptions] = useState<ModifierOptionDraft[]>([
+		{ key: makeOptionKey(), name: "", priceText: "0.00", isSoldOut: false },
+	]);
+	const [appliedProductIds, setAppliedProductIds] = useState<string[]>([]);
 	const [error, setError] = useState<string | null>(null);
 	const [initialized, setInitialized] = useState(false);
 	const [hydratedFromServer, setHydratedFromServer] = useState(intent === "create");
 	const [confirmExitOpen, setConfirmExitOpen] = useState(false);
 	const [confirmOptionRemoveKey, setConfirmOptionRemoveKey] = useState<string | null>(null);
 	const [initialSnapshot, setInitialSnapshot] = useState<string | null>(null);
-	const openOptionRowRef = useRef<Swipeable | null>(null);
-	const optionRowRefs = useRef<Record<string, Swipeable | null>>({});
 
 	const backRoute = mode === "settings" ? "/(app)/(tabs)/settings/modifiers" : "/(app)/(tabs)/inventory/modifiers";
 
@@ -119,7 +121,12 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 		setIsRequired(seed.isRequired);
 		setMinSelected(seed.minSelected);
 		setMaxSelected(seed.maxSelected);
-		setOptions(seed.options.length > 0 ? seed.options : [{ key: makeOptionKey(), name: "", priceText: "0.00", isSoldOut: false }]);
+		setOptions(
+			seed.options.length > 0
+				? seed.options
+				: [{ key: makeOptionKey(), name: "", priceText: "0.00", isSoldOut: false }],
+		);
+		setAppliedProductIds(Array.isArray(seed.appliedProductIds) ? seed.appliedProductIds : []);
 		setHydratedFromServer(seed.hydratedFromServer);
 
 		if (seed.hydratedFromServer) {
@@ -147,9 +154,21 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 			minSelected,
 			maxSelected,
 			options,
+			appliedProductIds,
 			hydratedFromServer,
 		});
-	}, [draftId, hydratedFromServer, initialized, isRequired, maxSelected, minSelected, name, options, selectionType]);
+	}, [
+		appliedProductIds,
+		draftId,
+		hydratedFromServer,
+		initialized,
+		isRequired,
+		maxSelected,
+		minSelected,
+		name,
+		options,
+		selectionType,
+	]);
 
 	useEffect(() => {
 		if (!initialized || intent !== "edit" || !groupId || hydratedFromServer) return;
@@ -170,6 +189,7 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 				setMinSelected(String(group.minSelected));
 				setMaxSelected(String(group.maxSelected));
 				setOptions(hydratedOptions);
+				setAppliedProductIds([]);
 				setHydratedFromServer(true);
 
 				const snapshot = buildSnapshot({
@@ -189,6 +209,7 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 					minSelected: String(group.minSelected),
 					maxSelected: String(group.maxSelected),
 					options: hydratedOptions,
+					appliedProductIds: [],
 					hydratedFromServer: true,
 				});
 			} catch (e: any) {
@@ -241,7 +262,6 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 	}, [currentSnapshot, initialSnapshot, initialized]);
 
 	const onExit = useCallback(() => {
-		if (openOptionRowRef.current) openOptionRowRef.current.close();
 		Keyboard.dismiss();
 		if (hasUnsavedChanges) {
 			setConfirmExitOpen(true);
@@ -252,41 +272,29 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 
 	const guardedExit = useProcessExitGuard(onExit);
 
-	const headerTitle = intent === "create" ? "New Modifier Set" : "Edit Modifier Set";
-	const appHeader = useAppHeader("process", { title: headerTitle, onExit: guardedExit, exitFallbackRoute: backRoute });
-	const inventoryHeader = useInventoryHeader("process", {
-		title: headerTitle,
-		onExit: guardedExit,
-		exitFallbackRoute: backRoute,
-	});
-	const headerOptions = mode === "settings" ? appHeader : inventoryHeader;
+	const headerTitle = intent === "create" ? "New Modifier Set" : "Edit Modifier";
 
 	const dismissKeyboard = useCallback(() => {
-		if (openOptionRowRef.current) openOptionRowRef.current.close();
 		Keyboard.dismiss();
 	}, []);
+
+	const applySetCount = appliedProductIds.length;
+	const applySetRoute =
+		mode === "settings" ? "/(app)/(tabs)/settings/modifiers/apply-set" : "/(app)/(tabs)/inventory/modifiers/apply-set";
+
+	const onPressApplySet = useCallback(() => {
+		router.push({
+			pathname: applySetRoute as any,
+			params: { draftId } as any,
+		});
+	}, [applySetRoute, draftId, router]);
 
 	const activeOptions = useMemo(() => options.filter((opt) => !opt.removed), [options]);
 
 	const pendingOptionToRemove = useMemo(
-		() => (confirmOptionRemoveKey ? options.find((opt) => opt.key === confirmOptionRemoveKey) ?? null : null),
+		() => (confirmOptionRemoveKey ? (options.find((opt) => opt.key === confirmOptionRemoveKey) ?? null) : null),
 		[confirmOptionRemoveKey, options],
 	);
-
-	const onOptionRowWillOpen = useCallback((rowKey: string) => {
-		const nextRef = optionRowRefs.current[rowKey] ?? null;
-		if (openOptionRowRef.current && openOptionRowRef.current !== nextRef) {
-			openOptionRowRef.current.close();
-		}
-		openOptionRowRef.current = nextRef;
-	}, []);
-
-	const onOptionRowClose = useCallback((rowKey: string) => {
-		const closingRef = optionRowRefs.current[rowKey] ?? null;
-		if (openOptionRowRef.current === closingRef) {
-			openOptionRowRef.current = null;
-		}
-	}, []);
 
 	const removeDraftOptionLocally = useCallback((rowKey: string) => {
 		setOptions((prev) => prev.filter((opt) => opt.key !== rowKey));
@@ -294,7 +302,6 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 
 	const requestRemoveOption = useCallback(
 		(row: ModifierOptionDraft) => {
-			if (openOptionRowRef.current) openOptionRowRef.current.close();
 			if (!row.id) {
 				removeDraftOptionLocally(row.key);
 				return;
@@ -322,27 +329,12 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 				setOptions((prev) => prev.filter((opt) => opt.key !== optionKey));
 				await queryClient.invalidateQueries({ queryKey: ["modifiers"] });
 			} catch (e: any) {
-				setError(e?.response?.data?.error?.message ?? e?.response?.data?.message ?? "Could not remove modifier option.");
+				setError(
+					e?.response?.data?.error?.message ?? e?.response?.data?.message ?? "Could not remove modifier option.",
+				);
 			}
 		});
 	}, [pendingOptionToRemove, queryClient, withBusy]);
-
-	const renderRemoveAction = useCallback(
-		(row: ModifierOptionDraft) => (
-			<Pressable
-				onPress={() => requestRemoveOption(row)}
-				style={({ pressed }) => [
-					styles.swipeRemoveAction,
-					{ backgroundColor: theme.colors.error, opacity: pressed ? 0.9 : 1 },
-				]}
-			>
-				<BAIText variant='subtitle' style={{ color: theme.colors.onError }}>
-					Remove
-				</BAIText>
-			</Pressable>
-		),
-		[requestRemoveOption, theme.colors.error, theme.colors.onError],
-	);
 
 	const onSave = useCallback(() => {
 		const trimmedName = name.trim();
@@ -356,7 +348,13 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 		}
 		const parsedMin = Number.parseInt(minSelected || "0", 10);
 		const parsedMax = Number.parseInt(maxSelected || "0", 10);
-		if (!Number.isFinite(parsedMin) || !Number.isFinite(parsedMax) || parsedMin < 0 || parsedMax < 0 || parsedMin > parsedMax) {
+		if (
+			!Number.isFinite(parsedMin) ||
+			!Number.isFinite(parsedMax) ||
+			parsedMin < 0 ||
+			parsedMax < 0 ||
+			parsedMin > parsedMax
+		) {
 			setError("Invalid min/max selection rules.");
 			return;
 		}
@@ -415,120 +413,193 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 						});
 					}
 				}
+
+				const selectedProductIds = Array.from(
+					new Set(appliedProductIds.map((value) => String(value ?? "").trim()).filter((value) => value.length > 0)),
+				);
+
+				if (targetGroupId) {
+					await modifiersApi.syncModifierGroupProducts({
+						modifierGroupId: targetGroupId,
+						selectedProductIds,
+					});
+				}
+
 				clearModifierGroupDraft(draftId);
 				router.replace(`${backRoute}/${encodeURIComponent(targetGroupId)}` as any);
 			} catch (e: any) {
 				setError(e?.response?.data?.error?.message ?? e?.response?.data?.message ?? "Could not save modifier set.");
 			}
 		});
-	}, [activeOptions, backRoute, draftId, groupId, intent, isRequired, maxSelected, minSelected, name, options, router, selectionType, withBusy]);
+	}, [
+		activeOptions,
+		appliedProductIds,
+		backRoute,
+		draftId,
+		groupId,
+		intent,
+		isRequired,
+		maxSelected,
+		minSelected,
+		name,
+		options,
+		router,
+		selectionType,
+		withBusy,
+	]);
 
 	return (
 		<>
-			<Stack.Screen options={headerOptions} />
-			<BAIScreen tabbed padded={false} safeTop={false} safeBottom={false}>
+			<Stack.Screen options={{ headerShown: false }} />
+			<BAIScreen tabbed padded={false} safeTop={false} safeBottom={false} style={styles.root}>
+				<BAIHeader
+					title={headerTitle}
+					variant='exit'
+					onLeftPress={guardedExit}
+					onRightPress={onSave}
+					rightSlot={({ disabled }) => (
+						<View
+							style={[
+								styles.headerSavePill,
+								{ backgroundColor: disabled ? theme.colors.surfaceDisabled : theme.colors.primary },
+							]}
+						>
+							<BAIText
+								variant='body'
+								style={{ color: disabled ? theme.colors.onSurfaceDisabled : theme.colors.onPrimary }}
+							>
+								Save
+							</BAIText>
+						</View>
+					)}
+				/>
 				<KeyboardAvoidingView style={styles.keyboardAvoider} behavior={Platform.OS === "ios" ? "padding" : "height"}>
 					<TouchableWithoutFeedback onPress={dismissKeyboard} accessible={false}>
-						<View style={styles.screen}>
-							<BAISurface bordered style={[styles.card, { borderColor: theme.colors.outlineVariant ?? theme.colors.outline }]}> 
-								<ScrollView
-									contentContainerStyle={styles.content}
-									keyboardShouldPersistTaps='handled'
-									keyboardDismissMode='on-drag'
-									onScrollBeginDrag={dismissKeyboard}
+						<View style={styles.wrap}>
+							<View style={styles.contentWrap}>
+								<BAISurface
+									bordered
+									padded
+									style={[styles.card, { borderColor: theme.colors.outlineVariant ?? theme.colors.outline }]}
 								>
-								<BAITextInput label='Modifier Set Name' value={name} onChangeText={setName} placeholder='Modifier Set Name' />
-								<BAIText variant='caption' muted>
-									Selection rules apply during checkout. Configure the minimum and maximum selections for this set.
-								</BAIText>
-								<View style={styles.rulesRow}>
-									<BAITextInput
-										label='Minimum Selections'
-										value={minSelected}
-										onChangeText={(value) => setMinSelected(value.replace(/[^0-9]/g, ""))}
-										keyboardType='number-pad'
-										style={styles.ruleInput}
-									/>
-									<BAITextInput
-										label='Maximum Selections'
-										value={maxSelected}
-										onChangeText={(value) => setMaxSelected(value.replace(/[^0-9]/g, ""))}
-										keyboardType='number-pad'
-										style={styles.ruleInput}
-									/>
-								</View>
-								<BAIText variant='subtitle'>Modifier Options</BAIText>
-								{options.map((row, idx) =>
-									row.removed ? null : (
-										<Swipeable
-											key={row.key}
-											ref={(ref) => {
-												optionRowRefs.current[row.key] = ref;
-											}}
-											overshootRight={false}
-											rightThreshold={28}
-											onSwipeableWillOpen={() => onOptionRowWillOpen(row.key)}
-											onSwipeableClose={() => onOptionRowClose(row.key)}
-											renderRightActions={() => renderRemoveAction(row)}
+									<ScrollView
+										contentContainerStyle={styles.content}
+										keyboardShouldPersistTaps='handled'
+										keyboardDismissMode='on-drag'
+										onScrollBeginDrag={dismissKeyboard}
+									>
+										<BAITextInput
+											label='Modifier Set Name'
+											value={name}
+											onChangeText={setName}
+											placeholder='Modifier Set Name'
+										/>
+										<BAIText variant='caption' muted>
+											Selection rules apply during checkout. Configure the minimum and maximum selections for this set.
+										</BAIText>
+										<Pressable
+											onPress={onPressApplySet}
+											style={({ pressed }) => [
+												styles.applySetRow,
+												{ borderColor: theme.colors.outlineVariant ?? theme.colors.outline },
+												pressed ? { opacity: 0.86 } : null,
+											]}
 										>
-											<BAISurface variant='interactive' style={styles.optionRow}>
-												<View style={styles.optionInlineRow}>
-													<Pressable onPress={() => requestRemoveOption(row)} style={styles.removeBtn}>
-														<View style={[styles.removeBtnFill, { backgroundColor: theme.colors.error }]}> 
-															<MaterialCommunityIcons name='minus' size={16} color={theme.colors.onError} />
-														</View>
-													</Pressable>
-													<View style={styles.optionFields}>
-														<BAITextInput
-															label='Modifier'
-															value={row.name}
-															onChangeText={(value) =>
-																setOptions((prev) => prev.map((opt, optIdx) => (optIdx === idx ? { ...opt, name: value } : opt)))
-															}
-														/>
-													</View>
-													<View style={styles.priceWrap}>
-														<BAITextInput
-															label='Price'
-															value={row.priceText}
-															onChangeText={(value) =>
-																setOptions((prev) => prev.map((opt, optIdx) => (optIdx === idx ? { ...opt, priceText: value } : opt)))
-															}
-															placeholder='0.00'
-															keyboardType='decimal-pad'
-														/>
-													</View>
-												</View>
+											<BAIText variant='subtitle'>Apply Set</BAIText>
+											<View style={styles.applySetRight}>
+												<BAIText variant='subtitle'>{applySetCount}</BAIText>
 												<MaterialCommunityIcons
-													name='drag-horizontal-variant'
+													name='chevron-right'
 													size={24}
 													color={theme.colors.onSurfaceVariant ?? theme.colors.onSurface}
 												/>
-											</BAISurface>
-										</Swipeable>
-									),
-								)}
-								<BAIButton
-									variant='outline'
-									onPress={() => setOptions((prev) => [...prev, { key: makeOptionKey(), name: "", priceText: "0.00", isSoldOut: false }])}
-								>
-									Add Option
-								</BAIButton>
-								{error ? (
-									<BAIText variant='caption' style={{ color: theme.colors.error }}>
-										{error}
-									</BAIText>
-								) : null}
-								<View style={styles.footer}>
-									<BAIButton variant='outline' onPress={guardedExit} style={styles.footerBtn}>
-										Cancel
-									</BAIButton>
-									<BAIButton onPress={onSave} style={styles.footerBtn}>
-										Save
-									</BAIButton>
-								</View>
-								</ScrollView>
-							</BAISurface>
+											</View>
+										</Pressable>
+										<View style={styles.rulesRow}>
+											<BAITextInput
+												label='Minimum Selections'
+												value={minSelected}
+												onChangeText={(value) => setMinSelected(value.replace(/[^0-9]/g, ""))}
+												keyboardType='number-pad'
+												style={styles.ruleInput}
+											/>
+											<BAITextInput
+												label='Maximum Selections'
+												value={maxSelected}
+												onChangeText={(value) => setMaxSelected(value.replace(/[^0-9]/g, ""))}
+												keyboardType='number-pad'
+												style={styles.ruleInput}
+											/>
+										</View>
+										<BAIText variant='subtitle'>Modifier Options</BAIText>
+										{options.map((row, idx) =>
+											row.removed ? null : (
+												<BAISurface
+													key={row.key}
+													variant='interactive'
+													style={[
+														styles.optionRow,
+														{ borderColor: theme.colors.outlineVariant ?? theme.colors.outline },
+													]}
+												>
+													<View style={styles.optionInlineRow}>
+														<Pressable onPress={() => requestRemoveOption(row)} style={styles.removeBtn}>
+															<View style={[styles.removeBtnFill, { backgroundColor: theme.colors.error }]}>
+																<MaterialCommunityIcons name='minus' size={16} color={theme.colors.onError} />
+															</View>
+														</Pressable>
+														<View style={styles.optionFields}>
+															<BAITextInput
+																label='Modifier'
+																value={row.name}
+																onChangeText={(value) =>
+																	setOptions((prev) =>
+																		prev.map((opt, optIdx) => (optIdx === idx ? { ...opt, name: value } : opt)),
+																	)
+																}
+															/>
+														</View>
+														<View style={styles.priceWrap}>
+															<BAITextInput
+																label='Price'
+																value={row.priceText}
+																onChangeText={(value) =>
+																	setOptions((prev) =>
+																		prev.map((opt, optIdx) => (optIdx === idx ? { ...opt, priceText: value } : opt)),
+																	)
+																}
+																placeholder='0.00'
+																keyboardType='decimal-pad'
+															/>
+														</View>
+													</View>
+													<MaterialCommunityIcons
+														name='drag-horizontal-variant'
+														size={22}
+														color={theme.colors.onSurfaceVariant ?? theme.colors.onSurface}
+													/>
+												</BAISurface>
+											),
+										)}
+										<BAIButton
+											variant='outline'
+											onPress={() =>
+												setOptions((prev) => [
+													...prev,
+													{ key: makeOptionKey(), name: "", priceText: "0.00", isSoldOut: false },
+												])
+											}
+										>
+											Add Option
+										</BAIButton>
+										{error ? (
+											<BAIText variant='caption' style={{ color: theme.colors.error }}>
+												{error}
+											</BAIText>
+										) : null}
+									</ScrollView>
+								</BAISurface>
+							</View>
 						</View>
 					</TouchableWithoutFeedback>
 				</KeyboardAvoidingView>
@@ -561,13 +632,40 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 }
 
 const styles = StyleSheet.create({
+	root: { flex: 1 },
 	keyboardAvoider: { flex: 1 },
-	screen: { flex: 1, padding: 12 },
+	wrap: { flex: 1, paddingHorizontal: 12 },
+	contentWrap: { flex: 1, width: "100%", maxWidth: 720, alignSelf: "center" },
 	card: { flex: 1, borderRadius: 18 },
-	content: { padding: 12, gap: 10 },
+	content: { gap: 10, paddingBottom: 10 },
+	applySetRow: {
+		minHeight: 48,
+		borderWidth: StyleSheet.hairlineWidth,
+		borderRadius: 12,
+		paddingHorizontal: 12,
+		paddingVertical: 10,
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "space-between",
+	},
+	applySetRight: { flexDirection: "row", alignItems: "center", gap: 6 },
+	headerSavePill: {
+		minWidth: 72,
+		height: 36,
+		paddingHorizontal: 14,
+		borderRadius: 18,
+		alignItems: "center",
+		justifyContent: "center",
+	},
 	rulesRow: { flexDirection: "row", gap: 10, paddingTop: 6, paddingBottom: 2 },
 	ruleInput: { flex: 1 },
-	optionRow: { borderRadius: 0, paddingVertical: 8, gap: 6, borderBottomWidth: StyleSheet.hairlineWidth },
+	optionRow: {
+		borderRadius: 12,
+		borderWidth: StyleSheet.hairlineWidth,
+		paddingVertical: 10,
+		paddingHorizontal: 10,
+		gap: 6,
+	},
 	optionInlineRow: { flexDirection: "row", alignItems: "center", gap: 8 },
 	removeBtn: {
 		width: 32,
@@ -584,11 +682,4 @@ const styles = StyleSheet.create({
 	},
 	optionFields: { flex: 1 },
 	priceWrap: { width: 120 },
-	swipeRemoveAction: {
-		width: 92,
-		justifyContent: "center",
-		alignItems: "center",
-	},
-	footer: { flexDirection: "row", gap: 10, marginTop: 8 },
-	footerBtn: { flex: 1 },
 });

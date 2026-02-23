@@ -114,7 +114,7 @@ export default function InventoryCategoryCreateScreen() {
 						return;
 					}
 
-					router.replace(`/(app)/(tabs)/inventory/categories/${encodeURIComponent(created.id)}` as any);
+					router.replace(INVENTORY_CATEGORIES_ROUTE as any);
 				} catch (e: any) {
 					const { code, message, limit } = extractCategoryApiError(e);
 					if (code === "CATEGORY_LIMIT_REACHED") {

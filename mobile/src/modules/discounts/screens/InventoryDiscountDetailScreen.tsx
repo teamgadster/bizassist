@@ -6,7 +6,6 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { BackHandler, StyleSheet, View } from "react-native";
-import Ionicons from "@expo/vector-icons/Ionicons";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTheme } from "react-native-paper";
@@ -228,7 +227,7 @@ export default function InventoryDiscountDetailScreen() {
 												) : isHidden ? (
 													<MaterialCommunityIcons name='eye-off' size={18} color={nameIconColor} />
 												) : (
-													<Ionicons name='pricetag-outline' size={18} color={nameIconColor} />
+													<MaterialCommunityIcons name='tag-outline' size={18} color={nameIconColor} />
 												)}
 												<BAIText variant='subtitle' numberOfLines={1} style={styles.summaryTitleText}>
 													{discount.name}

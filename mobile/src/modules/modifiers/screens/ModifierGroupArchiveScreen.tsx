@@ -33,9 +33,13 @@ export function ModifierGroupArchiveScreen({ mode }: { mode: "settings" | "inven
 		});
 	}, [baseRoute, groupId, router, withBusy]);
 
-	const appHeader = useAppHeader("process", { title: "Archive Modifier Set", onExit: guardedExit, exitFallbackRoute: detailRoute });
+	const appHeader = useAppHeader("process", {
+		title: "Archive Modifier",
+		onExit: guardedExit,
+		exitFallbackRoute: detailRoute,
+	});
 	const inventoryHeader = useInventoryHeader("process", {
-		title: "Archive Modifier Set",
+		title: "Archive Modifier",
 		onExit: guardedExit,
 		exitFallbackRoute: detailRoute,
 	});
@@ -43,19 +47,39 @@ export function ModifierGroupArchiveScreen({ mode }: { mode: "settings" | "inven
 	return (
 		<>
 			<Stack.Screen options={mode === "settings" ? appHeader : inventoryHeader} />
-			<BAIScreen tabbed>
-				<View style={styles.screen}>
-					<BAISurface bordered variant='interactive' style={styles.card}>
-						<BAIText variant='body'>Archiving removes this modifier set from active use while keeping historical records intact.</BAIText>
-						<View style={styles.footer}>
-							<BAIButton variant='outline' style={styles.footerBtn} onPress={guardedExit}>
-								Cancel
-							</BAIButton>
-							<BAIButton style={styles.footerBtn} intent='danger' onPress={onConfirm}>
-								Archive Modifier Set
-							</BAIButton>
-						</View>
-					</BAISurface>
+			<BAIScreen tabbed padded={false} safeTop={false} safeBottom={false} style={styles.root}>
+				<View style={styles.wrap}>
+					<View style={styles.content}>
+						<BAISurface bordered padded style={styles.card}>
+							<View style={styles.header}>
+								<BAIText variant='title'>Archive Modifier</BAIText>
+							</View>
+							<BAIText variant='body'>
+								Archiving removes this modifier set from active use while keeping historical records intact.
+							</BAIText>
+							<View style={styles.actionsRow}>
+								<BAIButton
+									variant='outline'
+									intent='neutral'
+									shape='pill'
+									widthPreset='standard'
+									style={styles.actionButton}
+									onPress={guardedExit}
+								>
+									Cancel
+								</BAIButton>
+								<BAIButton
+									shape='pill'
+									widthPreset='standard'
+									style={styles.actionButton}
+									intent='danger'
+									onPress={onConfirm}
+								>
+									Archive Modifier Set
+								</BAIButton>
+							</View>
+						</BAISurface>
+					</View>
 				</View>
 			</BAIScreen>
 		</>
@@ -63,8 +87,11 @@ export function ModifierGroupArchiveScreen({ mode }: { mode: "settings" | "inven
 }
 
 const styles = StyleSheet.create({
-	screen: { flex: 1, padding: 12 },
-	card: { borderRadius: 14, padding: 12, gap: 10 },
-	footer: { flexDirection: "row", gap: 10 },
-	footerBtn: { flex: 1 },
+	root: { flex: 1 },
+	wrap: { flex: 1, paddingHorizontal: 12 },
+	content: { flex: 1, width: "100%", maxWidth: 720, alignSelf: "center" },
+	card: { borderRadius: 18, gap: 12 },
+	header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
+	actionsRow: { flexDirection: "row", gap: 10 },
+	actionButton: { flex: 1 },
 });
