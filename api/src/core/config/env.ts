@@ -40,6 +40,7 @@ export type Env = {
 	// Runtime
 	nodeEnv: NodeEnv;
 	isProd: boolean;
+	showStack: boolean;
 
 	port: number;
 	corsOrigin: string;
@@ -97,6 +98,9 @@ export type Env = {
 	sesFromEmail?: string;
 	sesConfigurationSet?: string;
 	emailReplyTo?: string;
+	emailProductName: string;
+	emailSupport: string;
+	emailBrandColor: string;
 
 	// OTP (canonical)
 	otpEnabled: boolean;
@@ -189,6 +193,7 @@ export const env: Env = {
 	// Runtime
 	nodeEnv,
 	isProd,
+	showStack: toBool(process.env.SHOW_STACK, false),
 
 	port: toInt(process.env.PORT, 4000, "PORT"),
 	corsOrigin: optionalEnv("CORS_ORIGIN") ?? (isProd ? "https://bizassist.app" : "*"),
@@ -294,6 +299,9 @@ export const env: Env = {
 	sesFromEmail: optionalEnv("SES_FROM_EMAIL"),
 	sesConfigurationSet: optionalEnv("SES_CONFIGURATION_SET"),
 	emailReplyTo: optionalEnv("EMAIL_REPLY_TO"),
+	emailProductName: optionalEnv("EMAIL_PRODUCT_NAME") ?? "BizAssist AI",
+	emailSupport: optionalEnv("EMAIL_SUPPORT") ?? "support@bizassist.app",
+	emailBrandColor: optionalEnv("EMAIL_BRAND_COLOR") ?? "#2563EB",
 
 	// OTP (canonical)
 	otpEnabled,

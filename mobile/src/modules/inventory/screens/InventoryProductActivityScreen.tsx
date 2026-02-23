@@ -19,7 +19,7 @@ import { inventoryApi } from "@/modules/inventory/inventory.api";
 import { inventoryKeys } from "@/modules/inventory/inventory.queries";
 import { InventoryMovementRow } from "@/modules/inventory/components/InventoryMovementRow";
 import type { InventoryMovement, InventoryProductDetail } from "@/modules/inventory/inventory.types";
-import { unitDisplayToken } from "@/modules/units/units.format";
+import { formatOnHand } from "@/modules/inventory/inventory.selectors";
 import { useInventoryHeader } from "@/modules/inventory/useInventoryHeader";
 
 function extractApiErrorMessage(err: any): string {
@@ -101,39 +101,6 @@ function formatDecimalRawWithScale(value: unknown, scale: number): string | null
 	}
 
 	return null;
-}
-
-function formatQuantityWithUnitFromSource(
-	value: unknown,
-	scale: number,
-	unitSource: any,
-	mode: "raw-decimal" | "scaled-int",
-): string {
-	const base = mode === "raw-decimal" ? formatDecimalRawWithScale(value, scale) : formatQuantityWithScale(value, scale);
-	if (!base) return "—";
-	const unitToken = unitDisplayToken(unitSource, "quantity", value);
-	return unitToken ? `${base} ${unitToken}` : base;
-}
-
-type QuantityDisplay = { value: string | number | null; mode: "raw-decimal" | "scaled-int" };
-
-function resolveOnHandDisplay(p: any): QuantityDisplay {
-	const decimal = typeof p?.onHandDecimal === "string" ? p.onHandDecimal.trim() : "";
-	if (decimal) return { value: decimal, mode: "raw-decimal" };
-
-	const raw = typeof p?.onHandCachedRaw === "string" ? p.onHandCachedRaw.trim() : "";
-	// UDQI compatibility:
-	// - onHandCachedRaw is defined as an exact decimal-string transport.
-	// - During migration, some endpoints may send whole-unit strings like "50" (meaning 50.00 @ scale=2).
-	// Therefore: ALWAYS treat onHandCachedRaw as a raw-decimal magnitude (never scaled-int).
-	if (raw) return { value: raw, mode: "raw-decimal" };
-
-	const scaled =
-		typeof p?.onHandScaledInt === "number" && Number.isFinite(p.onHandScaledInt) ? p.onHandScaledInt : null;
-	if (scaled !== null) return { value: scaled, mode: "scaled-int" };
-
-	const legacy = typeof p?.onHandCached === "number" && Number.isFinite(p.onHandCached) ? p.onHandCached : null;
-	return { value: legacy, mode: "scaled-int" };
 }
 
 function resolveUnitLabel(p: any): string | null {
@@ -264,8 +231,6 @@ export default function InventoryProductActivityScreen() {
 	const updatedAt = (product as any)?.updatedAt;
 	const updatedAtLabel = useMemo(() => formatReadableTime(updatedAt), [updatedAt]);
 
-	const onHandDisplay = useMemo(() => resolveOnHandDisplay(product), [product]);
-
 	const movementsForDisplay = useMemo(() => {
 		return movements.map((m) => {
 			const anyM: any = m as any;
@@ -293,12 +258,10 @@ export default function InventoryProductActivityScreen() {
 		});
 	}, [movements, unitPrecisionScale]);
 
-	const onHandLabel = formatQuantityWithUnitFromSource(
-		onHandDisplay.value,
-		unitPrecisionScale,
-		product,
-		onHandDisplay.mode,
-	);
+	const onHandLabel = useMemo(() => {
+		if (!product) return "—";
+		return formatOnHand(product as any);
+	}, [product]);
 
 	const title = product?.name?.trim() ? product?.name : "Item";
 	const imageUri = useMemo(() => {

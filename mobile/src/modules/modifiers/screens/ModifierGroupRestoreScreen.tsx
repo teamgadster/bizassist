@@ -1,12 +1,15 @@
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { StyleSheet, View } from "react-native";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
+import { useTheme } from "react-native-paper";
 
 import { BAIButton } from "@/components/ui/BAIButton";
 import { BAIScreen } from "@/components/ui/BAIScreen";
 import { BAISurface } from "@/components/ui/BAISurface";
 import { BAIText } from "@/components/ui/BAIText";
 import { useAppBusy } from "@/hooks/useAppBusy";
+import { runGovernedProcessExit } from "@/modules/inventory/navigation.governance";
 import { useInventoryHeader } from "@/modules/inventory/useInventoryHeader";
 import { useAppHeader } from "@/modules/navigation/useAppHeader";
 import { useProcessExitGuard } from "@/modules/navigation/useProcessExitGuard";
@@ -14,43 +17,59 @@ import { modifiersApi } from "@/modules/modifiers/modifiers.api";
 
 export function ModifierGroupRestoreScreen({ mode }: { mode: "settings" | "inventory" }) {
 	const router = useRouter();
-	const params = useLocalSearchParams<{ id?: string }>();
+	const theme = useTheme();
+	const tabBarHeight = useBottomTabBarHeight();
+	const params = useLocalSearchParams<{ id?: string; returnTo?: string }>();
 	const groupId = String(params.id ?? "").trim();
+	const exitReturnTo = String(params.returnTo ?? "").trim();
 	const { withBusy } = useAppBusy();
 	const baseRoute = mode === "settings" ? "/(app)/(tabs)/settings/modifiers" : "/(app)/(tabs)/inventory/modifiers";
 	const detailRoute = `${baseRoute}/${encodeURIComponent(groupId)}`;
+	const exitFallbackRoute = groupId ? detailRoute : baseRoute;
+
+	const outline = theme.colors.outlineVariant ?? theme.colors.outline;
+	const surfaceAlt = theme.colors.surfaceVariant ?? theme.colors.surface;
+	const surfaceInteractive = useMemo(
+		() => ({
+			borderColor: outline,
+			backgroundColor: surfaceAlt,
+		}),
+		[outline, surfaceAlt],
+	);
+
+	const resolveExitRoute = useCallback(() => exitFallbackRoute, [exitFallbackRoute]);
 
 	const onExit = useCallback(() => {
-		router.replace(detailRoute as any);
-	}, [detailRoute, router]);
+		runGovernedProcessExit(exitReturnTo || undefined, resolveExitRoute(), { router: router as any });
+	}, [exitReturnTo, resolveExitRoute, router]);
 	const guardedExit = useProcessExitGuard(onExit);
 
 	const onConfirm = useCallback(() => {
 		if (!groupId) return;
 		withBusy("Restoring modifier set...", async () => {
 			await modifiersApi.restoreGroup(groupId);
-			router.replace(detailRoute as any);
+			runGovernedProcessExit(exitReturnTo || undefined, detailRoute, { router: router as any });
 		});
-	}, [detailRoute, groupId, router, withBusy]);
+	}, [detailRoute, exitReturnTo, groupId, router, withBusy]);
 
 	const appHeader = useAppHeader("process", {
 		title: "Restore Modifier",
 		onExit: guardedExit,
-		exitFallbackRoute: detailRoute,
+		exitFallbackRoute,
 	});
 	const inventoryHeader = useInventoryHeader("process", {
 		title: "Restore Modifier",
 		onExit: guardedExit,
-		exitFallbackRoute: detailRoute,
+		exitFallbackRoute,
 	});
 
 	return (
 		<>
 			<Stack.Screen options={mode === "settings" ? appHeader : inventoryHeader} />
 			<BAIScreen tabbed padded={false} safeTop={false} safeBottom={false} style={styles.root}>
-				<View style={styles.wrap}>
+				<View style={[styles.wrap, { paddingBottom: tabBarHeight + 8 }]}>
 					<View style={styles.content}>
-						<BAISurface bordered padded style={styles.card}>
+						<BAISurface bordered padded style={[styles.card, surfaceInteractive]}>
 							<View style={styles.header}>
 								<BAIText variant='title'>Restore Modifier</BAIText>
 							</View>

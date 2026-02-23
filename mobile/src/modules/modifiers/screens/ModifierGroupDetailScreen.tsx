@@ -3,6 +3,7 @@ import { FlatList, StyleSheet, View } from "react-native";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { Switch, useTheme } from "react-native-paper";
 import { useQuery } from "@tanstack/react-query";
+import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 
 import { BAIButton } from "@/components/ui/BAIButton";
 import { BAIRetryButton } from "@/components/ui/BAIRetryButton";
@@ -25,6 +26,7 @@ function formatMinor(minor: string): string {
 
 export function ModifierGroupDetailScreen({ mode }: { mode: "settings" | "inventory" }) {
 	const router = useRouter();
+	const tabBarHeight = useBottomTabBarHeight();
 	const theme = useTheme();
 	const params = useLocalSearchParams<{ id?: string }>();
 	const groupId = String(params.id ?? "").trim();
@@ -73,7 +75,7 @@ export function ModifierGroupDetailScreen({ mode }: { mode: "settings" | "invent
 		<>
 			<Stack.Screen options={mode === "settings" ? header : inventoryHeader} />
 			<BAIScreen tabbed padded={false} safeTop={false} safeBottom={false} style={styles.root}>
-				<View style={styles.wrap}>
+				<View style={[styles.wrap, { paddingBottom: tabBarHeight + 8 }]}>
 					<View style={styles.content}>
 						<BAISurface
 							bordered

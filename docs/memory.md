@@ -1,3 +1,22 @@
+## 2026-02-24 — Purpose-Aligned Character Limit Governance (Masterplan + Memory)
+
+### Memory Lock
+
+- Canonical term for text input cap policy is **Purpose-Aligned Character Limit**.
+- Operational implementation term in code/docs is **Field Character Budget**.
+- Enforcement source of truth must remain centralized in shared constants (`FIELD_LIMITS` / `fieldLimits`).
+- Character limits must be derived from field function and user intent (identifier, label, description, price, search), not arbitrary UI-only values.
+- Any new text input must declare/consume an explicit budget from shared field limits on both mobile and API validation paths.
+
+## 2026-02-23 — Count Unit Naming Governance (Per Piece Lock)
+
+### Memory Lock
+
+- Moving forward, COUNT/each unit must use canonical display name **Per Piece** in UI copy.
+- Moving forward, COUNT/each unit abbreviation must render as **pc** (singular) and **pcs** (plural).
+- Do not display `ea`/`each` in end-user quantity subtitles, POS tile labels, product rows, or service rows.
+- Backward compatibility: persisted/system identifiers may still be `ea` internally, but UI display must normalize to `pc/pcs`.
+
 ## 2026-02-23 — Category Create Save Redirect Lock (Manage Categories)
 
 ### Memory Lock

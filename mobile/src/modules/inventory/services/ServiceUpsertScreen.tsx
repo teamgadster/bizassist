@@ -39,6 +39,7 @@ import {
 } from "@/modules/categories/categoryPicker.contract";
 import { useProductCreateDraft } from "@/modules/inventory/drafts/useProductCreateDraft";
 import { useServiceCreateDraft } from "@/modules/inventory/drafts/useServiceCreateDraft";
+import { PosTileTextOverlay } from "@/modules/inventory/components/PosTileTextOverlay";
 import {
 	DEFAULT_SERVICE_SEGMENT_DURATION_MINUTES,
 	DEFAULT_SERVICE_TOTAL_DURATION_MINUTES,
@@ -590,9 +591,7 @@ export function ServiceUpsertScreen(props: {
 	const hasVisualTile = previewHasImage || hasColor;
 	const shouldShowEmpty = !hasVisualTile;
 	const shouldShowTileTextOverlay = hasVisualTile && (hasTileLabel || hasServiceName);
-	const shouldShowNameOnlyOverlay = !hasTileLabel && hasServiceName;
 	const tileLabelColor = "#FFFFFF";
-	const tileLabelBg = "rgba(0,0,0,0.45)";
 
 	const validation = useMemo(() => evaluateServiceDraftValidity(draft), [draft]);
 	const hasDirtyInput = useMemo(() => {
@@ -935,55 +934,7 @@ export function ServiceUpsertScreen(props: {
 												</BAIText>
 											</View>
 										) : null}
-										{shouldShowTileTextOverlay ? (
-											<View style={styles.tileLabelWrap}>
-												{shouldShowNameOnlyOverlay ? (
-													<View style={styles.tileNameOnlyContent}>
-														<View style={[styles.tileNamePill, { backgroundColor: tileLabelBg }]}>
-															<BAIText
-																variant='caption'
-																numberOfLines={1}
-																ellipsizeMode='tail'
-																style={[styles.tileItemName, { color: tileLabelColor }]}
-															>
-																{serviceName}
-															</BAIText>
-														</View>
-													</View>
-												) : (
-													<>
-														<View style={[styles.tileLabelOverlay, { backgroundColor: tileLabelBg }]} />
-														<View style={styles.tileLabelContent}>
-															<View style={styles.tileLabelRow}>
-																{hasTileLabel ? (
-																	<BAIText
-																		variant='subtitle'
-																		numberOfLines={1}
-																		style={[styles.tileLabelText, { color: tileLabelColor }]}
-																	>
-																		{tileLabel}
-																	</BAIText>
-																) : null}
-															</View>
-															<View style={styles.tileNameRow}>
-																{hasServiceName ? (
-																	<View style={[styles.tileNamePill, { backgroundColor: tileLabelBg }]}>
-																		<BAIText
-																			variant='caption'
-																			numberOfLines={1}
-																			ellipsizeMode='tail'
-																			style={[styles.tileItemName, { color: tileLabelColor }]}
-																		>
-																			{serviceName}
-																		</BAIText>
-																	</View>
-																) : null}
-															</View>
-														</View>
-													</>
-												)}
-											</View>
-										) : null}
+										{shouldShowTileTextOverlay ? <PosTileTextOverlay label={tileLabel} name={serviceName} textColor={tileLabelColor} /> : null}
 									</View>
 
 									<View style={styles.imageActionColumn}>

@@ -21,6 +21,7 @@ import { BAIText } from "@/components/ui/BAIText";
 
 import { useActiveBusinessMeta } from "@/modules/business/useActiveBusinessMeta";
 import { DEFAULT_SERVICE_TOTAL_DURATION_MINUTES } from "@/modules/inventory/drafts/serviceCreateDraft";
+import { PosTileTextOverlay } from "@/modules/inventory/components/PosTileTextOverlay";
 import { inventoryApi } from "@/modules/inventory/inventory.api";
 import { mapInventoryRouteToScope, type InventoryRouteScope } from "@/modules/inventory/navigation.scope";
 import { inventoryKeys } from "@/modules/inventory/inventory.queries";
@@ -245,9 +246,7 @@ export default function InventoryServiceDetailScreen({
 	const hasTileLabel = tileLabel.length > 0;
 	const hasTileServiceName = tileServiceName.length > 0;
 	const shouldShowTileTextOverlay = hasVisualTile && (hasTileLabel || hasTileServiceName);
-	const shouldShowNameOnlyOverlay = !hasTileLabel && hasTileServiceName;
 	const tileLabelColor = "#FFFFFF";
-	const tileLabelBg = "rgba(0,0,0,0.45)";
 
 	const [isImageLoading, setIsImageLoading] = useState(false);
 	const [imageLoadFailed, setImageLoadFailed] = useState(false);
@@ -504,55 +503,7 @@ export default function InventoryServiceDetailScreen({
 												</View>
 											) : null}
 
-											{shouldShowTileTextOverlay ? (
-												<View style={styles.tileLabelWrap}>
-													{shouldShowNameOnlyOverlay ? (
-														<View style={styles.tileNameOnlyContent}>
-															<View style={[styles.tileNamePill, { backgroundColor: tileLabelBg }]}>
-																<BAIText
-																	variant='caption'
-																	numberOfLines={1}
-																	ellipsizeMode='tail'
-																	style={[styles.tileItemName, { color: tileLabelColor }]}
-																>
-																	{tileServiceName}
-																</BAIText>
-															</View>
-														</View>
-													) : (
-														<>
-															<View style={[styles.tileLabelOverlay, { backgroundColor: tileLabelBg }]} />
-															<View style={styles.tileLabelContent}>
-																<View style={styles.tileLabelRow}>
-																	{hasTileLabel ? (
-																		<BAIText
-																			variant='subtitle'
-																			numberOfLines={1}
-																			style={[styles.tileLabelText, { color: tileLabelColor }]}
-																		>
-																			{tileLabel}
-																		</BAIText>
-																	) : null}
-																</View>
-																<View style={styles.tileNameRow}>
-																	{hasTileServiceName ? (
-																		<View style={[styles.tileNamePill, { backgroundColor: tileLabelBg }]}>
-																			<BAIText
-																				variant='caption'
-																				numberOfLines={1}
-																				ellipsizeMode='tail'
-																				style={[styles.tileItemName, { color: tileLabelColor }]}
-																			>
-																				{tileServiceName}
-																			</BAIText>
-																		</View>
-																	) : null}
-																</View>
-															</View>
-														</>
-													)}
-												</View>
-											) : null}
+											{shouldShowTileTextOverlay ? <PosTileTextOverlay label={tileLabel} name={tileServiceName} textColor={tileLabelColor} /> : null}
 										</View>
 
 										{!isArchived ? (

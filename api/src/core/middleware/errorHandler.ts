@@ -2,6 +2,7 @@
 // path: src/core/middleware/errorHandler.ts
 import type { Request, Response, NextFunction } from "express";
 import { StatusCodes, getReasonPhrase } from "http-status-codes";
+import { env } from "@/core/config/env";
 
 interface ApiError extends Error {
 	statusCode?: number;
@@ -66,10 +67,10 @@ export const errorHandler = (err: ApiError, _req: Request, res: Response, _next:
 			success: false,
 			error: { code: "VALIDATION_ERROR", message },
 			data: { issues: (err as any)?.issues },
-			...(process.env.NODE_ENV === "development" && process.env.SHOW_STACK === "true" ? { stack: err.stack } : {}),
+			...(env.nodeEnv === "development" && env.showStack ? { stack: err.stack } : {}),
 		};
 
-		if (process.env.NODE_ENV === "development") {
+		if (env.nodeEnv === "development") {
 			console.error(`[Error] ${StatusCodes.BAD_REQUEST} ${message}`);
 			if ((err as any)?.issues)
 				console.error(`[Error][ValidationIssues]`, JSON.stringify((err as any).issues, null, 2));
@@ -84,7 +85,7 @@ export const errorHandler = (err: ApiError, _req: Request, res: Response, _next:
 	// IMPORTANT: mobile expects err.response.data.error.code
 	const code = err.code ? String(err.code) : statusToDefaultCode(statusCode);
 
-	if (process.env.NODE_ENV === "development") {
+	if (env.nodeEnv === "development") {
 		console.error(`[Error] ${statusCode} ${message}`);
 		if (err.code) console.error(`[ErrorCode]`, err.code);
 
@@ -97,7 +98,7 @@ export const errorHandler = (err: ApiError, _req: Request, res: Response, _next:
 		success: false,
 		error: { code, message },
 		...(typeof err.data !== "undefined" ? { data: err.data } : {}),
-		...(process.env.NODE_ENV === "development" && process.env.SHOW_STACK === "true" ? { stack: err.stack } : {}),
+		...(env.nodeEnv === "development" && env.showStack ? { stack: err.stack } : {}),
 	};
 
 	res.status(statusCode).json(payload);

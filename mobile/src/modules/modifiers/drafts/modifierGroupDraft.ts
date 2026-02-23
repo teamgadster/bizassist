@@ -25,6 +25,17 @@ export type ModifierGroupDraft = {
 };
 
 const drafts = new Map<string, ModifierGroupDraft>();
+type ModifierGroupDraftListener = (draft: ModifierGroupDraft | null) => void;
+const draftListeners = new Map<string, Set<ModifierGroupDraftListener>>();
+
+function notifyDraftListeners(draftId: string) {
+	const listeners = draftListeners.get(draftId);
+	if (!listeners || listeners.size === 0) return;
+	const current = drafts.get(draftId) ?? null;
+	for (const listener of listeners) {
+		listener(current);
+	}
+}
 
 function makeOptionKey() {
 	return `opt_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
@@ -65,6 +76,7 @@ export function createModifierGroupDraft(
 	const id = draftId.trim();
 	const draft = makeDefaultDraft(id, mode, intent, groupId);
 	drafts.set(id, draft);
+	notifyDraftListeners(id);
 	return draft;
 }
 
@@ -88,11 +100,31 @@ export function upsertModifierGroupDraft(draftId: string, next: Partial<Modifier
 	};
 
 	drafts.set(merged.draftId, merged);
+	notifyDraftListeners(merged.draftId);
 	return merged;
+}
+
+export function subscribeModifierGroupDraft(draftId: string, listener: ModifierGroupDraftListener) {
+	const id = draftId.trim();
+	if (!id) return () => {};
+
+	const listeners = draftListeners.get(id) ?? new Set<ModifierGroupDraftListener>();
+	listeners.add(listener);
+	draftListeners.set(id, listeners);
+
+	return () => {
+		const current = draftListeners.get(id);
+		if (!current) return;
+		current.delete(listener);
+		if (current.size === 0) {
+			draftListeners.delete(id);
+		}
+	};
 }
 
 export function clearModifierGroupDraft(draftId: string) {
 	const id = draftId.trim();
 	if (!id) return;
 	drafts.delete(id);
+	notifyDraftListeners(id);
 }

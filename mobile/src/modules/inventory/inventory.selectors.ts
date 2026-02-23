@@ -12,11 +12,25 @@ import { unitDisplayToken } from "@/modules/units/units.format";
 type ProductLike =
 	| Pick<
 			InventoryProduct,
-			"sku" | "barcode" | "onHandCached" | "reorderPoint" | "unitPrecisionScale" | "onHandCachedRaw" | "reorderPointRaw"
+			| "sku"
+			| "barcode"
+			| "onHandCached"
+			| "onHandDecimal"
+			| "reorderPoint"
+			| "unitPrecisionScale"
+			| "onHandCachedRaw"
+			| "reorderPointRaw"
 	  >
 	| Pick<
 			InventoryProductDetail,
-			"sku" | "barcode" | "onHandCached" | "reorderPoint" | "unitPrecisionScale" | "onHandCachedRaw" | "reorderPointRaw"
+			| "sku"
+			| "barcode"
+			| "onHandCached"
+			| "onHandDecimal"
+			| "reorderPoint"
+			| "unitPrecisionScale"
+			| "onHandCachedRaw"
+			| "reorderPointRaw"
 	  >;
 
 type QuantitySource = "udqi" | "legacy";
@@ -100,7 +114,10 @@ function formatUdqiDecimal(rawDecimal: string, scale: number): string {
 
 function resolveOnHandParts(p: ProductLike): { source: QuantitySource; raw: string | null; display: string | null } {
 	const precisionScale = clampPrecisionScale((p as any)?.unitPrecisionScale ?? (p as any)?.unit?.precisionScale);
-	const q = resolveQuantity((p as any)?.onHandCached, (p as any)?.onHandCachedRaw);
+	const onHandDecimal = typeof (p as any)?.onHandDecimal === "string" ? (p as any).onHandDecimal.trim() : "";
+	const q = onHandDecimal
+		? { source: "udqi" as const, raw: onHandDecimal }
+		: resolveQuantity((p as any)?.onHandCached, (p as any)?.onHandCachedRaw);
 
 	if (!q.raw) return { source: q.source, raw: null, display: null };
 

@@ -76,6 +76,21 @@ Rules:
 2. **Scope of parity.** Implementation parity includes behavior, navigation closure, lifecycle actions, and core UX structure.
 3. **Release gate.** Work is not complete until both Inventory and Settings paths are updated and validated within the same implementation cycle.
 
+### 1.5 Count Unit Naming Governance (Locked)
+
+1. **Canonical COUNT display name is `Per Piece`.**
+2. **Canonical COUNT abbreviations are `pc` (singular) and `pcs` (plural).**
+3. **UI normalization is mandatory:** never display `ea`/`each` to users in quantity subtitles, product/service rows, or POS-facing labels.
+4. **Internal compatibility is allowed:** `ea` may remain as internal/catalog identifiers, but all user-facing presentation must normalize to `pc/pcs`.
+
+### 1.6 Purpose-Aligned Character Limit Governance (Locked)
+
+1. Canonical policy term is **Purpose-Aligned Character Limit**.
+2. Canonical implementation term is **Field Character Budget**.
+3. Budgets must be centralized in shared limits (`FIELD_LIMITS` / shared `fieldLimits`) and treated as source of truth.
+4. Budgets must be based on field purpose (e.g., label/name, description, search query, money input, identifiers) and not ad-hoc per-screen values.
+5. All new/modified text inputs must enforce the same budget across UI input constraints and API validation.
+
 ---
 
 ## 2. Locked Development Order (Phased Roadmap)

@@ -4,6 +4,7 @@ import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useTheme } from "react-native-paper";
 import { useQuery } from "@tanstack/react-query";
+import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 
 import { BAIScreen } from "@/components/ui/BAIScreen";
 import { BAISurface } from "@/components/ui/BAISurface";
@@ -12,10 +13,13 @@ import { BAIActivityIndicator } from "@/components/system/BAIActivityIndicator";
 import { inventoryApi } from "@/modules/inventory/inventory.api";
 import { inventoryKeys } from "@/modules/inventory/inventory.queries";
 import { formatOnHandValue } from "@/modules/inventory/inventory.selectors";
+import { useInventoryHeader } from "@/modules/inventory/useInventoryHeader";
 import type { InventoryProduct } from "@/modules/inventory/inventory.types";
 import { getModifierGroupDraft, upsertModifierGroupDraft } from "@/modules/modifiers/drafts/modifierGroupDraft";
 import { useAppHeader } from "@/modules/navigation/useAppHeader";
 import { unitDisplayToken } from "@/modules/units/units.format";
+import { unitsApi } from "@/modules/units/units.api";
+import { unitKeys } from "@/modules/units/units.queries";
 
 type Props = {
 	mode: "settings" | "inventory";
@@ -25,7 +29,20 @@ type RowItemProps = {
 	item: InventoryProduct;
 	selected: boolean;
 	onToggle: (id: string) => void;
+	abbreviationByUnitId: Map<string, string>;
+	abbreviationByUnitName: Map<string, string>;
 };
+
+function normalizePerPieceAbbreviation(token: string, quantityValue: unknown): string {
+	const normalized = String(token ?? "").trim().toLowerCase();
+	if (!normalized) return "";
+
+	if (normalized === "ea" || normalized === "each" || normalized === "pc" || normalized === "pcs") {
+		return unitDisplayToken({ unitAbbreviation: "ea" }, "quantity", quantityValue) ?? "pcs";
+	}
+
+	return token.trim();
+}
 
 function isService(item: InventoryProduct): boolean {
 	const normalized = String((item as any)?.type ?? "")
@@ -44,14 +61,61 @@ function getServiceDurationLabel(item: InventoryProduct): string | null {
 	return `${minutes} mins`;
 }
 
-function getItemStockWithUnitLabel(item: InventoryProduct): string {
-	const stockValue = formatOnHandValue(item);
+function getItemStockWithUnitAbbreviationLabel(
+	item: InventoryProduct,
+	abbreviationByUnitId: Map<string, string>,
+	abbreviationByUnitName: Map<string, string>,
+): string {
+	const valueLabel = formatOnHandValue(item);
+	if (valueLabel === "—") return valueLabel;
+
 	const quantityValue = (item as any)?.onHandCachedRaw ?? (item as any)?.onHandCached;
-	const unitToken = unitDisplayToken(item as any, "quantity", quantityValue);
-	return unitToken ? `${stockValue} ${unitToken}` : stockValue;
+	const abbreviation = String((item as any)?.unitAbbreviation ?? (item as any)?.unit?.abbreviation ?? "").trim();
+	const unitName = String((item as any)?.unitName ?? (item as any)?.unit?.name ?? "").trim();
+	const unitId = String((item as any)?.unitId ?? "").trim();
+
+	const fromUnitLookupById = normalizePerPieceAbbreviation(unitId ? abbreviationByUnitId.get(unitId) ?? "" : "", quantityValue);
+	const fromUnitLookupByName = normalizePerPieceAbbreviation(
+		unitName ? abbreviationByUnitName.get(unitName.toLowerCase()) ?? "" : "",
+		quantityValue,
+	);
+	const fromProductAbbreviation = normalizePerPieceAbbreviation(abbreviation, quantityValue);
+
+	if (fromProductAbbreviation) return `${valueLabel} ${fromProductAbbreviation}`;
+	if (fromUnitLookupById) return `${valueLabel} ${fromUnitLookupById}`;
+	if (fromUnitLookupByName) return `${valueLabel} ${fromUnitLookupByName}`;
+
+	const normalizedName = unitName.toLowerCase();
+	if (normalizedName === "each" || normalizedName === "per piece") {
+		const perPiece = unitDisplayToken({ unitName: "each" }, "quantity", quantityValue) ?? "pcs";
+		return `${valueLabel} ${perPiece}`;
+	}
+
+	if (unitName) {
+		const compact = unitName
+			.split(/\s+/)
+			.filter(Boolean)
+			.map((part) => part[0])
+			.join("")
+			.toLowerCase();
+		if (compact) return `${valueLabel} ${compact}`;
+	}
+
+	const eachToken = unitDisplayToken(
+		{
+			unitId: (item as any)?.unitId,
+			unitName: (item as any)?.unitName ?? (item as any)?.unit?.name,
+			unitAbbreviation: (item as any)?.unitAbbreviation ?? (item as any)?.unit?.abbreviation,
+		},
+		"quantity",
+		quantityValue,
+	);
+
+	if (eachToken === "pc" || eachToken === "pcs") return `${valueLabel} ${eachToken}`;
+	return valueLabel;
 }
 
-function ProductRow({ item, selected, onToggle }: RowItemProps) {
+function ProductRow({ item, selected, onToggle, abbreviationByUnitId, abbreviationByUnitName }: RowItemProps) {
 	const theme = useTheme();
 	const borderColor = theme.colors.outlineVariant ?? theme.colors.outline;
 	const onSurface = theme.colors.onSurface;
@@ -60,7 +124,9 @@ function ProductRow({ item, selected, onToggle }: RowItemProps) {
 
 	const label = item.name?.trim() || "Unnamed";
 	const durationLabel = isService(item) ? getServiceDurationLabel(item) : null;
-	const subtitle = isService(item) ? (durationLabel ?? "Service") : getItemStockWithUnitLabel(item);
+	const subtitle = isService(item)
+		? (durationLabel ?? "Service")
+		: getItemStockWithUnitAbbreviationLabel(item, abbreviationByUnitId, abbreviationByUnitName);
 	const rightMeta = item.category?.name?.trim() || "";
 	const initials = label.slice(0, 2).toUpperCase();
 
@@ -95,8 +161,8 @@ function ProductRow({ item, selected, onToggle }: RowItemProps) {
 					</BAIText>
 				) : null}
 				<MaterialCommunityIcons
-					name={selected ? "check-circle" : "checkbox-blank-circle-outline"}
-					size={36}
+					name={selected ? "checkbox-marked-circle" : "checkbox-blank-circle-outline"}
+					size={34}
 					color={selected ? primary : onSurfaceVariant}
 				/>
 			</View>
@@ -124,6 +190,7 @@ async function listAllProductsAndServices() {
 
 export function ModifierGroupApplySetPickerScreen({ mode }: Props) {
 	const router = useRouter();
+	const tabBarHeight = useBottomTabBarHeight();
 	const params = useLocalSearchParams<{ draftId?: string }>();
 	const draftId = String(params.draftId ?? "").trim();
 	const backRoute =
@@ -146,13 +213,40 @@ export function ModifierGroupApplySetPickerScreen({ mode }: Props) {
 		router.replace({ pathname: backRoute as any, params: { draftId } as any });
 	}, [backRoute, draftId, router]);
 
-	const headerOptions = useAppHeader("detail", { title: "Apply Set", onBack });
+	const appHeaderOptions = useAppHeader("detail", { title: "Apply Set", onBack });
+	const inventoryHeaderOptions = useInventoryHeader("detail", { title: "Apply Set", onBack });
 
 	const productsQuery = useQuery({
 		queryKey: [...inventoryKeys.productsRoot(), "apply-set", "all-active"],
 		queryFn: listAllProductsAndServices,
 		staleTime: 30_000,
 	});
+
+	const unitsQuery = useQuery({
+		queryKey: unitKeys.list({ includeArchived: true }),
+		queryFn: () => unitsApi.listUnits({ includeArchived: true }),
+		staleTime: 30_000,
+	});
+
+	const abbreviationByUnitId = useMemo(() => {
+		const map = new Map<string, string>();
+		for (const unit of unitsQuery.data ?? []) {
+			const id = String(unit?.id ?? "").trim();
+			const abbr = String(unit?.abbreviation ?? "").trim();
+			if (id && abbr) map.set(id, abbr);
+		}
+		return map;
+	}, [unitsQuery.data]);
+
+	const abbreviationByUnitName = useMemo(() => {
+		const map = new Map<string, string>();
+		for (const unit of unitsQuery.data ?? []) {
+			const name = String(unit?.name ?? "").trim().toLowerCase();
+			const abbr = String(unit?.abbreviation ?? "").trim();
+			if (name && abbr) map.set(name, abbr);
+		}
+		return map;
+	}, [unitsQuery.data]);
 
 	const rows = useMemo(() => {
 		const next = [...(productsQuery.data ?? [])];
@@ -180,9 +274,9 @@ export function ModifierGroupApplySetPickerScreen({ mode }: Props) {
 
 	return (
 		<>
-			<Stack.Screen options={headerOptions} />
-			<BAIScreen tabbed padded={false} safeTop={false}>
-				<View style={styles.screen}>
+			<Stack.Screen options={mode === "settings" ? appHeaderOptions : inventoryHeaderOptions} />
+			<BAIScreen tabbed padded={false} safeTop={false} safeBottom={false}>
+				<View style={[styles.screen, { paddingBottom: tabBarHeight + 8 }]}>
 					<BAISurface bordered padded={false} style={styles.card}>
 						{productsQuery.isLoading ? (
 							<View style={styles.centerState}>
@@ -200,7 +294,13 @@ export function ModifierGroupApplySetPickerScreen({ mode }: Props) {
 								data={rows}
 								keyExtractor={(item) => item.id}
 								renderItem={({ item }) => (
-									<ProductRow item={item} selected={selectedSet.has(item.id)} onToggle={onToggle} />
+									<ProductRow
+										item={item}
+										selected={selectedSet.has(item.id)}
+										onToggle={onToggle}
+										abbreviationByUnitId={abbreviationByUnitId}
+										abbreviationByUnitName={abbreviationByUnitName}
+									/>
 								)}
 								ItemSeparatorComponent={null}
 								contentContainerStyle={styles.listContent}

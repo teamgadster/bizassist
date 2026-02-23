@@ -50,6 +50,7 @@ import { inventoryApi } from "@/modules/inventory/inventory.api";
 import { makeIdempotencyKey } from "@/modules/inventory/inventory.utils";
 import { toInventoryDomainError, mapInventoryErrorToMessage } from "@/modules/inventory/inventory.errors";
 import { inventoryKeys } from "@/modules/inventory/inventory.queries";
+import { formatOnHand } from "@/modules/inventory/inventory.selectors";
 import { runGovernedProcessExit } from "@/modules/inventory/navigation.governance";
 import {
 	inventoryScopeRoot,
@@ -566,18 +567,13 @@ export default function InventoryProductAdjustScreen({
 		return formatScaledInt(onHandScaledLegacy, unitPrecision);
 	}, [onHandRawDecimal, onHandScaledLegacy, onHandTreatAsMajor, unitPrecision]);
 
-	const onHandTokenValue = useMemo(() => {
-		const raw = typeof onHandRawDecimal === "string" ? onHandRawDecimal.trim() : "";
-		if (raw) return raw;
-		return onHandTreatAsMajor ? String(onHandScaledLegacy ?? "0") : onHandScaledLegacy;
-	}, [onHandRawDecimal, onHandScaledLegacy, onHandTreatAsMajor]);
-
-	const onHandUnitToken = useMemo(
-		() => unitDisplayToken(productForUnit, "quantity", onHandTokenValue),
-		[productForUnit, onHandTokenValue],
-	);
-
-	const onHandLabel = onHandUnitToken ? `${onHandDisplay} ${onHandUnitToken}` : onHandDisplay;
+	const onHandLabel = useMemo(() => {
+		const productForOnHandLabel = {
+			...(productForUnit as any),
+			onHandCachedRaw: onHandDisplay,
+		};
+		return formatOnHand(productForOnHandLabel);
+	}, [onHandDisplay, productForUnit]);
 
 	const onHandScaledForCompare = useMemo(() => {
 		const raw = typeof onHandRawDecimal === "string" ? onHandRawDecimal.trim() : "";

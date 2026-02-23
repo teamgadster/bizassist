@@ -3,6 +3,7 @@
 
 import { sendEmail } from "@/lib/email/mailer";
 import { buildOtpEmailHtml } from "@/lib/email/templates/otpEmail";
+import { env } from "@/core/config/env";
 import type { OtpPurposeInput } from "@/modules/auth/auth.types";
 
 const subjectForPurpose = (purpose: OtpPurposeInput): string => {
@@ -12,9 +13,9 @@ const subjectForPurpose = (purpose: OtpPurposeInput): string => {
 };
 
 const brand = {
-	productName: process.env.EMAIL_PRODUCT_NAME ?? "BizAssist AI",
-	supportEmail: process.env.EMAIL_SUPPORT ?? "support@bizassist.app",
-	brandColor: process.env.EMAIL_BRAND_COLOR ?? "#2563EB",
+	productName: env.emailProductName,
+	supportEmail: env.emailSupport,
+	brandColor: env.emailBrandColor,
 };
 
 export const sendPurposeOtpEmail = async (args: {

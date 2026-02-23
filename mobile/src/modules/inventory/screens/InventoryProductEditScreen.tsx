@@ -36,6 +36,7 @@ import {
 	type InventoryRouteScope,
 } from "@/modules/inventory/navigation.scope";
 import { inventoryApi } from "@/modules/inventory/inventory.api";
+import { PosTileTextOverlay } from "@/modules/inventory/components/PosTileTextOverlay";
 import { invalidateInventoryAfterMutation } from "@/modules/inventory/inventory.invalidate";
 import { inventoryKeys } from "@/modules/inventory/inventory.queries";
 import type { InventoryProductDetail, UpdateProductInput } from "@/modules/inventory/inventory.types";
@@ -480,9 +481,7 @@ export default function InventoryProductEditScreen({ routeScope = "inventory" }:
 	const hasVisualTile = previewHasImage || hasColor;
 	const shouldShowEmpty = !hasVisualTile;
 	const shouldShowTileTextOverlay = hasVisualTile && (hasLabel || hasItemName);
-	const shouldShowNameOnlyOverlay = !hasLabel && hasItemName;
 	const tileLabelColor = "#FFFFFF";
-	const tileLabelBg = "rgba(0,0,0,0.45)";
 
 	const isArchived = !!product && product.isActive === false;
 	const isBusy = !!busy?.isBusy || isSubmitting;
@@ -867,57 +866,7 @@ export default function InventoryProductEditScreen({ routeScope = "inventory" }:
 															</BAIText>
 														</View>
 													) : null}
-													{shouldShowTileTextOverlay ? (
-														<View style={styles.tileLabelWrap}>
-															{shouldShowNameOnlyOverlay ? (
-																<>
-																	<View style={styles.tileNameOnlyContent}>
-																		<View style={[styles.tileNamePill, { backgroundColor: tileLabelBg }]}>
-																			<BAIText
-																				variant='caption'
-																				numberOfLines={1}
-																				ellipsizeMode='tail'
-																				style={[styles.tileItemName, { color: tileLabelColor }]}
-																			>
-																				{itemName}
-																			</BAIText>
-																		</View>
-																	</View>
-																</>
-															) : (
-																<>
-																	<View style={[styles.tileLabelOverlay, { backgroundColor: tileLabelBg }]} />
-																	<View style={styles.tileLabelContent}>
-																		<View style={styles.tileLabelRow}>
-																			{hasLabel ? (
-																				<BAIText
-																					variant='subtitle'
-																					numberOfLines={1}
-																					style={[styles.tileLabelText, { color: tileLabelColor }]}
-																				>
-																					{tileLabel}
-																				</BAIText>
-																			) : null}
-																		</View>
-																		<View style={styles.tileNameRow}>
-																			{hasItemName ? (
-																				<View style={[styles.tileNamePill, { backgroundColor: tileLabelBg }]}>
-																					<BAIText
-																						variant='caption'
-																						numberOfLines={1}
-																						ellipsizeMode='tail'
-																						style={[styles.tileItemName, { color: tileLabelColor }]}
-																					>
-																						{itemName}
-																					</BAIText>
-																				</View>
-																			) : null}
-																		</View>
-																	</View>
-																</>
-															)}
-														</View>
-													) : null}
+													{shouldShowTileTextOverlay ? <PosTileTextOverlay label={tileLabel} name={itemName} textColor={tileLabelColor} /> : null}
 												</View>
 
 												<View style={styles.imageActionColumn}>

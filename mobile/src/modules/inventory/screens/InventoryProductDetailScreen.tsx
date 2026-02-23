@@ -24,6 +24,7 @@ import { categoriesApi } from "@/modules/categories/categories.api";
 import { categoryKeys } from "@/modules/categories/categories.queries";
 import type { Category } from "@/modules/categories/categories.types";
 import { InventoryMovementRow } from "@/modules/inventory/components/InventoryMovementRow";
+import { PosTileTextOverlay } from "@/modules/inventory/components/PosTileTextOverlay";
 import { inventoryApi } from "@/modules/inventory/inventory.api";
 import {
 	inventoryScopeRoot,
@@ -31,6 +32,7 @@ import {
 	type InventoryRouteScope,
 } from "@/modules/inventory/navigation.scope";
 import { inventoryKeys } from "@/modules/inventory/inventory.queries";
+import { formatOnHand } from "@/modules/inventory/inventory.selectors";
 import type { InventoryMovement, InventoryProductDetail } from "@/modules/inventory/inventory.types";
 import { useInventoryHeader } from "@/modules/inventory/useInventoryHeader";
 import { unitsApi } from "@/modules/units/units.api";
@@ -590,9 +592,7 @@ export default function InventoryProductDetailScreen({
 	const hasTileLabel = tileLabel.length > 0;
 	const hasTileItemName = tileItemName.length > 0;
 	const shouldShowTileTextOverlay = hasVisualTile && (hasTileLabel || hasTileItemName);
-	const shouldShowNameOnlyOverlay = !hasTileLabel && hasTileItemName;
 	const tileLabelColor = "#FFFFFF";
-	const tileLabelBg = "rgba(0,0,0,0.45)";
 
 	const onImagePress = useCallback(() => {
 		if (!productId) return;
@@ -671,16 +671,11 @@ export default function InventoryProductDetailScreen({
 		[product, productWithResolvedUnit],
 	);
 
-	// ✅ UDQI-CORRECT: scale-aware onHand resolution (fixes raw "50" => "50.00", not "0.50")
 	const onHandSummary = useMemo(() => {
-		const resolved = resolveQuantityDisplay(product, "onHand", unitPrecisionScale);
-		const base = formatResolvedQuantity(resolved, unitPrecisionScale);
-		if (!base) return "—";
-
-		const unitRef = productWithResolvedUnit ?? product;
-		const unitToken = unitDisplayToken(unitRef, "quantity", resolved.value ?? undefined);
-		return unitToken ? `${base} ${unitToken}` : base;
-	}, [product, productWithResolvedUnit, unitPrecisionScale]);
+		const source = productWithResolvedUnit ?? product;
+		if (!source) return "—";
+		return formatOnHand(source as any);
+	}, [product, productWithResolvedUnit]);
 
 	// ✅ UDQI: normalize movement deltas so InventoryMovementRow doesn’t misinterpret integer-decimals
 	const movementsForDisplay = useMemo(() => {
@@ -1033,55 +1028,9 @@ export default function InventoryProductDetailScreen({
 												</BAIText>
 											</View>
 										) : null}
-										{shouldShowTileTextOverlay ? (
-											<View style={styles.tileLabelWrap}>
-												{shouldShowNameOnlyOverlay ? (
-													<View style={styles.tileNameOnlyContent}>
-														<View style={[styles.tileNamePill, { backgroundColor: tileLabelBg }]}>
-															<BAIText
-																variant='caption'
-																numberOfLines={1}
-																ellipsizeMode='tail'
-																style={[styles.tileItemName, { color: tileLabelColor }]}
-															>
-																{tileItemName}
-															</BAIText>
-														</View>
-													</View>
-												) : (
-													<>
-														<View style={[styles.tileLabelOverlay, { backgroundColor: tileLabelBg }]} />
-														<View style={styles.tileLabelContent}>
-															<View style={styles.tileLabelRow}>
-																{hasTileLabel ? (
-																	<BAIText
-																		variant='subtitle'
-																		numberOfLines={1}
-																		style={[styles.tileLabelText, { color: tileLabelColor }]}
-																	>
-																		{tileLabel}
-																	</BAIText>
-																) : null}
-															</View>
-															<View style={styles.tileNameRow}>
-																{hasTileItemName ? (
-																	<View style={[styles.tileNamePill, { backgroundColor: tileLabelBg }]}>
-																		<BAIText
-																			variant='caption'
-																			numberOfLines={1}
-																			ellipsizeMode='tail'
-																			style={[styles.tileItemName, { color: tileLabelColor }]}
-																		>
-																			{tileItemName}
-																		</BAIText>
-																	</View>
-																) : null}
-															</View>
-														</View>
-													</>
-												)}
-											</View>
-										) : null}
+											{shouldShowTileTextOverlay ? (
+												<PosTileTextOverlay label={tileLabel} name={tileItemName} textColor={tileLabelColor} />
+											) : null}
 									</View>
 									{!isArchived ? (
 										<View style={styles.imageActionColumn}>
