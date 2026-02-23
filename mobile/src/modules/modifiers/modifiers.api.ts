@@ -34,7 +34,10 @@ export const modifiersApi = {
 	},
 
 	async createGroup(input: CreateModifierGroupPayload): Promise<ModifierGroup> {
-		const res = await apiClient.post<{ success: true; data: { item: ModifierGroup } }>("/catalog/modifiers/groups", input);
+		const res = await apiClient.post<{ success: true; data: { item: ModifierGroup } }>(
+			"/catalog/modifiers/groups",
+			input,
+		);
 		return res.data.data.item;
 	},
 

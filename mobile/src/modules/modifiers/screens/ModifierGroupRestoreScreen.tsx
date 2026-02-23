@@ -52,7 +52,7 @@ export function ModifierGroupRestoreScreen({ mode }: { mode: "settings" | "inven
 					<View style={styles.content}>
 						<BAISurface bordered padded style={styles.card}>
 							<View style={styles.header}>
-									<BAIText variant='title'>Restore Modifier</BAIText>
+								<BAIText variant='title'>Restore Modifier</BAIText>
 							</View>
 							<BAIText variant='body'>
 								Restored modifier sets become available for new product and service attachments.

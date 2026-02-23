@@ -30,7 +30,12 @@ function makeOptionKey() {
 	return `opt_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
-function makeDefaultDraft(draftId: string, mode: "settings" | "inventory", intent: "create" | "edit", groupId: string): ModifierGroupDraft {
+function makeDefaultDraft(
+	draftId: string,
+	mode: "settings" | "inventory",
+	intent: "create" | "edit",
+	groupId: string,
+): ModifierGroupDraft {
 	return {
 		draftId,
 		mode,

@@ -12,10 +12,7 @@ import { BAIActivityIndicator } from "@/components/system/BAIActivityIndicator";
 import { inventoryApi } from "@/modules/inventory/inventory.api";
 import { inventoryKeys } from "@/modules/inventory/inventory.queries";
 import type { InventoryProduct } from "@/modules/inventory/inventory.types";
-import {
-	getModifierGroupDraft,
-	upsertModifierGroupDraft,
-} from "@/modules/modifiers/drafts/modifierGroupDraft";
+import { getModifierGroupDraft, upsertModifierGroupDraft } from "@/modules/modifiers/drafts/modifierGroupDraft";
 import { useAppHeader } from "@/modules/navigation/useAppHeader";
 
 type Props = {
@@ -67,7 +64,7 @@ function ProductRow({ item, selected, onToggle }: RowItemProps) {
 			]}
 		>
 			<View style={styles.rowLeft}>
-				<View style={[styles.thumb, { borderColor, backgroundColor: theme.colors.surfaceVariant }]}> 
+				<View style={[styles.thumb, { borderColor, backgroundColor: theme.colors.surfaceVariant }]}>
 					<BAIText variant='body' style={{ color: onSurfaceVariant }}>
 						{initials}
 					</BAIText>
@@ -120,7 +117,8 @@ export function ModifierGroupApplySetPickerScreen({ mode }: Props) {
 	const router = useRouter();
 	const params = useLocalSearchParams<{ draftId?: string }>();
 	const draftId = String(params.draftId ?? "").trim();
-	const backRoute = mode === "settings" ? "/(app)/(tabs)/settings/modifiers/create" : "/(app)/(tabs)/inventory/modifiers/create";
+	const backRoute =
+		mode === "settings" ? "/(app)/(tabs)/settings/modifiers/create" : "/(app)/(tabs)/inventory/modifiers/create";
 
 	const [selectedIds, setSelectedIds] = useState<string[]>([]);
 

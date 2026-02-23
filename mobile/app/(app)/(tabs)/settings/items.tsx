@@ -50,11 +50,7 @@ function ItemRow({
 			<View style={styles.rowLeft}>
 				<View style={[styles.iconCircle, { borderColor }]}>
 					{item.iconFamily === "ion" ? (
-						<Ionicons
-							name={item.icon as keyof typeof Ionicons.glyphMap}
-							size={item.iconSize ?? 20}
-							color={iconTint}
-						/>
+						<Ionicons name={item.icon as keyof typeof Ionicons.glyphMap} size={item.iconSize ?? 20} color={iconTint} />
 					) : (
 						<MaterialCommunityIcons
 							name={item.icon as keyof typeof MaterialCommunityIcons.glyphMap}

@@ -126,7 +126,9 @@ export class ModifiersService {
 		const product = await this.prisma.product.findFirst({ where: { id: productId, businessId }, select: { id: true } });
 		if (!product) throw new AppError(StatusCodes.NOT_FOUND, "Product not found.", "PRODUCT_NOT_FOUND");
 
-		const uniqueIds = Array.from(new Set((input.modifierGroupIds ?? []).map((id) => String(id).trim()).filter(Boolean)));
+		const uniqueIds = Array.from(
+			new Set((input.modifierGroupIds ?? []).map((id) => String(id).trim()).filter(Boolean)),
+		);
 		if (uniqueIds.length > MAX_MODIFIER_GROUPS_PER_PRODUCT) {
 			throw new AppError(
 				StatusCodes.UNPROCESSABLE_ENTITY,
