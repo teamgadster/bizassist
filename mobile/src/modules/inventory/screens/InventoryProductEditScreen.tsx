@@ -718,6 +718,7 @@ export default function InventoryProductEditScreen({ routeScope = "inventory" }:
 		currentSnapshot.barcode,
 		currentSnapshot.cost,
 		currentSnapshot.description,
+		currentSnapshot.modifierGroupIds,
 		currentSnapshot.price,
 		currentSnapshot.sku,
 		currentSnapshot.trackInventory,

@@ -95,7 +95,7 @@ export function ModifierGroupDetailScreen({ mode }: { mode: "settings" | "invent
 									onPress={group.isArchived ? onRestoreGroup : onArchiveGroup}
 									intent={group.isArchived ? "primary" : "danger"}
 								>
-									{group.isArchived ? "Restore" : "Archive"}
+									{group.isArchived ? "Restore" : "Archive Modifier Set"}
 								</BAIButton>
 							</BAISurface>
 							<FlatList

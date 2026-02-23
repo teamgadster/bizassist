@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
 	Keyboard,
 	KeyboardAvoidingView,
@@ -12,6 +12,8 @@ import {
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTheme } from "react-native-paper";
+import { useQueryClient } from "@tanstack/react-query";
+import Swipeable from "react-native-gesture-handler/Swipeable";
 
 import { ConfirmActionModal } from "@/components/settings/ConfirmActionModal";
 import { BAIButton } from "@/components/ui/BAIButton";
@@ -88,6 +90,7 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 	const normalizedGroupId = intent === "edit" ? groupId : "";
 	const draftId = useMemo(() => buildModifierGroupDraftId(mode, intent, normalizedGroupId), [intent, mode, normalizedGroupId]);
 	const { withBusy } = useAppBusy();
+	const queryClient = useQueryClient();
 
 	const [name, setName] = useState("");
 	const [selectionType, setSelectionType] = useState<ModifierSelectionType>("MULTI");
@@ -99,7 +102,10 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 	const [initialized, setInitialized] = useState(false);
 	const [hydratedFromServer, setHydratedFromServer] = useState(intent === "create");
 	const [confirmExitOpen, setConfirmExitOpen] = useState(false);
+	const [confirmOptionRemoveKey, setConfirmOptionRemoveKey] = useState<string | null>(null);
 	const [initialSnapshot, setInitialSnapshot] = useState<string | null>(null);
+	const openOptionRowRef = useRef<Swipeable | null>(null);
+	const optionRowRefs = useRef<Record<string, Swipeable | null>>({});
 
 	const backRoute = mode === "settings" ? "/(app)/(tabs)/settings/modifiers" : "/(app)/(tabs)/inventory/modifiers";
 
@@ -235,6 +241,7 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 	}, [currentSnapshot, initialSnapshot, initialized]);
 
 	const onExit = useCallback(() => {
+		if (openOptionRowRef.current) openOptionRowRef.current.close();
 		Keyboard.dismiss();
 		if (hasUnsavedChanges) {
 			setConfirmExitOpen(true);
@@ -255,10 +262,87 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 	const headerOptions = mode === "settings" ? appHeader : inventoryHeader;
 
 	const dismissKeyboard = useCallback(() => {
+		if (openOptionRowRef.current) openOptionRowRef.current.close();
 		Keyboard.dismiss();
 	}, []);
 
 	const activeOptions = useMemo(() => options.filter((opt) => !opt.removed), [options]);
+
+	const pendingOptionToRemove = useMemo(
+		() => (confirmOptionRemoveKey ? options.find((opt) => opt.key === confirmOptionRemoveKey) ?? null : null),
+		[confirmOptionRemoveKey, options],
+	);
+
+	const onOptionRowWillOpen = useCallback((rowKey: string) => {
+		const nextRef = optionRowRefs.current[rowKey] ?? null;
+		if (openOptionRowRef.current && openOptionRowRef.current !== nextRef) {
+			openOptionRowRef.current.close();
+		}
+		openOptionRowRef.current = nextRef;
+	}, []);
+
+	const onOptionRowClose = useCallback((rowKey: string) => {
+		const closingRef = optionRowRefs.current[rowKey] ?? null;
+		if (openOptionRowRef.current === closingRef) {
+			openOptionRowRef.current = null;
+		}
+	}, []);
+
+	const removeDraftOptionLocally = useCallback((rowKey: string) => {
+		setOptions((prev) => prev.filter((opt) => opt.key !== rowKey));
+	}, []);
+
+	const requestRemoveOption = useCallback(
+		(row: ModifierOptionDraft) => {
+			if (openOptionRowRef.current) openOptionRowRef.current.close();
+			if (!row.id) {
+				removeDraftOptionLocally(row.key);
+				return;
+			}
+			setConfirmOptionRemoveKey(row.key);
+		},
+		[removeDraftOptionLocally],
+	);
+
+	const dismissRemoveOptionConfirm = useCallback(() => {
+		setConfirmOptionRemoveKey(null);
+	}, []);
+
+	const onConfirmRemovePersistedOption = useCallback(() => {
+		if (!pendingOptionToRemove?.id) {
+			setConfirmOptionRemoveKey(null);
+			return;
+		}
+		const optionId = pendingOptionToRemove.id;
+		const optionKey = pendingOptionToRemove.key;
+		setConfirmOptionRemoveKey(null);
+		withBusy("Removing option...", async () => {
+			try {
+				await modifiersApi.archiveOption(optionId);
+				setOptions((prev) => prev.filter((opt) => opt.key !== optionKey));
+				await queryClient.invalidateQueries({ queryKey: ["modifiers"] });
+			} catch (e: any) {
+				setError(e?.response?.data?.error?.message ?? e?.response?.data?.message ?? "Could not remove modifier option.");
+			}
+		});
+	}, [pendingOptionToRemove, queryClient, withBusy]);
+
+	const renderRemoveAction = useCallback(
+		(row: ModifierOptionDraft) => (
+			<Pressable
+				onPress={() => requestRemoveOption(row)}
+				style={({ pressed }) => [
+					styles.swipeRemoveAction,
+					{ backgroundColor: theme.colors.error, opacity: pressed ? 0.9 : 1 },
+				]}
+			>
+				<BAIText variant='subtitle' style={{ color: theme.colors.onError }}>
+					Remove
+				</BAIText>
+			</Pressable>
+		),
+		[requestRemoveOption, theme.colors.error, theme.colors.onError],
+	);
 
 	const onSave = useCallback(() => {
 		const trimmedName = name.trim();
@@ -351,6 +435,7 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 									contentContainerStyle={styles.content}
 									keyboardShouldPersistTaps='handled'
 									keyboardDismissMode='on-drag'
+									onScrollBeginDrag={dismissKeyboard}
 								>
 								<BAITextInput label='Modifier Set Name' value={name} onChangeText={setName} placeholder='Modifier Set Name' />
 								<BAIText variant='caption' muted>
@@ -375,47 +460,52 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 								<BAIText variant='subtitle'>Modifier Options</BAIText>
 								{options.map((row, idx) =>
 									row.removed ? null : (
-										<BAISurface key={row.key} variant='interactive' style={styles.optionRow}>
-											<View style={styles.optionInlineRow}>
-												<Pressable
-													onPress={() =>
-														setOptions((prev) =>
-															prev.map((opt, optIdx) => (optIdx === idx ? { ...opt, removed: true } : opt)).filter((opt) => !opt.removed || !!opt.id),
-														)
-													}
-													style={styles.removeBtn}
-												>
-													<View style={[styles.removeBtnFill, { backgroundColor: theme.colors.error }]}>
-														<MaterialCommunityIcons name='minus' size={16} color={theme.colors.onError} />
+										<Swipeable
+											key={row.key}
+											ref={(ref) => {
+												optionRowRefs.current[row.key] = ref;
+											}}
+											overshootRight={false}
+											rightThreshold={28}
+											onSwipeableWillOpen={() => onOptionRowWillOpen(row.key)}
+											onSwipeableClose={() => onOptionRowClose(row.key)}
+											renderRightActions={() => renderRemoveAction(row)}
+										>
+											<BAISurface variant='interactive' style={styles.optionRow}>
+												<View style={styles.optionInlineRow}>
+													<Pressable onPress={() => requestRemoveOption(row)} style={styles.removeBtn}>
+														<View style={[styles.removeBtnFill, { backgroundColor: theme.colors.error }]}> 
+															<MaterialCommunityIcons name='minus' size={16} color={theme.colors.onError} />
+														</View>
+													</Pressable>
+													<View style={styles.optionFields}>
+														<BAITextInput
+															label='Modifier'
+															value={row.name}
+															onChangeText={(value) =>
+																setOptions((prev) => prev.map((opt, optIdx) => (optIdx === idx ? { ...opt, name: value } : opt)))
+															}
+														/>
 													</View>
-												</Pressable>
-												<View style={styles.optionFields}>
-													<BAITextInput
-														label='Modifier'
-														value={row.name}
-														onChangeText={(value) =>
-															setOptions((prev) => prev.map((opt, optIdx) => (optIdx === idx ? { ...opt, name: value } : opt)))
-														}
-													/>
+													<View style={styles.priceWrap}>
+														<BAITextInput
+															label='Price'
+															value={row.priceText}
+															onChangeText={(value) =>
+																setOptions((prev) => prev.map((opt, optIdx) => (optIdx === idx ? { ...opt, priceText: value } : opt)))
+															}
+															placeholder='0.00'
+															keyboardType='decimal-pad'
+														/>
+													</View>
 												</View>
-												<View style={styles.priceWrap}>
-													<BAITextInput
-														label='Price'
-														value={row.priceText}
-														onChangeText={(value) =>
-															setOptions((prev) => prev.map((opt, optIdx) => (optIdx === idx ? { ...opt, priceText: value } : opt)))
-														}
-														placeholder='0.00'
-														keyboardType='decimal-pad'
-													/>
-												</View>
-											</View>
-											<MaterialCommunityIcons
-												name='drag-horizontal-variant'
-												size={24}
-												color={theme.colors.onSurfaceVariant ?? theme.colors.onSurface}
-											/>
-										</BAISurface>
+												<MaterialCommunityIcons
+													name='drag-horizontal-variant'
+													size={24}
+													color={theme.colors.onSurfaceVariant ?? theme.colors.onSurface}
+												/>
+											</BAISurface>
+										</Swipeable>
 									),
 								)}
 								<BAIButton
@@ -455,6 +545,17 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 				onConfirm={onResumeEditing}
 				onCancel={performExit}
 			/>
+			<ConfirmActionModal
+				visible={!!pendingOptionToRemove?.id}
+				title='Remove option?'
+				message='Removing this saved option archives it from active use while preserving historical records.'
+				confirmLabel='Remove'
+				cancelLabel='Keep'
+				confirmIntent='danger'
+				onDismiss={dismissRemoveOptionConfirm}
+				onCancel={dismissRemoveOptionConfirm}
+				onConfirm={onConfirmRemovePersistedOption}
+			/>
 		</>
 	);
 }
@@ -483,6 +584,11 @@ const styles = StyleSheet.create({
 	},
 	optionFields: { flex: 1 },
 	priceWrap: { width: 120 },
+	swipeRemoveAction: {
+		width: 92,
+		justifyContent: "center",
+		alignItems: "center",
+	},
 	footer: { flexDirection: "row", gap: 10, marginTop: 8 },
 	footerBtn: { flex: 1 },
 });

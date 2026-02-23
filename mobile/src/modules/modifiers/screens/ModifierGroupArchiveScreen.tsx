@@ -27,15 +27,15 @@ export function ModifierGroupArchiveScreen({ mode }: { mode: "settings" | "inven
 
 	const onConfirm = useCallback(() => {
 		if (!groupId) return;
-		withBusy("Archiving modifier...", async () => {
+		withBusy("Archiving modifier set...", async () => {
 			await modifiersApi.archiveGroup(groupId);
 			router.replace(baseRoute as any);
 		});
 	}, [baseRoute, groupId, router, withBusy]);
 
-	const appHeader = useAppHeader("process", { title: "Archive Modifier", onExit: guardedExit, exitFallbackRoute: detailRoute });
+	const appHeader = useAppHeader("process", { title: "Archive Modifier Set", onExit: guardedExit, exitFallbackRoute: detailRoute });
 	const inventoryHeader = useInventoryHeader("process", {
-		title: "Archive Modifier",
+		title: "Archive Modifier Set",
 		onExit: guardedExit,
 		exitFallbackRoute: detailRoute,
 	});
@@ -46,13 +46,13 @@ export function ModifierGroupArchiveScreen({ mode }: { mode: "settings" | "inven
 			<BAIScreen tabbed>
 				<View style={styles.screen}>
 					<BAISurface bordered variant='interactive' style={styles.card}>
-						<BAIText variant='body'>Archived modifier groups are hidden from new product and service attachments.</BAIText>
+						<BAIText variant='body'>Archiving removes this modifier set from active use while keeping historical records intact.</BAIText>
 						<View style={styles.footer}>
 							<BAIButton variant='outline' style={styles.footerBtn} onPress={guardedExit}>
 								Cancel
 							</BAIButton>
 							<BAIButton style={styles.footerBtn} intent='danger' onPress={onConfirm}>
-								Archive
+								Archive Modifier Set
 							</BAIButton>
 						</View>
 					</BAISurface>
