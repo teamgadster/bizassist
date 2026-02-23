@@ -11,9 +11,11 @@ import { BAIText } from "@/components/ui/BAIText";
 import { BAIActivityIndicator } from "@/components/system/BAIActivityIndicator";
 import { inventoryApi } from "@/modules/inventory/inventory.api";
 import { inventoryKeys } from "@/modules/inventory/inventory.queries";
+import { formatOnHandValue } from "@/modules/inventory/inventory.selectors";
 import type { InventoryProduct } from "@/modules/inventory/inventory.types";
 import { getModifierGroupDraft, upsertModifierGroupDraft } from "@/modules/modifiers/drafts/modifierGroupDraft";
 import { useAppHeader } from "@/modules/navigation/useAppHeader";
+import { unitDisplayToken } from "@/modules/units/units.format";
 
 type Props = {
 	mode: "settings" | "inventory";
@@ -42,6 +44,13 @@ function getServiceDurationLabel(item: InventoryProduct): string | null {
 	return `${minutes} mins`;
 }
 
+function getItemStockWithUnitLabel(item: InventoryProduct): string {
+	const stockValue = formatOnHandValue(item);
+	const quantityValue = (item as any)?.onHandCachedRaw ?? (item as any)?.onHandCached;
+	const unitToken = unitDisplayToken(item as any, "quantity", quantityValue);
+	return unitToken ? `${stockValue} ${unitToken}` : stockValue;
+}
+
 function ProductRow({ item, selected, onToggle }: RowItemProps) {
 	const theme = useTheme();
 	const borderColor = theme.colors.outlineVariant ?? theme.colors.outline;
@@ -50,8 +59,8 @@ function ProductRow({ item, selected, onToggle }: RowItemProps) {
 	const primary = theme.colors.primary;
 
 	const label = item.name?.trim() || "Unnamed";
-	const typeLabel = isService(item) ? "Service" : "Item";
 	const durationLabel = isService(item) ? getServiceDurationLabel(item) : null;
+	const subtitle = isService(item) ? (durationLabel ?? "Service") : getItemStockWithUnitLabel(item);
 	const rightMeta = item.category?.name?.trim() || "";
 	const initials = label.slice(0, 2).toUpperCase();
 
@@ -62,22 +71,22 @@ function ProductRow({ item, selected, onToggle }: RowItemProps) {
 				styles.row,
 				{ borderBottomColor: borderColor, backgroundColor: pressed ? theme.colors.surfaceVariant : "transparent" },
 			]}
-		>
-			<View style={styles.rowLeft}>
-				<View style={[styles.thumb, { borderColor, backgroundColor: theme.colors.surfaceVariant }]}>
-					<BAIText variant='body' style={{ color: onSurfaceVariant }}>
-						{initials}
-					</BAIText>
+			>
+				<View style={styles.rowLeft}>
+					<View style={[styles.thumb, { borderColor, backgroundColor: theme.colors.surfaceVariant }]}>
+						<BAIText variant='body' style={{ color: onSurfaceVariant }}>
+							{initials}
+						</BAIText>
+					</View>
+					<View style={styles.nameWrap}>
+						<BAIText variant='subtitle' numberOfLines={1}>
+							{label}
+						</BAIText>
+						<BAIText variant='caption' style={{ color: onSurfaceVariant }} numberOfLines={1}>
+							{subtitle}
+						</BAIText>
+					</View>
 				</View>
-				<View style={styles.nameWrap}>
-					<BAIText variant='subtitle' numberOfLines={1}>
-						{label}
-					</BAIText>
-					<BAIText variant='caption' style={{ color: onSurfaceVariant }} numberOfLines={1}>
-						{durationLabel ?? typeLabel}
-					</BAIText>
-				</View>
-			</View>
 
 			<View style={styles.rowRight}>
 				{rightMeta ? (
@@ -209,7 +218,7 @@ const styles = StyleSheet.create({
 		flex: 1,
 		paddingHorizontal: 12,
 		paddingBottom: 12,
-		paddingTop: 10,
+		paddingTop: 0,
 	},
 	card: {
 		flex: 1,
@@ -227,9 +236,9 @@ const styles = StyleSheet.create({
 		paddingBottom: 8,
 	},
 	row: {
-		minHeight: 88,
+		minHeight: 74,
 		paddingHorizontal: 10,
-		paddingVertical: 10,
+		paddingVertical: 6,
 		borderBottomWidth: StyleSheet.hairlineWidth,
 		flexDirection: "row",
 		alignItems: "center",
