@@ -49,6 +49,10 @@ export const FIELD_LIMITS = {
 
 	// options
 	optionValuesPerSet: 30,
+	modifierSetName: 120,
+	modifierSetNameMin: 1,
+	modifierName: 120,
+	modifierNameMin: 1,
 
 	// discounts
 	discountName: 120,

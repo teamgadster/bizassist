@@ -1,9 +1,12 @@
 import apiClient from "@/lib/api/httpClient";
 import type {
+	ApplySharedModifierAvailabilityPayload,
+	ApplySharedModifierAvailabilityResult,
 	CreateModifierGroupPayload,
 	CreateModifierOptionPayload,
 	ModifierGroup,
 	ProductModifierAttachmentPayload,
+	SharedModifierAvailabilityPreview,
 	SyncModifierGroupProductsPayload,
 	SyncModifierGroupProductsResult,
 	UpdateModifierGroupPayload,
@@ -71,6 +74,24 @@ export const modifiersApi = {
 
 	async restoreOption(optionId: string) {
 		await apiClient.post(`/catalog/modifiers/modifier-options/${encodeURIComponent(optionId)}/restore`);
+	},
+
+	async getSharedAvailability(optionId: string): Promise<SharedModifierAvailabilityPreview> {
+		const res = await apiClient.get<{ success: true; data: { item: SharedModifierAvailabilityPreview } }>(
+			`/catalog/modifiers/modifier-options/${encodeURIComponent(optionId)}/shared-availability`,
+		);
+		return res.data.data.item;
+	},
+
+	async applySharedAvailability(
+		optionId: string,
+		input: ApplySharedModifierAvailabilityPayload,
+	): Promise<ApplySharedModifierAvailabilityResult> {
+		const res = await apiClient.post<{ success: true; data: ApplySharedModifierAvailabilityResult }>(
+			`/catalog/modifiers/modifier-options/${encodeURIComponent(optionId)}/shared-availability`,
+			input,
+		);
+		return res.data.data;
 	},
 
 	async getProductModifiers(productId: string): Promise<ModifierGroup[]> {

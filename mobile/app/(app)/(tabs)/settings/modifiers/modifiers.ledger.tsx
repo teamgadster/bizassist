@@ -66,7 +66,7 @@ function Row({
 				<View style={styles.rightSide}>
 					<View style={styles.rightMeta}>
 						{item.isArchived ? (
-							<BAIText variant='caption' muted numberOfLines={1}>
+							<BAIText variant='caption' style={{ color: theme.colors.error }} numberOfLines={1}>
 								Archived
 							</BAIText>
 						) : null}

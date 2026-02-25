@@ -2,10 +2,12 @@ import { Router } from "express";
 import { authMiddleware } from "@/core/middleware/auth";
 import { requireActiveBusiness } from "@/core/middleware/requireActiveBusiness";
 import {
+	applySharedModifierAvailability,
 	archiveModifierGroup,
 	archiveModifierOption,
 	createModifierGroup,
 	createModifierOption,
+	getSharedModifierAvailabilityPreview,
 	getModifierGroup,
 	listModifierGroups,
 	getProductModifiers,
@@ -35,3 +37,5 @@ modifiersRoutes.post("/modifier-groups/:id/archive", archiveModifierGroup);
 modifiersRoutes.post("/modifier-groups/:id/restore", restoreModifierGroup);
 modifiersRoutes.post("/modifier-options/:id/archive", archiveModifierOption);
 modifiersRoutes.post("/modifier-options/:id/restore", restoreModifierOption);
+modifiersRoutes.get("/modifier-options/:id/shared-availability", getSharedModifierAvailabilityPreview);
+modifiersRoutes.post("/modifier-options/:id/shared-availability", applySharedModifierAvailability);

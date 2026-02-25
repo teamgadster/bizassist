@@ -2,7 +2,9 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
 	Animated,
 	Easing,
+	InteractionManager,
 	Keyboard,
+	Modal,
 	Pressable,
 	ScrollView,
 	StyleSheet,
@@ -16,7 +18,6 @@ import { useTheme } from "react-native-paper";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { ConfirmActionModal } from "@/components/settings/ConfirmActionModal";
-import { BAIButton } from "@/components/ui/BAIButton";
 import { BAIHeader } from "@/components/ui/BAIHeader";
 import { BAIScreen } from "@/components/ui/BAIScreen";
 import { BAISurface } from "@/components/ui/BAISurface";
@@ -36,7 +37,8 @@ import {
 	upsertModifierGroupDraft,
 } from "@/modules/modifiers/drafts/modifierGroupDraft";
 import { modifiersApi } from "@/modules/modifiers/modifiers.api";
-import type { ModifierSelectionType } from "@/modules/modifiers/modifiers.types";
+import type { ModifierSelectionType, SharedModifierAvailabilityPreview } from "@/modules/modifiers/modifiers.types";
+import { useAppToast } from "@/providers/AppToastProvider";
 import { FIELD_LIMITS } from "@/shared/fieldLimits";
 import { MONEY_INPUT_PRECISION } from "@/shared/money/money.constants";
 import {
@@ -49,19 +51,22 @@ type Props = { mode: "settings" | "inventory"; intent: "create" | "edit" };
 const DELETE_ACTION_WIDTH = 88;
 const DELETE_ACTION_GAP = 2;
 const DELETE_REVEAL_INSET = DELETE_ACTION_WIDTH + DELETE_ACTION_GAP;
+const DELETE_OPEN_DURATION_MS = 300;
+const DELETE_CLOSE_DURATION_MS = 180;
+const REMOVE_BUTTON_WIDTH = 30;
+const REMOVE_BUTTON_HEIGHT = 30;
+const REMOVE_BUTTON_LEFT_PADDING = 6;
 const PRICE_INPUT_MAX_MINOR_DIGITS = 11;
-const PRICE_INPUT_MAX_WHOLE_DIGITS = PRICE_INPUT_MAX_MINOR_DIGITS - MONEY_INPUT_PRECISION;
-const PRICE_INPUT_DECIMAL_DIGITS = MONEY_INPUT_PRECISION;
-const PRICE_INPUT_SEPARATOR_DIGITS = 1;
-const PRICE_INPUT_GROUPING_SEPARATORS = Math.floor((PRICE_INPUT_MAX_WHOLE_DIGITS - 1) / 3);
 const PRICE_INPUT_ESTIMATED_CHAR_WIDTH = 10;
-const PRICE_INPUT_BASE_PADDING = 20;
-const PRICE_INPUT_CHARACTER_COUNT =
-	PRICE_INPUT_MAX_WHOLE_DIGITS +
-	PRICE_INPUT_GROUPING_SEPARATORS +
-	PRICE_INPUT_SEPARATOR_DIGITS +
-	PRICE_INPUT_DECIMAL_DIGITS;
-const PRICE_INPUT_WIDTH = PRICE_INPUT_BASE_PADDING + PRICE_INPUT_CHARACTER_COUNT * PRICE_INPUT_ESTIMATED_CHAR_WIDTH;
+const PRICE_INPUT_LEFT_INSET = 0;
+const PRICE_INPUT_RIGHT_INSET = 12;
+const MODIFIER_SET_NAME_CHAR_LIMIT = FIELD_LIMITS.modifierSetName;
+const MODIFIER_NAME_CHAR_LIMIT = FIELD_LIMITS.modifierName;
+
+function clampFieldValue(input: string, maxLength: number): string {
+	if (maxLength <= 0) return "";
+	return input.slice(0, maxLength);
+}
 
 function toSafeMinor(value: unknown): number {
 	const parsed = Number(value);
@@ -89,8 +94,34 @@ function resolveNextMinorFromInput(currentMinor: number, nextText: string): numb
 		: digitsToMinorUnits(sanitized, PRICE_INPUT_MAX_MINOR_DIGITS);
 }
 
+function resolvePriceInputWidth(inputValue: string, placeholder: string, maxLength: number): number {
+	const hasValue = String(inputValue ?? "").length > 0;
+	const referenceLength = (hasValue ? String(inputValue ?? "") : String(placeholder ?? "")).length;
+	const safeMaxLength = Math.max(0, Math.trunc(maxLength));
+	const boundedLength = safeMaxLength > 0 ? Math.min(referenceLength, safeMaxLength) : referenceLength;
+	return PRICE_INPUT_LEFT_INSET + PRICE_INPUT_RIGHT_INSET + boundedLength * PRICE_INPUT_ESTIMATED_CHAR_WIDTH;
+}
+
 function makeOptionKey() {
 	return `opt_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function makeEmptyOptionDraft(): ModifierOptionDraft {
+	return { key: makeOptionKey(), name: "", deltaMinor: 0, isSoldOut: false };
+}
+
+function hasModifierOptionInput(option: ModifierOptionDraft): boolean {
+	return option.name.trim().length > 0 || toSafeMinor(option.deltaMinor) > 0;
+}
+
+function ensureTrailingPlaceholderOption(options: ModifierOptionDraft[]): ModifierOptionDraft[] {
+	const activeOptions = options.filter((option) => !option.removed);
+	if (activeOptions.length === 0) {
+		return [...options, makeEmptyOptionDraft()];
+	}
+	const hasPlaceholder = activeOptions.some((option) => !hasModifierOptionInput(option));
+	if (hasPlaceholder) return options;
+	return [...options, makeEmptyOptionDraft()];
 }
 
 function buildSnapshot(input: {
@@ -100,6 +131,7 @@ function buildSnapshot(input: {
 	minSelected: string;
 	maxSelected: string;
 	options: ModifierOptionDraft[];
+	appliedProductIds?: string[];
 }) {
 	return JSON.stringify({
 		name: input.name.trim(),
@@ -107,8 +139,11 @@ function buildSnapshot(input: {
 		isRequired: input.isRequired,
 		minSelected: input.minSelected,
 		maxSelected: input.maxSelected,
+		appliedProductIds: Array.from(
+			new Set((input.appliedProductIds ?? []).map((value) => String(value ?? "").trim()).filter((value) => value.length > 0)),
+		).sort(),
 		options: input.options
-			.filter((option) => !option.removed)
+			.filter((option) => !option.removed && hasModifierOptionInput(option))
 			.map((option) => ({
 				id: option.id ?? "",
 				name: option.name.trim(),
@@ -122,6 +157,9 @@ type ModifierOptionRowProps = {
 	row: ModifierOptionDraft;
 	rowIndex: number;
 	borderBottomColor: string;
+	nameTextColor: string;
+	cursorIndicatorColor: string;
+	showDeleteControl: boolean;
 	errorColor: string;
 	onErrorColor: string;
 	isDeleteRevealed: boolean;
@@ -130,6 +168,7 @@ type ModifierOptionRowProps = {
 	deleteActionOpacity: Animated.Value;
 	optionMainInsetRight: Animated.Value;
 	maxPriceInputLength: number;
+	pricePlaceholder: string;
 	formatPriceDisplay: (minorUnits: number) => string;
 	onToggleDeleteReveal: (rowKey: string) => void;
 	onDeleteOption: (row: ModifierOptionDraft) => void;
@@ -141,6 +180,9 @@ const ModifierOptionRow = memo(function ModifierOptionRow({
 	row,
 	rowIndex,
 	borderBottomColor,
+	nameTextColor,
+	cursorIndicatorColor,
+	showDeleteControl,
 	errorColor,
 	onErrorColor,
 	isDeleteRevealed,
@@ -149,6 +191,7 @@ const ModifierOptionRow = memo(function ModifierOptionRow({
 	deleteActionOpacity,
 	optionMainInsetRight,
 	maxPriceInputLength,
+	pricePlaceholder,
 	formatPriceDisplay,
 	onToggleDeleteReveal,
 	onDeleteOption,
@@ -157,6 +200,7 @@ const ModifierOptionRow = memo(function ModifierOptionRow({
 }: ModifierOptionRowProps) {
 	const rowMinor = toSafeMinor(row.deltaMinor);
 	const [isPriceFocused, setIsPriceFocused] = useState(false);
+	const [isNameFocused, setIsNameFocused] = useState(false);
 	const [editingMinor, setEditingMinor] = useState(rowMinor);
 	const syncRafIdRef = useRef<number | null>(null);
 	const latestEditingMinorRef = useRef(editingMinor);
@@ -180,6 +224,10 @@ const ModifierOptionRow = memo(function ModifierOptionRow({
 
 	const displayedMinor = isPriceFocused ? editingMinor : rowMinor;
 	const inputValue = displayedMinor > 0 ? formatPriceDisplay(displayedMinor) : "";
+	const priceInputWidth = useMemo(
+		() => resolvePriceInputWidth(inputValue, pricePlaceholder, maxPriceInputLength),
+		[inputValue, maxPriceInputLength, pricePlaceholder],
+	);
 
 	const onPriceFocus = useCallback(() => {
 		if (syncRafIdRef.current != null) {
@@ -221,38 +269,70 @@ const ModifierOptionRow = memo(function ModifierOptionRow({
 		<View style={[styles.optionRow, { borderBottomColor }]}>
 			<View style={styles.optionInlineRow}>
 				<Animated.View
-					style={[styles.optionMainContent, isDeleteRevealed ? { marginRight: optionMainInsetRight } : null]}
+					style={[
+						styles.optionMainContent,
+						showDeleteControl && isDeleteRevealed ? { marginRight: optionMainInsetRight } : null,
+					]}
 				>
-					<Pressable onPress={() => onToggleDeleteReveal(row.key)} style={styles.removeBtn}>
-						<View style={[styles.removeBtnFill, { backgroundColor: errorColor }]}>
-							{isDeleteRevealed ? (
-								<Animated.View style={{ transform: [{ rotate: deleteIconRotate }] }}>
+					{showDeleteControl ? (
+						<Pressable onPress={() => onToggleDeleteReveal(row.key)} style={[styles.removeBtnSlot, styles.removeBtn]}>
+							<View style={[styles.removeBtnFill, { backgroundColor: errorColor }]}>
+								{isDeleteRevealed ? (
+									<Animated.View style={{ transform: [{ rotate: deleteIconRotate }] }}>
+										<MaterialCommunityIcons name='minus' size={16} color={onErrorColor} />
+									</Animated.View>
+								) : (
 									<MaterialCommunityIcons name='minus' size={16} color={onErrorColor} />
-								</Animated.View>
-							) : (
-								<MaterialCommunityIcons name='minus' size={16} color={onErrorColor} />
-							)}
-						</View>
-					</Pressable>
+								)}
+							</View>
+						</Pressable>
+					) : (
+						<View style={styles.removeBtnSlot} />
+					)}
 					<View style={styles.optionFields}>
-						<BAITextInput
-							label={undefined}
-							placeholder='Modifier'
-							value={row.name}
-							maxLength={FIELD_LIMITS.productName}
-							multiline={false}
-							numberOfLines={1}
-							height={56}
-							style={styles.modifierInput}
-							contentStyle={styles.optionInputContent}
-							onChangeText={(value) => onChangeOptionName(rowIndex, value)}
-						/>
+						<View style={styles.optionNameInputWrap}>
+							<BAITextInput
+								label={undefined}
+								placeholder='Modifier'
+								value={row.name}
+								outlineColor='transparent'
+								activeOutlineColor='transparent'
+								cursorColor={cursorIndicatorColor}
+								selectionColor={cursorIndicatorColor}
+								maxLength={MODIFIER_NAME_CHAR_LIMIT}
+								multiline={false}
+								numberOfLines={1}
+								scrollEnabled={false}
+								blurOnSubmit
+								returnKeyType='done'
+								lineBreakStrategyIOS='none'
+								textBreakStrategy='simple'
+								height={56}
+								style={[styles.modifierInput, styles.optionNameInput]}
+								contentStyle={[styles.optionInputContent, styles.optionNameInputContent]}
+								textColor={isNameFocused ? nameTextColor : "transparent"}
+								onFocus={() => setIsNameFocused(true)}
+								onBlur={() => setIsNameFocused(false)}
+								onChangeText={(value) => onChangeOptionName(rowIndex, value)}
+							/>
+							{!isNameFocused && row.name.trim().length > 0 ? (
+								<View pointerEvents='none' style={styles.optionNameOverlayWrap}>
+									<BAIText variant='body' numberOfLines={1} ellipsizeMode='tail' style={[styles.optionNameOverlayText, { color: nameTextColor }]}>
+										{row.name}
+									</BAIText>
+								</View>
+							) : null}
+						</View>
 					</View>
-					<View style={styles.priceWrap}>
+					<View style={[styles.priceWrap, { width: priceInputWidth }]}>
 						<BAITextInput
 							label={undefined}
-							placeholder='₱0.00'
+							placeholder={pricePlaceholder}
 							value={inputValue}
+							outlineColor='transparent'
+							activeOutlineColor='transparent'
+							cursorColor={cursorIndicatorColor}
+							selectionColor={cursorIndicatorColor}
 							keyboardType='number-pad'
 							multiline={false}
 							numberOfLines={1}
@@ -266,7 +346,7 @@ const ModifierOptionRow = memo(function ModifierOptionRow({
 						/>
 					</View>
 				</Animated.View>
-				{isDeleteRevealed ? (
+				{showDeleteControl && isDeleteRevealed ? (
 					<Animated.View
 						style={[
 							styles.deleteActionWrap,
@@ -281,7 +361,7 @@ const ModifierOptionRow = memo(function ModifierOptionRow({
 							style={[styles.deleteActionBtn, { backgroundColor: errorColor }]}
 						>
 							<BAIText variant='subtitle' style={{ color: onErrorColor }}>
-								Delete
+								{row.id ? "Archive" : "Delete"}
 							</BAIText>
 						</Pressable>
 					</Animated.View>
@@ -305,6 +385,7 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 		[intent, mode, normalizedGroupId],
 	);
 	const { withBusy } = useAppBusy();
+	const { showSuccess } = useAppToast();
 	const queryClient = useQueryClient();
 
 	const [name, setName] = useState("");
@@ -313,17 +394,24 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 	const [minSelected, setMinSelected] = useState("0");
 	const [maxSelected, setMaxSelected] = useState("1");
 	const [showSelectionRules, setShowSelectionRules] = useState(false);
-	const [options, setOptions] = useState<ModifierOptionDraft[]>([
-		{ key: makeOptionKey(), name: "", deltaMinor: 0, isSoldOut: false },
-	]);
+	const [options, setOptions] = useState<ModifierOptionDraft[]>([makeEmptyOptionDraft()]);
 	const [appliedProductIds, setAppliedProductIds] = useState<string[]>([]);
 	const [error, setError] = useState<string | null>(null);
 	const [initialized, setInitialized] = useState(false);
 	const [hydratedFromServer, setHydratedFromServer] = useState(intent === "create");
 	const [confirmExitOpen, setConfirmExitOpen] = useState(false);
+	const [confirmArchiveOpen, setConfirmArchiveOpen] = useState(false);
+	const [sharedAvailabilityOpen, setSharedAvailabilityOpen] = useState(false);
+	const [sharedAvailability, setSharedAvailability] = useState<SharedModifierAvailabilityPreview | null>(null);
+	const [sharedAvailabilitySelectedGroupIds, setSharedAvailabilitySelectedGroupIds] = useState<string[]>([]);
+	const [sharedAvailabilityRowKey, setSharedAvailabilityRowKey] = useState<string>("");
+	const [sharedAvailabilityOptionId, setSharedAvailabilityOptionId] = useState<string>("");
+	const [sharedAvailabilityNextIsSoldOut, setSharedAvailabilityNextIsSoldOut] = useState<boolean>(false);
 	const [deleteRevealKey, setDeleteRevealKey] = useState<string | null>(null);
+	const [deleteControlVisibleKeys, setDeleteControlVisibleKeys] = useState<Set<string>>(() => new Set());
 	const [modifiersListHeight, setModifiersListHeight] = useState(0);
 	const [initialSnapshot, setInitialSnapshot] = useState<string | null>(null);
+	const deleteAnimationTokenRef = useRef(0);
 	const deleteActionTranslateX = useRef(new Animated.Value(DELETE_ACTION_WIDTH)).current;
 	const deleteActionOpacity = useRef(new Animated.Value(0)).current;
 	const deleteIconRotation = useRef(new Animated.Value(0)).current;
@@ -344,14 +432,19 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 		const existingDraft = getModifierGroupDraft(draftId);
 		const seed = existingDraft ?? createModifierGroupDraft(draftId, mode, intent, normalizedGroupId);
 
-		setName(seed.name);
+		setName(clampFieldValue(seed.name, MODIFIER_SET_NAME_CHAR_LIMIT));
 		setSelectionType(seed.selectionType);
 		setIsRequired(seed.isRequired);
 		setMinSelected(seed.minSelected);
 		setMaxSelected(seed.maxSelected);
-		setOptions(
-			seed.options.length > 0 ? seed.options : [{ key: makeOptionKey(), name: "", deltaMinor: 0, isSoldOut: false }],
-		);
+		const seededOptions =
+			seed.options.length > 0
+				? seed.options.map((option) => ({
+						...option,
+						name: clampFieldValue(option.name, MODIFIER_NAME_CHAR_LIMIT),
+				  }))
+				: [makeEmptyOptionDraft()];
+		setOptions(ensureTrailingPlaceholderOption(seededOptions));
 		setShowSelectionRules(seed.minSelected !== "0" || seed.maxSelected !== "1");
 		setAppliedProductIds(Array.isArray(seed.appliedProductIds) ? seed.appliedProductIds : []);
 		setHydratedFromServer(seed.hydratedFromServer);
@@ -365,6 +458,7 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 					minSelected: seed.minSelected,
 					maxSelected: seed.maxSelected,
 					options: seed.options,
+					appliedProductIds: seed.appliedProductIds,
 				}),
 			);
 		}
@@ -406,6 +500,22 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 	}, [draftId, initialized]);
 
 	useEffect(() => {
+		setDeleteControlVisibleKeys((prev) => {
+			const activeOptions = options.filter((option) => !option.removed);
+			const next = new Set<string>();
+			for (const option of activeOptions) {
+				if (prev.has(option.key) || hasModifierOptionInput(option)) {
+					next.add(option.key);
+				}
+			}
+			const prevSignature = Array.from(prev).sort().join("|");
+			const nextSignature = Array.from(next).sort().join("|");
+			if (prevSignature === nextSignature) return prev;
+			return next;
+		});
+	}, [options]);
+
+	useEffect(() => {
 		if (!initialized || intent !== "edit" || !groupId || hydratedFromServer) return;
 		withBusy("Loading modifier set...", async () => {
 			try {
@@ -413,33 +523,34 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 				const hydratedOptions = group.options.map((option) => ({
 					key: makeOptionKey(),
 					id: option.id,
-					name: option.name,
+					name: clampFieldValue(option.name, MODIFIER_NAME_CHAR_LIMIT),
 					deltaMinor: parseMinorUnits(option.priceDeltaMinor),
 					isSoldOut: option.isSoldOut,
 					removed: option.isArchived,
 				}));
-				setName(group.name);
+				setName(clampFieldValue(group.name, MODIFIER_SET_NAME_CHAR_LIMIT));
 				setSelectionType(group.selectionType);
 				setIsRequired(group.isRequired);
 				setMinSelected(String(group.minSelected));
 				setMaxSelected(String(group.maxSelected));
 				setShowSelectionRules(String(group.minSelected) !== "0" || String(group.maxSelected) !== "1");
-				setOptions(hydratedOptions);
+				setOptions(ensureTrailingPlaceholderOption(hydratedOptions));
 				setAppliedProductIds([]);
 				setHydratedFromServer(true);
 
 				const snapshot = buildSnapshot({
-					name: group.name,
+					name: clampFieldValue(group.name, MODIFIER_SET_NAME_CHAR_LIMIT),
 					selectionType: group.selectionType,
 					isRequired: group.isRequired,
 					minSelected: String(group.minSelected),
 					maxSelected: String(group.maxSelected),
 					options: hydratedOptions,
+					appliedProductIds: [],
 				});
 				setInitialSnapshot(snapshot);
 
 				upsertModifierGroupDraft(draftId, {
-					name: group.name,
+					name: clampFieldValue(group.name, MODIFIER_SET_NAME_CHAR_LIMIT),
 					selectionType: group.selectionType,
 					isRequired: group.isRequired,
 					minSelected: String(group.minSelected),
@@ -478,22 +589,24 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 				minSelected,
 				maxSelected,
 				options,
+				appliedProductIds,
 			}),
-		[isRequired, maxSelected, minSelected, name, options, selectionType],
+		[appliedProductIds, isRequired, maxSelected, minSelected, name, options, selectionType],
 	);
 
 	const hasUnsavedChanges = useMemo(() => {
 		if (!initialized) return false;
 		const baseline =
 			initialSnapshot ??
-			buildSnapshot({
-				name: "",
-				selectionType: "MULTI",
-				isRequired: false,
-				minSelected: "0",
-				maxSelected: "1",
-				options: [{ key: "base", name: "", deltaMinor: 0, isSoldOut: false }],
-			});
+				buildSnapshot({
+					name: "",
+					selectionType: "MULTI",
+					isRequired: false,
+					minSelected: "0",
+					maxSelected: "1",
+					options: [{ key: "base", name: "", deltaMinor: 0, isSoldOut: false }],
+					appliedProductIds: [],
+				});
 		return baseline !== currentSnapshot;
 	}, [currentSnapshot, initialSnapshot, initialized]);
 
@@ -508,7 +621,16 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 
 	const guardedExit = useProcessExitGuard(onExit);
 
-	const headerTitle = intent === "create" ? "New Modifier Set" : "Edit Modifier";
+	const openArchiveConfirm = useCallback(() => {
+		Keyboard.dismiss();
+		setConfirmArchiveOpen(true);
+	}, []);
+
+	const closeArchiveConfirm = useCallback(() => {
+		setConfirmArchiveOpen(false);
+	}, []);
+
+	const headerTitle = intent === "create" ? "Create Modifier Set" : "Edit Modifier";
 
 	const applySetCount = appliedProductIds.length;
 	const rulesSummary = `Min ${minSelected || "0"} · Max ${maxSelected || "1"}`;
@@ -561,6 +683,7 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 			).length,
 		[formatPriceDisplay],
 	);
+	const pricePlaceholder = useMemo(() => formatPriceDisplay(0), [formatPriceDisplay]);
 
 	const activeOptions = useMemo(() => options.filter((opt) => !opt.removed), [options]);
 	const filledOptions = useMemo(() => activeOptions.filter((row) => row.name.trim().length > 0), [activeOptions]);
@@ -574,85 +697,82 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 		if (!Number.isFinite(parsedMin) || !Number.isFinite(parsedMax)) return true;
 		if (parsedMin < 0 || parsedMax < 0) return true;
 		if (parsedMin > parsedMax) return true;
+		if (intent === "edit" && !hasUnsavedChanges) return true;
 
 		return false;
-	}, [filledOptions.length, maxSelected, minSelected, name]);
-
-	const onAddModifier = useCallback(() => {
-		const hasIncompleteRows = activeOptions.some((row) => !row.name.trim());
-		if (hasIncompleteRows) {
-			setError("Complete existing modifier rows before adding another.");
-			return;
-		}
-		setError(null);
-		setOptions((prev) => [...prev, { key: makeOptionKey(), name: "", deltaMinor: 0, isSoldOut: false }]);
-	}, [activeOptions]);
+	}, [filledOptions.length, hasUnsavedChanges, intent, maxSelected, minSelected, name]);
 
 	const onChangeOptionName = useCallback((rowIndex: number, value: string) => {
+		const cappedValue = clampFieldValue(value, MODIFIER_NAME_CHAR_LIMIT);
 		setOptions((prev) => {
 			const row = prev[rowIndex];
-			if (!row || row.name === value) return prev;
+			if (!row || row.name === cappedValue) return prev;
 			const next = [...prev];
-			next[rowIndex] = { ...row, name: value };
-			return next;
+			next[rowIndex] = { ...row, name: cappedValue };
+			return ensureTrailingPlaceholderOption(next);
 		});
 	}, []);
 
 	const removeDraftOptionLocally = useCallback((rowKey: string) => {
-		setOptions((prev) => prev.filter((opt) => opt.key !== rowKey));
+		setOptions((prev) => ensureTrailingPlaceholderOption(prev.filter((opt) => opt.key !== rowKey)));
 	}, []);
+
+	const resetDeleteRevealAnimationValues = useCallback(() => {
+		deleteActionTranslateX.setValue(DELETE_ACTION_WIDTH);
+		deleteActionOpacity.setValue(0);
+		deleteIconRotation.setValue(0);
+		optionMainInsetRight.setValue(0);
+	}, [deleteActionOpacity, deleteActionTranslateX, deleteIconRotation, optionMainInsetRight]);
 
 	const runDeleteActionAnimation = useCallback(
 		(open: boolean, onDone?: () => void) => {
+			const token = deleteAnimationTokenRef.current + 1;
+			deleteAnimationTokenRef.current = token;
+			const duration = open ? DELETE_OPEN_DURATION_MS : DELETE_CLOSE_DURATION_MS;
 			Animated.parallel([
 				Animated.timing(optionMainInsetRight, {
 					toValue: open ? DELETE_REVEAL_INSET : 0,
-					duration: 300,
+					duration,
 					easing: Easing.out(Easing.cubic),
 					useNativeDriver: false,
 				}),
 				Animated.timing(deleteActionTranslateX, {
 					toValue: open ? 0 : DELETE_ACTION_WIDTH,
-					duration: 300,
+					duration,
 					easing: Easing.out(Easing.cubic),
 					useNativeDriver: true,
 				}),
 				Animated.timing(deleteActionOpacity, {
 					toValue: open ? 1 : 0,
-					duration: 300,
+					duration,
 					easing: Easing.out(Easing.cubic),
 					useNativeDriver: true,
 				}),
 				Animated.timing(deleteIconRotation, {
 					toValue: open ? 1 : 0,
-					duration: 300,
+					duration,
 					easing: Easing.out(Easing.cubic),
 					useNativeDriver: true,
 				}),
-			]).start(({ finished }) => {
-				if (finished) onDone?.();
+			]).start(() => {
+				if (deleteAnimationTokenRef.current !== token) return;
+				onDone?.();
 			});
 		},
 		[deleteActionOpacity, deleteActionTranslateX, deleteIconRotation, optionMainInsetRight],
 	);
 
-	const closeDeleteReveal = useCallback(() => {
-		if (!deleteRevealKey) return;
+	const closeDeleteReveal = useCallback((onClosed?: () => void) => {
+		if (!deleteRevealKey) {
+			onClosed?.();
+			return;
+		}
 		runDeleteActionAnimation(false, () => {
-			deleteActionTranslateX.setValue(DELETE_ACTION_WIDTH);
-			deleteActionOpacity.setValue(0);
-			deleteIconRotation.setValue(0);
-			optionMainInsetRight.setValue(0);
+			resetDeleteRevealAnimationValues();
 			setDeleteRevealKey(null);
+			onClosed?.();
 		});
-	}, [
-		deleteActionOpacity,
-		deleteActionTranslateX,
-		deleteIconRotation,
-		deleteRevealKey,
-		optionMainInsetRight,
-		runDeleteActionAnimation,
-	]);
+	}, [deleteRevealKey, resetDeleteRevealAnimationValues, runDeleteActionAnimation]);
 
 	const dismissKeyboard = useCallback(() => {
 		Keyboard.dismiss();
@@ -671,43 +791,120 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 
 			const next = [...prev];
 			next[rowIndex] = { ...row, deltaMinor: nextMinor };
+			return ensureTrailingPlaceholderOption(next);
+		});
+	}, []);
+
+	const setRowSoldOutByKey = useCallback((rowKey: string, nextIsSoldOut: boolean) => {
+		setOptions((prev) => {
+			const rowIndex = prev.findIndex((row) => row.key === rowKey);
+			if (rowIndex < 0) return prev;
+			const row = prev[rowIndex];
+			if (row.isSoldOut === nextIsSoldOut) return prev;
+			const next = [...prev];
+			next[rowIndex] = { ...row, isSoldOut: nextIsSoldOut };
 			return next;
 		});
 	}, []);
 
-	const onToggleDeleteReveal = useCallback(
-		(rowKey: string) => {
-			if (deleteRevealKey === rowKey) {
-				runDeleteActionAnimation(false, () => setDeleteRevealKey(null));
+	const closeSharedAvailability = useCallback(() => {
+		setSharedAvailabilityOpen(false);
+		setSharedAvailability(null);
+		setSharedAvailabilitySelectedGroupIds([]);
+		setSharedAvailabilityRowKey("");
+		setSharedAvailabilityOptionId("");
+	}, []);
+
+	const onToggleSharedGroupSelection = useCallback((modifierGroupId: string) => {
+		setSharedAvailabilitySelectedGroupIds((prev) =>
+			prev.includes(modifierGroupId)
+				? prev.filter((entry) => entry !== modifierGroupId)
+				: [...prev, modifierGroupId],
+		);
+	}, []);
+
+	const onApplySharedAvailability = useCallback(() => {
+		if (!sharedAvailabilityOptionId || sharedAvailabilitySelectedGroupIds.length === 0) return;
+		const optionId = sharedAvailabilityOptionId;
+		const modifierGroupIds = [...sharedAvailabilitySelectedGroupIds];
+		const nextIsSoldOut = sharedAvailabilityNextIsSoldOut;
+		const rowKey = sharedAvailabilityRowKey;
+
+		closeSharedAvailability();
+		InteractionManager.runAfterInteractions(() => {
+			withBusy("Updating modifiers...", async () => {
+				await modifiersApi.applySharedAvailability(optionId, {
+					isSoldOut: nextIsSoldOut,
+					modifierGroupIds,
+				});
+				if (rowKey) {
+					setRowSoldOutByKey(rowKey, nextIsSoldOut);
+				}
+				showSuccess(`This modifier has been marked as ${nextIsSoldOut ? "sold out" : "available"}`);
+			});
+		});
+	}, [
+		closeSharedAvailability,
+		setRowSoldOutByKey,
+		sharedAvailabilityNextIsSoldOut,
+		sharedAvailabilityOptionId,
+		sharedAvailabilityRowKey,
+		sharedAvailabilitySelectedGroupIds,
+		showSuccess,
+		withBusy,
+	]);
+
+	const onToggleOptionSoldOut = useCallback(
+		(row: ModifierOptionDraft) => {
+			const nextIsSoldOut = !Boolean(row.isSoldOut);
+			if (!row.id) {
+				setRowSoldOutByKey(row.key, nextIsSoldOut);
 				return;
 			}
 
-			deleteActionTranslateX.setValue(DELETE_ACTION_WIDTH);
-			deleteActionOpacity.setValue(0);
-			deleteIconRotation.setValue(0);
-			optionMainInsetRight.setValue(0);
+			withBusy("Checking modifier sets...", async () => {
+				const preview = await modifiersApi.getSharedAvailability(row.id!);
+				if ((preview.groups ?? []).length <= 1) {
+					await modifiersApi.updateOption(row.id!, { isSoldOut: nextIsSoldOut });
+					setRowSoldOutByKey(row.key, nextIsSoldOut);
+					showSuccess(`This modifier has been marked as ${nextIsSoldOut ? "sold out" : "available"}`);
+					return;
+				}
+
+				setSharedAvailability(preview);
+				setSharedAvailabilitySelectedGroupIds(preview.groups.map((entry) => entry.modifierGroupId));
+				setSharedAvailabilityRowKey(row.key);
+				setSharedAvailabilityOptionId(row.id!);
+				setSharedAvailabilityNextIsSoldOut(nextIsSoldOut);
+				setSharedAvailabilityOpen(true);
+			});
+		},
+		[setRowSoldOutByKey, showSuccess, withBusy],
+	);
+
+	const onToggleDeleteReveal = useCallback(
+		(rowKey: string) => {
+			if (deleteRevealKey === rowKey) {
+				closeDeleteReveal();
+				return;
+			}
 
 			if (deleteRevealKey) {
-				runDeleteActionAnimation(false, () => {
-					deleteActionTranslateX.setValue(DELETE_ACTION_WIDTH);
-					deleteActionOpacity.setValue(0);
-					deleteIconRotation.setValue(0);
-					optionMainInsetRight.setValue(0);
+				closeDeleteReveal(() => {
 					setDeleteRevealKey(rowKey);
 					requestAnimationFrame(() => runDeleteActionAnimation(true));
 				});
 				return;
 			}
 
+			resetDeleteRevealAnimationValues();
 			setDeleteRevealKey(rowKey);
 			requestAnimationFrame(() => runDeleteActionAnimation(true));
 		},
 		[
-			deleteActionOpacity,
-			deleteActionTranslateX,
-			deleteIconRotation,
+			closeDeleteReveal,
 			deleteRevealKey,
-			optionMainInsetRight,
+			resetDeleteRevealAnimationValues,
 			runDeleteActionAnimation,
 		],
 	);
@@ -715,10 +912,7 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 	const onDeleteOption = useCallback(
 		(row: ModifierOptionDraft) => {
 			setError(null);
-			deleteActionTranslateX.setValue(DELETE_ACTION_WIDTH);
-			deleteActionOpacity.setValue(0);
-			deleteIconRotation.setValue(0);
-			optionMainInsetRight.setValue(0);
+			resetDeleteRevealAnimationValues();
 			setDeleteRevealKey(null);
 
 			if (!row.id) {
@@ -726,25 +920,22 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 				return;
 			}
 
-			withBusy("Removing option...", async () => {
+			withBusy("Archiving modifier...", async () => {
 				try {
 					await modifiersApi.archiveOption(row.id!);
-					setOptions((prev) => prev.filter((opt) => opt.key !== row.key));
+					setOptions((prev) => ensureTrailingPlaceholderOption(prev.filter((opt) => opt.key !== row.key)));
 					await queryClient.invalidateQueries({ queryKey: ["modifiers"] });
 				} catch (e: any) {
 					setError(
-						e?.response?.data?.error?.message ?? e?.response?.data?.message ?? "Could not remove modifier option.",
+						e?.response?.data?.error?.message ?? e?.response?.data?.message ?? "Could not archive modifier option.",
 					);
 				}
 			});
 		},
 		[
-			deleteActionOpacity,
-			deleteActionTranslateX,
-			deleteIconRotation,
-			optionMainInsetRight,
 			queryClient,
 			removeDraftOptionLocally,
+			resetDeleteRevealAnimationValues,
 			withBusy,
 		],
 	);
@@ -756,6 +947,11 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 				outputRange: ["0deg", "90deg"],
 			}),
 		[deleteIconRotation],
+	);
+
+	const shouldShowDeleteControl = useCallback(
+		(row: ModifierOptionDraft) => deleteControlVisibleKeys.has(row.key) || hasModifierOptionInput(row),
+		[deleteControlVisibleKeys],
 	);
 
 	const onSave = useCallback(() => {
@@ -843,8 +1039,7 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 				}
 
 				clearModifierGroupDraft(draftId);
-				const successRoute = targetGroupId ? `${backRoute}/${encodeURIComponent(targetGroupId)}` : backRoute;
-				router.replace(successRoute as any);
+				router.replace(backRoute as any);
 			} catch (e: any) {
 				setError(e?.response?.data?.error?.message ?? e?.response?.data?.message ?? "Could not save modifier set.");
 			}
@@ -865,6 +1060,23 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 		selectionType,
 		withBusy,
 	]);
+
+	const onConfirmArchive = useCallback(() => {
+		if (intent !== "edit" || !groupId) return;
+		setError(null);
+		withBusy("Archiving modifier set...", async () => {
+			try {
+				await modifiersApi.archiveGroup(groupId);
+				await queryClient.invalidateQueries({ queryKey: ["modifiers"] });
+				showSuccess("Modifier set archived.");
+				setConfirmArchiveOpen(false);
+				clearModifierGroupDraft(draftId);
+				router.replace(backRoute as any);
+			} catch (e: any) {
+				setError(e?.response?.data?.error?.message ?? e?.response?.data?.message ?? "Could not archive modifier set.");
+			}
+		});
+	}, [backRoute, draftId, groupId, intent, queryClient, router, showSuccess, withBusy]);
 
 	return (
 		<>
@@ -897,82 +1109,97 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 						<View style={styles.contentWrap}>
 							<BAISurface bordered padded={false} style={[styles.card, surfaceInteractive]}>
 								<View style={styles.content}>
-									<BAITextInput
-										label='Modifier Set Name'
-										value={name}
-										onChangeText={setName}
-										maxLength={FIELD_LIMITS.productName}
-										placeholder='Modifier Set Name'
-									/>
-									<BAIText variant='caption' muted>
-										Selection rules apply during checkout. Configure the minimum and maximum selections for this set.
-									</BAIText>
-									<Pressable
-										onPress={onPressApplySet}
-										style={({ pressed }) => [
-											styles.applySetRow,
-											{ borderColor: theme.colors.outlineVariant ?? theme.colors.outline },
-											pressed ? { opacity: 0.86 } : null,
-										]}
-									>
-										<BAIText variant='subtitle'>Apply Set</BAIText>
-										<View style={styles.applySetRight}>
-											<BAIText variant='subtitle'>{applySetCount}</BAIText>
-											<MaterialCommunityIcons
-												name='chevron-right'
-												size={24}
-												color={theme.colors.onSurfaceVariant ?? theme.colors.onSurface}
+									<View style={styles.modifierSetConfigContainer}>
+										<View style={styles.setNameInputWrap}>
+											<BAITextInput
+												label='Modifier Set Name'
+												value={name}
+												onChangeText={(value) => setName(clampFieldValue(value, MODIFIER_SET_NAME_CHAR_LIMIT))}
+												maxLength={MODIFIER_SET_NAME_CHAR_LIMIT}
+												placeholder='Modifier Set Name'
+												height={56}
+												multiline={false}
+												numberOfLines={1}
+												scrollEnabled={false}
+												lineBreakStrategyIOS='none'
+												textBreakStrategy='simple'
+												contentStyle={styles.setNameInputContent}
+												textColor={theme.colors.onSurface}
 											/>
 										</View>
-									</Pressable>
-									<View
-										style={[
-											styles.advancedRulesContainer,
-											{ borderColor: theme.colors.outlineVariant ?? theme.colors.outline },
-										]}
-									>
 										<Pressable
-											onPress={onToggleSelectionRules}
-											style={({ pressed }) => [styles.advancedRulesRow, pressed ? { opacity: 0.86 } : null]}
+											onPress={onPressApplySet}
+											style={({ pressed }) => [
+												styles.applySetRow,
+												{ borderColor: theme.colors.outlineVariant ?? theme.colors.outline },
+												pressed ? { opacity: 0.86 } : null,
+											]}
 										>
-											<View style={styles.advancedRulesLabelWrap}>
-												<BAIText variant='body'>Advanced rules</BAIText>
-												<BAIText variant='caption' muted>
-													{rulesSummary}
-												</BAIText>
+											<BAIText variant='subtitle'>Apply Set</BAIText>
+											<View style={styles.applySetRight}>
+												<BAIText variant='subtitle'>{applySetCount}</BAIText>
+												<MaterialCommunityIcons
+													name='chevron-right'
+													size={24}
+													color={theme.colors.onSurfaceVariant ?? theme.colors.onSurface}
+												/>
 											</View>
-											<MaterialCommunityIcons
-												name={showSelectionRules ? "chevron-up" : "chevron-down"}
-												size={24}
-												color={theme.colors.onSurfaceVariant ?? theme.colors.onSurface}
-											/>
 										</Pressable>
-										{showSelectionRules ? (
-											<View style={styles.rulesRow}>
-												<BAITextInput
-													label='Minimum Selections'
-													value={minSelected}
-													onChangeText={(value) => setMinSelected(value.replace(/[^0-9]/g, ""))}
-													keyboardType='number-pad'
-													style={styles.ruleInput}
+										<View
+											style={[
+												styles.advancedRulesContainer,
+												{ borderColor: theme.colors.outlineVariant ?? theme.colors.outline },
+											]}
+										>
+											<Pressable
+												onPress={onToggleSelectionRules}
+												style={({ pressed }) => [styles.advancedRulesRow, pressed ? { opacity: 0.86 } : null]}
+											>
+												<View style={styles.advancedRulesLabelWrap}>
+													<BAIText variant='body'>Advanced rules</BAIText>
+													<BAIText variant='caption' muted>
+														{rulesSummary}
+													</BAIText>
+												</View>
+												<MaterialCommunityIcons
+													name={showSelectionRules ? "chevron-up" : "chevron-down"}
+													size={24}
+													color={theme.colors.onSurfaceVariant ?? theme.colors.onSurface}
 												/>
-												<BAITextInput
-													label='Maximum Selections'
-													value={maxSelected}
-													onChangeText={(value) => setMaxSelected(value.replace(/[^0-9]/g, ""))}
-													keyboardType='number-pad'
-													style={styles.ruleInput}
-												/>
-											</View>
-										) : null}
+											</Pressable>
+											{showSelectionRules ? (
+												<View style={styles.rulesRow}>
+													<BAITextInput
+														label='Minimum Selections'
+														value={minSelected}
+														onChangeText={(value) => setMinSelected(value.replace(/[^0-9]/g, ""))}
+														keyboardType='number-pad'
+														style={styles.ruleInput}
+													/>
+													<BAITextInput
+														label='Maximum Selections'
+														value={maxSelected}
+														onChangeText={(value) => setMaxSelected(value.replace(/[^0-9]/g, ""))}
+														keyboardType='number-pad'
+														style={styles.ruleInput}
+													/>
+												</View>
+											) : null}
+										</View>
 									</View>
 									<View style={styles.modifiersSection}>
-										<BAIText variant='subtitle'>Modifiers</BAIText>
+										<BAIText variant='subtitle' style={styles.modifiersTitle}>
+											Modifiers
+										</BAIText>
 										<ScrollView
 											style={styles.modifiersList}
 											contentContainerStyle={[
 												styles.modifiersListContent,
-												{ paddingBottom: Math.max(0, modifiersListHeight * 0.5) },
+												{
+													borderTopWidth: StyleSheet.hairlineWidth,
+													borderTopColor: theme.colors.outlineVariant ?? theme.colors.outline,
+												},
+												{ paddingBottom: Math.max(0, modifiersListHeight * 0.75) },
 											]}
 											onLayout={(event) => setModifiersListHeight(event.nativeEvent.layout.height)}
 											nestedScrollEnabled
@@ -980,32 +1207,53 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 											keyboardShouldPersistTaps='handled'
 											keyboardDismissMode='on-drag'
 										>
-											{options.map((row, idx) =>
-												row.removed ? null : (
+											{options.map((row, idx) => {
+												if (row.removed) return null;
+												const showDeleteControl = shouldShowDeleteControl(row);
+												return (
 													<ModifierOptionRow
 														key={row.key}
 														row={row}
 														rowIndex={idx}
 														borderBottomColor={theme.colors.outlineVariant ?? theme.colors.outline}
+														nameTextColor={theme.colors.onSurface}
+														cursorIndicatorColor={theme.colors.primary}
+														showDeleteControl={showDeleteControl}
 														errorColor={theme.colors.error}
 														onErrorColor={theme.colors.onError}
-														isDeleteRevealed={deleteRevealKey === row.key}
+														isDeleteRevealed={showDeleteControl && deleteRevealKey === row.key}
 														deleteIconRotate={deleteIconRotate}
 														deleteActionTranslateX={deleteActionTranslateX}
 														deleteActionOpacity={deleteActionOpacity}
 														optionMainInsetRight={optionMainInsetRight}
 														maxPriceInputLength={maxPriceInputLength}
+														pricePlaceholder={pricePlaceholder}
 														formatPriceDisplay={formatPriceDisplay}
 														onToggleDeleteReveal={onToggleDeleteReveal}
 														onDeleteOption={onDeleteOption}
 														onChangeOptionName={onChangeOptionName}
 														onChangePriceMinor={onChangePriceMinor}
 													/>
-												),
-											)}
-											<BAIButton variant='outline' style={styles.addOptionButton} onPress={onAddModifier}>
-												Add Modifier
-											</BAIButton>
+												);
+											})}
+											{intent === "edit" && groupId ? (
+												<Pressable
+													onPress={openArchiveConfirm}
+													style={({ pressed }) => [
+														styles.archiveButton,
+														{
+															borderColor: theme.colors.outlineVariant ?? theme.colors.outline,
+															backgroundColor:
+																theme.colors.surfaceVariant ?? theme.colors.surfaceDisabled ?? theme.colors.surface,
+														},
+														pressed ? { opacity: 0.86 } : null,
+													]}
+												>
+													<BAIText variant='subtitle' style={[styles.archiveButtonText, { color: theme.colors.onSurface }]}> 
+														Archive Modifier Set
+													</BAIText>
+												</Pressable>
+											) : null}
 										</ScrollView>
 									</View>
 									{error ? (
@@ -1019,6 +1267,101 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 					</View>
 				</TouchableWithoutFeedback>
 			</BAIScreen>
+			<Modal visible={sharedAvailabilityOpen} transparent animationType='slide' onRequestClose={() => {}}>
+				<View style={styles.sheetBackdrop}>
+					<View style={StyleSheet.absoluteFill} />
+					<BAISurface style={[styles.sheet, { backgroundColor: theme.colors.surface }]} bordered radius={16}>
+						<View style={styles.sheetHeaderRow}>
+							<Pressable
+								onPress={closeSharedAvailability}
+								style={[
+									styles.sheetCloseBtn,
+									{
+										backgroundColor:
+											theme.colors.surfaceDisabled ?? theme.colors.surfaceVariant ?? theme.colors.surface,
+										borderWidth: StyleSheet.hairlineWidth,
+										borderColor: theme.colors.outlineVariant ?? theme.colors.outline,
+									},
+								]}
+							>
+								<MaterialCommunityIcons
+									name='close'
+									size={24}
+									color={theme.colors.onSurfaceVariant ?? theme.colors.onSurface}
+								/>
+							</Pressable>
+							<Pressable
+								onPress={onApplySharedAvailability}
+								disabled={sharedAvailabilitySelectedGroupIds.length === 0}
+								style={({ pressed }) => [
+									styles.sheetApplyBtn,
+									{
+										backgroundColor:
+											sharedAvailabilitySelectedGroupIds.length === 0
+												? theme.colors.surfaceDisabled
+												: theme.colors.primary,
+									},
+									pressed ? { opacity: 0.85 } : null,
+								]}
+							>
+								<BAIText
+									variant='subtitle'
+									style={{
+										color:
+											sharedAvailabilitySelectedGroupIds.length === 0
+												? theme.colors.onSurfaceDisabled
+												: theme.colors.onPrimary,
+									}}
+								>
+									Apply to all
+								</BAIText>
+							</Pressable>
+						</View>
+
+						<BAIText variant='title'>Apply to all at this location</BAIText>
+						<BAIText variant='body' muted>
+							{`${sharedAvailability?.optionName ?? "This modifier"} is currently ${sharedAvailabilityNextIsSoldOut ? "available" : "sold out"} in ${sharedAvailability?.groups.length ?? 0} modifier sets at this location. Do you want to mark them all as ${sharedAvailabilityNextIsSoldOut ? "sold out" : "available"}?`}
+						</BAIText>
+
+						<View style={styles.sheetListWrap}>
+							<ScrollView keyboardShouldPersistTaps='handled' showsVerticalScrollIndicator={false}>
+								{(sharedAvailability?.groups ?? []).map((entry) => {
+									const selected = sharedAvailabilitySelectedGroupIds.includes(entry.modifierGroupId);
+									return (
+										<Pressable
+											key={entry.modifierGroupId}
+											onPress={() => onToggleSharedGroupSelection(entry.modifierGroupId)}
+											style={[
+												styles.sheetRow,
+												{ borderBottomColor: theme.colors.outlineVariant ?? theme.colors.outline },
+											]}
+										>
+											<BAIText variant='subtitle'>{entry.modifierGroupName}</BAIText>
+											<MaterialCommunityIcons
+												name={selected ? "checkbox-marked" : "checkbox-blank-outline"}
+												size={28}
+												color={selected ? theme.colors.primary : theme.colors.onSurfaceVariant}
+											/>
+										</Pressable>
+									);
+								})}
+							</ScrollView>
+						</View>
+					</BAISurface>
+				</View>
+			</Modal>
+			<ConfirmActionModal
+				visible={confirmArchiveOpen}
+				title='Archive Modifier Set'
+				message='Archiving will hide this modifier set from active use. You can restore it later from archived modifiers.'
+				confirmLabel='Archive'
+				cancelLabel='Cancel'
+				confirmIntent='error'
+				cancelIntent='neutral'
+				onDismiss={closeArchiveConfirm}
+				onConfirm={onConfirmArchive}
+				onCancel={closeArchiveConfirm}
+			/>
 			<ConfirmActionModal
 				visible={confirmExitOpen}
 				title='Unsaved changes'
@@ -1037,10 +1380,25 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 
 const styles = StyleSheet.create({
 	root: { flex: 1 },
-	wrap: { flex: 1, paddingHorizontal: 0 },
+	wrap: { flex: 1, paddingHorizontal: 10 },
 	contentWrap: { flex: 1, width: "100%", maxWidth: 720, alignSelf: "center" },
-	card: { flex: 1, borderRadius: 18, paddingTop: 12, paddingHorizontal: 12 },
+	card: { flex: 1, borderRadius: 18, paddingTop: 12, paddingHorizontal: 0 },
 	content: { flex: 1, gap: 10, paddingBottom: 10 },
+	modifierSetConfigContainer: {
+		marginHorizontal: 12,
+		gap: 10,
+	},
+	setNameInputWrap: {
+		position: "relative",
+		overflow: "hidden",
+	},
+	setNameInputContent: {
+		textAlignVertical: "center",
+		paddingTop: 0,
+		paddingBottom: 0,
+		paddingLeft: 12,
+		paddingRight: 12,
+	},
 	applySetRow: {
 		minHeight: 50,
 		borderWidth: StyleSheet.hairlineWidth,
@@ -1083,27 +1441,44 @@ const styles = StyleSheet.create({
 		gap: 2,
 	},
 	optionRow: {
-		borderBottomWidth: 0,
-		paddingVertical: 8,
+		borderBottomWidth: StyleSheet.hairlineWidth,
+		minHeight: 56,
+		justifyContent: "center",
+		paddingVertical: 0,
 	},
 	modifiersSection: {
 		flex: 1,
 		minHeight: 0,
 		gap: 10,
 	},
+	modifiersTitle: {
+		marginHorizontal: 12,
+	},
 	modifiersList: {
 		flex: 1,
 		minHeight: 0,
 	},
 	modifiersListContent: {
-		gap: 6,
+		gap: 0,
 	},
-	addOptionButton: {
-		marginTop: 10,
+	archiveButton: {
+		borderWidth: StyleSheet.hairlineWidth,
+		borderRadius: 12,
+		minHeight: 50,
+		alignItems: "center",
+		justifyContent: "center",
+		paddingHorizontal: 12,
+		marginTop: 50,
+		marginHorizontal: 12,
+	},
+	archiveButtonText: {
+		fontWeight: "700",
 	},
 	optionInlineRow: {
 		flexDirection: "row",
+		minHeight: 56,
 		alignItems: "center",
+		justifyContent: "center",
 		overflow: "hidden",
 		gap: 0,
 		position: "relative",
@@ -1111,14 +1486,18 @@ const styles = StyleSheet.create({
 	optionMainContent: {
 		flex: 1,
 		minWidth: 0,
+		minHeight: 56,
 		flexDirection: "row",
 		alignItems: "center",
-		gap: 4,
+		gap: 0,
+	},
+	removeBtnSlot: {
+		width: REMOVE_BUTTON_WIDTH,
+		height: REMOVE_BUTTON_HEIGHT,
+		marginLeft: 0,
+		paddingLeft: REMOVE_BUTTON_LEFT_PADDING,
 	},
 	removeBtn: {
-		width: 30,
-		height: 30,
-		marginLeft: 0,
 		alignItems: "center",
 		justifyContent: "center",
 	},
@@ -1129,29 +1508,64 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 		justifyContent: "center",
 	},
-	optionFields: { flex: 1, minWidth: 0 },
-	modifierInput: { minWidth: 0 },
+	optionFields: { flex: 1, minWidth: 0, minHeight: 56, overflow: "hidden", justifyContent: "center" },
+	modifierInput: {
+		minWidth: 0,
+		overflow: "hidden",
+		backgroundColor: "transparent",
+	},
+	optionNameInputWrap: {
+		position: "relative",
+		minHeight: 56,
+		justifyContent: "center",
+	},
+	optionNameInput: {
+		flexShrink: 1,
+		overflow: "hidden",
+	},
 	optionInputContent: {
-		textAlign: "center",
+		textAlign: "left",
 		textAlignVertical: "center",
 		paddingTop: 0,
 		paddingBottom: 0,
-		paddingHorizontal: 6,
+		paddingHorizontal: 0,
+		flexWrap: "nowrap",
+		overflow: "hidden",
+	},
+	optionNameInputContent: {
+		maxWidth: "100%",
+		overflow: "hidden",
+		paddingLeft: 8,
+		paddingRight: 0,
+	},
+	optionNameOverlayWrap: {
+		position: "absolute",
+		top: 0,
+		right: 0,
+		bottom: 0,
+		left: 0,
+		justifyContent: "center",
+		paddingLeft: 8,
+		paddingRight: 0,
+	},
+	optionNameOverlayText: {
+		includeFontPadding: false,
 	},
 	priceInputContent: {
 		textAlign: "right",
 		textAlignVertical: "center",
 		paddingTop: 0,
 		paddingBottom: 0,
-		paddingHorizontal: 8,
+		paddingLeft: 0,
+		paddingRight: 8,
 		fontVariant: ["tabular-nums"],
 		includeFontPadding: false,
 	},
-	priceWrap: { width: PRICE_INPUT_WIDTH },
+	priceWrap: { minWidth: 0, minHeight: 56, justifyContent: "center" },
 	deleteActionBtn: {
 		width: DELETE_ACTION_WIDTH,
 		height: 56,
-		borderRadius: 12,
+		borderRadius: 0,
 		alignItems: "center",
 		justifyContent: "center",
 	},
@@ -1162,5 +1576,50 @@ const styles = StyleSheet.create({
 		bottom: 0,
 		paddingLeft: DELETE_ACTION_GAP,
 		justifyContent: "center",
+	},
+	sheetBackdrop: {
+		flex: 1,
+		justifyContent: "flex-end",
+		backgroundColor: "rgba(0,0,0,0.4)",
+	},
+	sheet: {
+		maxHeight: "80%",
+		padding: 16,
+		gap: 14,
+		marginBottom: 0,
+		borderBottomLeftRadius: 0,
+		borderBottomRightRadius: 0,
+	},
+	sheetHeaderRow: {
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "space-between",
+	},
+	sheetCloseBtn: {
+		width: 44,
+		height: 44,
+		borderRadius: 22,
+		alignItems: "center",
+		justifyContent: "center",
+	},
+	sheetApplyBtn: {
+		minWidth: 120,
+		height: 44,
+		paddingHorizontal: 14,
+		borderRadius: 22,
+		alignItems: "center",
+		justifyContent: "center",
+	},
+	sheetListWrap: {
+		maxHeight: 300,
+		borderTopWidth: StyleSheet.hairlineWidth,
+		borderTopColor: "transparent",
+	},
+	sheetRow: {
+		minHeight: 58,
+		borderBottomWidth: StyleSheet.hairlineWidth,
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "space-between",
 	},
 });

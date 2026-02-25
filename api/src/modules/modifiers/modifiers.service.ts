@@ -8,15 +8,25 @@ import {
 } from "@/shared/catalogLimits";
 import { ModifiersRepository } from "./modifiers.repository";
 import type {
+	ApplySharedModifierAvailabilityInput,
+	ApplySharedModifierAvailabilityResult,
 	CreateModifierGroupInput,
 	CreateModifierOptionInput,
 	ModifierGroupDto,
 	ReplaceProductModifierGroupsInput,
+	SharedModifierAvailabilityPreviewDto,
 	SyncModifierGroupProductsInput,
 	SyncModifierGroupProductsResult,
 	UpdateModifierGroupInput,
 	UpdateModifierOptionInput,
 } from "./modifiers.types";
+
+function normalizeModifierOptionName(name: string): string {
+	return String(name ?? "")
+		.trim()
+		.replace(/\s+/g, " ")
+		.toLowerCase();
+}
 
 function validateRules(
 	selectionType: ModifierSelectionType,
@@ -393,6 +403,111 @@ export class ModifiersService {
 		const existing = await this.prisma.modifierOption.findFirst({ where: { id, businessId }, select: { id: true } });
 		if (!existing) throw new AppError(StatusCodes.NOT_FOUND, "Modifier option not found.", "MODIFIER_OPTION_NOT_FOUND");
 		await this.prisma.modifierOption.update({ where: { id }, data: { isArchived: archived } });
+	}
+
+	async getSharedModifierAvailabilityPreview(
+		businessId: string,
+		optionId: string,
+	): Promise<SharedModifierAvailabilityPreviewDto> {
+		const option = await this.prisma.modifierOption.findFirst({
+			where: {
+				id: optionId,
+				businessId,
+				isArchived: false,
+				ModifierGroup: { isArchived: false },
+			},
+			select: { id: true, name: true },
+		});
+		if (!option) {
+			throw new AppError(StatusCodes.NOT_FOUND, "Modifier option not found.", "MODIFIER_OPTION_NOT_FOUND");
+		}
+
+		const normalizedName = normalizeModifierOptionName(option.name);
+		if (!normalizedName) {
+			return { optionId: option.id, optionName: option.name, groups: [] };
+		}
+
+		const options = await this.prisma.modifierOption.findMany({
+			where: {
+				businessId,
+				isArchived: false,
+				ModifierGroup: { isArchived: false },
+			},
+			select: {
+				id: true,
+				name: true,
+				modifierGroupId: true,
+				isSoldOut: true,
+				ModifierGroup: { select: { id: true, name: true } },
+			},
+		});
+
+		const groups = options
+			.filter((row) => normalizeModifierOptionName(row.name) === normalizedName)
+			.map((row) => ({
+				modifierGroupId: row.ModifierGroup.id,
+				modifierGroupName: row.ModifierGroup.name,
+				optionId: row.id,
+				isSoldOut: Boolean(row.isSoldOut),
+			}));
+
+		groups.sort((a, b) => a.modifierGroupName.localeCompare(b.modifierGroupName));
+
+		return {
+			optionId: option.id,
+			optionName: option.name,
+			groups,
+		};
+	}
+
+	async applySharedModifierAvailability(
+		businessId: string,
+		optionId: string,
+		input: ApplySharedModifierAvailabilityInput,
+	): Promise<ApplySharedModifierAvailabilityResult> {
+		const preview = await this.getSharedModifierAvailabilityPreview(businessId, optionId);
+		if (preview.groups.length === 0) {
+			throw new AppError(StatusCodes.UNPROCESSABLE_ENTITY, "No modifier sets found to update.", "MODIFIER_GROUP_INVALID");
+		}
+
+		const selectedIds = Array.from(
+			new Set((input.modifierGroupIds ?? []).map((id) => String(id ?? "").trim()).filter(Boolean)),
+		);
+		if (selectedIds.length === 0) {
+			throw new AppError(StatusCodes.UNPROCESSABLE_ENTITY, "Select at least one modifier set.", "MODIFIER_GROUP_INVALID");
+		}
+
+		const validGroupIds = new Set(preview.groups.map((group) => group.modifierGroupId));
+		if (selectedIds.some((id) => !validGroupIds.has(id))) {
+			throw new AppError(
+				StatusCodes.UNPROCESSABLE_ENTITY,
+				"One or more modifier sets are invalid for this modifier.",
+				"MODIFIER_GROUP_INVALID",
+			);
+		}
+
+		const targetOptionIds = preview.groups
+			.filter((group) => selectedIds.includes(group.modifierGroupId))
+			.map((group) => group.optionId);
+
+		if (targetOptionIds.length === 0) {
+			return { updatedOptionsCount: 0, updatedGroupsCount: 0 };
+		}
+
+		const result = await this.prisma.modifierOption.updateMany({
+			where: {
+				businessId,
+				id: { in: targetOptionIds },
+				isArchived: false,
+				ModifierGroup: { isArchived: false },
+			},
+			data: { isSoldOut: Boolean(input.isSoldOut) },
+		});
+
+		return {
+			updatedOptionsCount: result.count,
+			updatedGroupsCount: selectedIds.length,
+		};
 	}
 
 	async validateSelectionsForCheckout(

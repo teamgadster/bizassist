@@ -218,6 +218,7 @@ Modifier behavior is locked to a reusable-set model aligned to the approved UX r
   - Inline option name/price editing with reorder and remove affordances.
   - Set-level destructive actions require explicit, globally-scoped warning language.
 - **Async safety rule:** bulk availability updates must use blocking Loading Overlay and completion toast/snackbar closure.
+- **Toast placement rule (top-first):** completion toasts/snackbars should render at top by default in Modifiers flows to avoid collision with bottom tabs, bottom sheets, and keyboard surfaces.
 - **Governance non-regression:** UDQI precision/quantity behavior, tablet-first parity, Back vs Exit law, and POS structural architecture must remain unchanged.
 
 ---

@@ -14,6 +14,7 @@ export type BAIHeaderProps = {
 	variant: "back" | "exit";
 	rightSlot?: ReactNode | ((options: { disabled: boolean }) => ReactNode);
 	barHeight?: number;
+	titleHorizontalPadding?: number;
 	onLeftPress?: () => void;
 	onRightPress?: () => void;
 	disabled?: boolean;
@@ -29,6 +30,7 @@ export function BAIHeader({
 	variant,
 	rightSlot,
 	barHeight = HEADER_BAR_HEIGHT,
+	titleHorizontalPadding = 0,
 	onLeftPress,
 	onRightPress,
 	disabled = false,
@@ -100,7 +102,7 @@ export function BAIHeader({
 					/>
 				</View>
 
-				<View style={styles.centerRail}>
+				<View style={[styles.centerRail, titleHorizontalPadding > 0 ? { paddingHorizontal: titleHorizontalPadding } : null]}>
 					<BAIText variant='title' numberOfLines={1} ellipsizeMode='tail' style={styles.title}>
 						{title}
 					</BAIText>

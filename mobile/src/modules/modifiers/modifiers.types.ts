@@ -60,3 +60,26 @@ export type SyncModifierGroupProductsResult = {
 	attachedCount: number;
 	detachedCount: number;
 };
+
+export type SharedModifierAvailabilityGroup = {
+	modifierGroupId: string;
+	modifierGroupName: string;
+	optionId: string;
+	isSoldOut: boolean;
+};
+
+export type SharedModifierAvailabilityPreview = {
+	optionId: string;
+	optionName: string;
+	groups: SharedModifierAvailabilityGroup[];
+};
+
+export type ApplySharedModifierAvailabilityPayload = {
+	isSoldOut: boolean;
+	modifierGroupIds: string[];
+};
+
+export type ApplySharedModifierAvailabilityResult = {
+	updatedOptionsCount: number;
+	updatedGroupsCount: number;
+};

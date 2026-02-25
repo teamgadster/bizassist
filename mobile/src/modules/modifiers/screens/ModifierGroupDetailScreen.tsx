@@ -1,38 +1,65 @@
-import { useCallback } from "react";
-import { FlatList, StyleSheet, View } from "react-native";
+import { useCallback, useMemo, useState } from "react";
+import { FlatList, InteractionManager, Modal, Pressable, StyleSheet, View, useWindowDimensions } from "react-native";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { Switch, useTheme } from "react-native-paper";
 import { useQuery } from "@tanstack/react-query";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 
 import { BAIButton } from "@/components/ui/BAIButton";
+import { BAIHeader } from "@/components/ui/BAIHeader";
 import { BAIRetryButton } from "@/components/ui/BAIRetryButton";
 import { BAIScreen } from "@/components/ui/BAIScreen";
 import { BAISurface } from "@/components/ui/BAISurface";
 import { BAIText } from "@/components/ui/BAIText";
 import { useAppBusy } from "@/hooks/useAppBusy";
-import { formatCompactNumber } from "@/lib/locale/businessLocale";
-import { useActiveBusinessMeta } from "@/modules/business/useActiveBusinessMeta";
+import { useResponsiveLayout } from "@/lib/layout/useResponsiveLayout";
 import { useInventoryHeader } from "@/modules/inventory/useInventoryHeader";
 import { useAppHeader } from "@/modules/navigation/useAppHeader";
 import { modifiersApi } from "@/modules/modifiers/modifiers.api";
-import { formatMoney } from "@/shared/money/money.format";
+import type { SharedModifierAvailabilityPreview } from "@/modules/modifiers/modifiers.types";
+import { useAppToast } from "@/providers/AppToastProvider";
 
-function formatMinor(minor: string): string {
-	const value = Number.parseInt(String(minor || "0"), 10);
-	if (!Number.isFinite(value)) return "0.00";
-	return (value / 100).toFixed(2);
+const HEADER_SIDE_PADDING_FALLBACK = 16;
+const HEADER_RAIL_SIZE = 56;
+const HEADER_EDIT_PILL_WIDTH = 72;
+const HEADER_TITLE_SAFETY_GAP = 28;
+const HEADER_TITLE_ESTIMATED_CHAR_WIDTH = 10;
+const HEADER_TITLE_HORIZONTAL_PADDING = 18;
+
+function truncateHeaderTitle(value: string, maxLength: number): string {
+	const safe = String(value ?? "").trim();
+	if (!safe) return "";
+	if (safe.length <= maxLength) return safe;
+	return `${safe.slice(0, maxLength).trimEnd()}...`;
 }
 
 export function ModifierGroupDetailScreen({ mode }: { mode: "settings" | "inventory" }) {
 	const router = useRouter();
+	const { width: viewportWidth } = useWindowDimensions();
+	const { paddingX } = useResponsiveLayout();
 	const tabBarHeight = useBottomTabBarHeight();
 	const theme = useTheme();
 	const params = useLocalSearchParams<{ id?: string }>();
 	const groupId = String(params.id ?? "").trim();
-	const { countryCode, currencyCode } = useActiveBusinessMeta();
 	const { withBusy } = useAppBusy();
+	const { showSuccess } = useAppToast();
 	const baseRoute = mode === "settings" ? "/(app)/(tabs)/settings/modifiers" : "/(app)/(tabs)/inventory/modifiers";
+		const [sharedAvailabilityOpen, setSharedAvailabilityOpen] = useState(false);
+		const [sharedAvailability, setSharedAvailability] = useState<SharedModifierAvailabilityPreview | null>(null);
+		const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([]);
+		const [pendingOptionId, setPendingOptionId] = useState<string>("");
+		const [pendingNextIsSoldOut, setPendingNextIsSoldOut] = useState<boolean>(false);
+
+	const outline = theme.colors.outlineVariant ?? theme.colors.outline;
+	const surfaceAlt = theme.colors.surfaceVariant ?? theme.colors.surface;
+	const surfaceInteractive = useMemo(
+		() => ({
+			borderColor: outline,
+			backgroundColor: theme.colors.surface,
+		}),
+		[outline, theme.colors.surface],
+	);
 
 	const query = useQuery({
 		queryKey: ["modifiers", "group", groupId],
@@ -41,46 +68,150 @@ export function ModifierGroupDetailScreen({ mode }: { mode: "settings" | "invent
 	});
 
 	const group = query.data;
+	const headerHorizontalPadding = paddingX || HEADER_SIDE_PADDING_FALLBACK;
+	const headerTitleMaxLength = useMemo(() => {
+		const rightReservedWidth = Math.max(HEADER_RAIL_SIZE, HEADER_EDIT_PILL_WIDTH);
+		const availableWidth =
+			viewportWidth -
+			headerHorizontalPadding * 2 -
+			HEADER_RAIL_SIZE -
+			rightReservedWidth -
+			HEADER_TITLE_SAFETY_GAP -
+			HEADER_TITLE_HORIZONTAL_PADDING * 2;
+		return Math.max(8, Math.floor(availableWidth / HEADER_TITLE_ESTIMATED_CHAR_WIDTH));
+	}, [headerHorizontalPadding, viewportWidth]);
+	const modifierHeaderTitle = useMemo(
+		() => truncateHeaderTitle(group?.name ?? "", headerTitleMaxLength) || "Modifier",
+		[group?.name, headerTitleMaxLength],
+	);
 
 	const onToggleSoldOut = useCallback(
 		(optionId: string, isSoldOut: boolean) => {
-			withBusy("Updating option...", async () => {
-				await modifiersApi.updateOption(optionId, { isSoldOut: !isSoldOut });
-				await query.refetch();
+			const nextIsSoldOut = !isSoldOut;
+			withBusy("Checking modifier sets...", async () => {
+				const preview = await modifiersApi.getSharedAvailability(optionId);
+				if ((preview.groups ?? []).length <= 1) {
+					await modifiersApi.updateOption(optionId, { isSoldOut: nextIsSoldOut });
+					await query.refetch();
+					showSuccess(`This modifier has been marked as ${nextIsSoldOut ? "sold out" : "available"}`);
+					return;
+				}
+
+				setSharedAvailability(preview);
+				setSelectedGroupIds(preview.groups.map((entry) => entry.modifierGroupId));
+				setPendingOptionId(optionId);
+				setPendingNextIsSoldOut(nextIsSoldOut);
+				setSharedAvailabilityOpen(true);
 			});
 		},
-		[query, withBusy],
+		[query, showSuccess, withBusy],
 	);
 
-	const onRestoreGroup = useCallback(() => {
+	const closeSharedAvailability = useCallback(() => {
+		setSharedAvailabilityOpen(false);
+		setSharedAvailability(null);
+		setSelectedGroupIds([]);
+		setPendingOptionId("");
+	}, []);
+
+	const toggleGroupSelection = useCallback((modifierGroupId: string) => {
+		setSelectedGroupIds((prev) =>
+			prev.includes(modifierGroupId)
+				? prev.filter((entry) => entry !== modifierGroupId)
+				: [...prev, modifierGroupId],
+		);
+	}, []);
+
+	const onApplySharedAvailability = useCallback(() => {
+		if (!pendingOptionId || selectedGroupIds.length === 0) return;
+		const optionId = pendingOptionId;
+		const modifierGroupIds = [...selectedGroupIds];
+		const nextIsSoldOut = pendingNextIsSoldOut;
+
+		closeSharedAvailability();
+		InteractionManager.runAfterInteractions(() => {
+			withBusy("Updating modifiers...", async () => {
+				await modifiersApi.applySharedAvailability(optionId, {
+					isSoldOut: nextIsSoldOut,
+					modifierGroupIds,
+				});
+				await query.refetch();
+				showSuccess(`This modifier has been marked as ${nextIsSoldOut ? "sold out" : "available"}`);
+			});
+		});
+	}, [closeSharedAvailability, pendingNextIsSoldOut, pendingOptionId, query, selectedGroupIds, showSuccess, withBusy]);
+
+	const onBackToList = useCallback(() => {
+		router.replace(baseRoute as any);
+	}, [baseRoute, router]);
+
+	const onEditGroup = useCallback(() => {
 		if (!group) return;
-		router.push(`${baseRoute}/${encodeURIComponent(group.id)}/restore` as any);
+		router.push(`${baseRoute}/${group.id}/edit` as any);
 	}, [baseRoute, group, router]);
 
-	const onArchiveGroup = useCallback(() => {
-		if (!group || group.isArchived) return;
-		router.push(`${baseRoute}/${encodeURIComponent(group.id)}/archive` as any);
-	}, [baseRoute, group, router]);
-
-	const header = useAppHeader("detail", {
-		title: "Modifier Details",
-		onBack: () => router.replace(baseRoute as any),
+	const headerBase = useAppHeader("detail", {
+		title: modifierHeaderTitle,
+		onBack: onBackToList,
 	});
-	const inventoryHeader = useInventoryHeader("detail", {
-		title: "Modifier Details",
-		onBack: () => router.replace(baseRoute as any),
+	const inventoryHeaderBase = useInventoryHeader("detail", {
+		title: modifierHeaderTitle,
+		onBack: onBackToList,
 	});
+	const header = useMemo(
+		() => ({
+			...(mode === "settings" ? headerBase : inventoryHeaderBase),
+			header: () => (
+				<BAIHeader
+					title={modifierHeaderTitle}
+					variant='back'
+					titleHorizontalPadding={HEADER_TITLE_HORIZONTAL_PADDING}
+					onLeftPress={onBackToList}
+					onRightPress={onEditGroup}
+					rightDisabled={!group}
+					rightSlot={({ disabled }) => (
+						<View
+							style={[
+								styles.headerEditPill,
+								{ backgroundColor: disabled ? theme.colors.surfaceDisabled : theme.colors.primary },
+							]}
+						>
+							<BAIText
+								variant='body'
+								style={{ color: disabled ? theme.colors.onSurfaceDisabled : theme.colors.onPrimary }}
+							>
+								Edit
+							</BAIText>
+						</View>
+					)}
+				/>
+			),
+		}),
+		[
+			group,
+			headerBase,
+			inventoryHeaderBase,
+			mode,
+			modifierHeaderTitle,
+			onBackToList,
+			onEditGroup,
+			theme.colors.onPrimary,
+			theme.colors.onSurfaceDisabled,
+			theme.colors.primary,
+			theme.colors.surfaceDisabled,
+		],
+	);
 
 	return (
 		<>
-			<Stack.Screen options={mode === "settings" ? header : inventoryHeader} />
+			<Stack.Screen options={header} />
 			<BAIScreen tabbed padded={false} safeTop={false} safeBottom={false} style={styles.root}>
 				<View style={[styles.wrap, { paddingBottom: tabBarHeight + 8 }]}>
 					<View style={styles.content}>
 						<BAISurface
 							bordered
 							padded
-							style={[styles.card, { borderColor: theme.colors.outlineVariant ?? theme.colors.outline }]}
+							style={[styles.card, surfaceInteractive]}
 						>
 							{query.isLoading ? (
 								<View style={styles.stateWrap}>
@@ -92,132 +223,208 @@ export function ModifierGroupDetailScreen({ mode }: { mode: "settings" | "invent
 								</View>
 							) : (
 								<>
-									<View style={styles.header}>
-										<BAIText variant='title'>{group.name}</BAIText>
-									</View>
-									<View style={styles.actionsRow}>
-										<BAIButton
-											variant='outline'
-											intent='neutral'
-											shape='pill'
-											widthPreset='standard'
-											onPress={() => router.replace(baseRoute as any)}
-											style={styles.actionButton}
-										>
-											Back
-										</BAIButton>
-										<BAIButton
-											variant='outline'
-											shape='pill'
-											widthPreset='standard'
-											onPress={() => router.push(`${baseRoute}/${group.id}/edit` as any)}
-											style={styles.actionButton}
-										>
-											Edit
-										</BAIButton>
-									</View>
-
-									<BAISurface
-										bordered
-										style={[styles.summary, { borderColor: theme.colors.outlineVariant ?? theme.colors.outline }]}
+									<View
+										style={[
+											styles.tableHead,
+											{ borderBottomColor: outline },
+										]}
 									>
-										<BAIText variant='caption' muted>
-											{formatCompactNumber(group.options.length, countryCode)} modifier
-											{group.options.length === 1 ? "" : "s"}
-										</BAIText>
-										<BAIButton
-											variant='outline'
-											shape='pill'
-											onPress={group.isArchived ? onRestoreGroup : onArchiveGroup}
-											intent={group.isArchived ? "primary" : "danger"}
-										>
-											{group.isArchived ? "Restore Modifier Set" : "Archive Modifier Set"}
-										</BAIButton>
-									</BAISurface>
+										<BAIText variant='subtitle'>Modifiers</BAIText>
+										<BAIText variant='subtitle'>Availability</BAIText>
+									</View>
 
-									<FlatList
-										data={group.options}
-										keyExtractor={(item) => item.id}
-										ListHeaderComponent={
-											<View style={styles.tableHead}>
-												<BAIText variant='subtitle'>Modifiers</BAIText>
-												<BAIText variant='subtitle'>Availability</BAIText>
-											</View>
-										}
-										renderItem={({ item }) => (
-											<BAISurface
-												variant='interactive'
-												style={[styles.optionRow, { borderColor: theme.colors.outlineVariant ?? theme.colors.outline }]}
-											>
-												<View style={styles.optionTop}>
-													<BAIText variant='subtitle'>{item.name}</BAIText>
-													<BAIText variant='subtitle' muted>
-														{formatMoney({ amount: formatMinor(item.priceDeltaMinor), currencyCode })}
-													</BAIText>
-												</View>
-												<View style={styles.optionBottom}>
-													{item.isSoldOut ? (
-														<View style={[styles.statusChip, { borderColor: theme.colors.error }]}>
-															<BAIText variant='caption' style={{ color: theme.colors.error }}>
-																Sold out
-															</BAIText>
+									<View style={styles.rowsListWrap}>
+										<FlatList
+											data={group.options}
+											keyExtractor={(item) => item.id}
+											style={styles.rowsList}
+											renderItem={({ item }) => (
+												<BAISurface style={[styles.optionRow, { borderColor: outline, backgroundColor: surfaceAlt }]}>
+													<View style={styles.optionInlineContent}>
+														<BAIText
+															variant='body'
+															numberOfLines={1}
+															ellipsizeMode='tail'
+															style={styles.optionNameText}
+														>
+															{item.name}
+														</BAIText>
+														<View style={styles.optionAvailabilityInline}>
+															{item.isSoldOut ? (
+																<BAIText variant='body' style={{ color: theme.colors.error }}>
+																	Sold out
+																</BAIText>
+															) : (
+																<BAIText variant='body'>Available</BAIText>
+															)}
+															<Switch
+																value={!item.isSoldOut}
+																disabled={group.isArchived}
+																onValueChange={() => onToggleSoldOut(item.id, item.isSoldOut)}
+															/>
 														</View>
-													) : (
-														<BAIText variant='subtitle'>Available</BAIText>
-													)}
-													<Switch
-														value={!item.isSoldOut}
-														disabled={group.isArchived}
-														onValueChange={() => onToggleSoldOut(item.id, item.isSoldOut)}
-													/>
-												</View>
-											</BAISurface>
-										)}
-										contentContainerStyle={styles.listContent}
-										keyboardShouldPersistTaps='handled'
-										showsVerticalScrollIndicator={false}
-									/>
+													</View>
+												</BAISurface>
+											)}
+											contentContainerStyle={styles.listContent}
+											keyboardShouldPersistTaps='handled'
+											showsVerticalScrollIndicator={false}
+										/>
+									</View>
 								</>
 							)}
 						</BAISurface>
 					</View>
 				</View>
 			</BAIScreen>
+
+			<Modal visible={sharedAvailabilityOpen} transparent animationType='slide' onRequestClose={() => {}}>
+				<View style={styles.sheetBackdrop}>
+					<View style={StyleSheet.absoluteFill} />
+					<BAISurface style={[styles.sheet, { backgroundColor: theme.colors.surface }]} bordered radius={16}>
+						<View style={styles.sheetHeaderRow}>
+							<Pressable
+								onPress={closeSharedAvailability}
+								style={[
+									styles.sheetCloseBtn,
+									{
+										backgroundColor:
+											theme.colors.surfaceDisabled ?? theme.colors.surfaceVariant ?? theme.colors.surface,
+										borderWidth: StyleSheet.hairlineWidth,
+										borderColor: theme.colors.outlineVariant ?? theme.colors.outline,
+									},
+								]}
+							>
+								<MaterialCommunityIcons
+									name='close'
+									size={24}
+									color={theme.colors.onSurfaceVariant ?? theme.colors.onSurface}
+								/>
+							</Pressable>
+							<BAIButton onPress={onApplySharedAvailability} disabled={selectedGroupIds.length === 0}>
+								Apply to all
+							</BAIButton>
+						</View>
+
+						<BAIText variant='title'>Apply to all at this location</BAIText>
+						<BAIText variant='body' muted>
+							{`${sharedAvailability?.optionName ?? "This modifier"} is currently ${pendingNextIsSoldOut ? "available" : "sold out"} in ${sharedAvailability?.groups.length ?? 0} modifier sets at this location. Do you want to mark them all as ${pendingNextIsSoldOut ? "sold out" : "available"}?`}
+						</BAIText>
+
+						<View style={styles.sheetListWrap}>
+							<FlatList
+								data={sharedAvailability?.groups ?? []}
+								keyExtractor={(item) => item.modifierGroupId}
+								renderItem={({ item }) => {
+									const selected = selectedGroupIds.includes(item.modifierGroupId);
+									return (
+										<Pressable
+											onPress={() => toggleGroupSelection(item.modifierGroupId)}
+											style={[styles.sheetRow, { borderBottomColor: outline }]}
+										>
+											<BAIText variant='subtitle'>{item.modifierGroupName}</BAIText>
+											<MaterialCommunityIcons
+												name={selected ? "checkbox-marked" : "checkbox-blank-outline"}
+												size={28}
+												color={selected ? theme.colors.primary : theme.colors.onSurfaceVariant}
+											/>
+										</Pressable>
+									);
+								}}
+								showsVerticalScrollIndicator={false}
+								keyboardShouldPersistTaps='handled'
+							/>
+						</View>
+					</BAISurface>
+				</View>
+			</Modal>
 		</>
 	);
 }
 
 const styles = StyleSheet.create({
 	root: { flex: 1 },
-	wrap: { flex: 1, paddingHorizontal: 12 },
+	wrap: { flex: 1, paddingHorizontal: 10 },
 	content: { flex: 1, width: "100%", maxWidth: 720, alignSelf: "center" },
-	card: { flex: 1, borderRadius: 18, gap: 10 },
-	header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
-	actionsRow: { flexDirection: "row", alignItems: "center", gap: 10 },
-	actionButton: { flex: 1 },
+	card: { flex: 1, borderRadius: 18, gap: 8, marginTop: 0 },
+	headerEditPill: {
+		width: HEADER_EDIT_PILL_WIDTH,
+		height: 32,
+		paddingHorizontal: 12,
+		borderRadius: 16,
+		alignItems: "center",
+		justifyContent: "center",
+	},
 	stateWrap: { paddingTop: 8, alignItems: "flex-start" },
-	summary: { borderRadius: 12, padding: 12, gap: 8 },
-	listContent: { gap: 8, paddingBottom: 14 },
+	listContent: { gap: 0, paddingBottom: 6 },
+	rowsListWrap: { flex: 1, minHeight: 0 },
+	rowsList: { flex: 1, minHeight: 0 },
 	tableHead: {
 		paddingTop: 4,
 		paddingBottom: 10,
+		marginBottom: 8,
+		borderBottomWidth: StyleSheet.hairlineWidth,
 		flexDirection: "row",
 		justifyContent: "space-between",
 		alignItems: "center",
 	},
 	optionRow: {
 		borderRadius: 12,
-		borderWidth: StyleSheet.hairlineWidth,
+		borderWidth: 1,
 		paddingVertical: 12,
 		paddingHorizontal: 10,
+		marginBottom: 8,
+	},
+	optionInlineContent: {
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "space-between",
+		gap: 10,
+	},
+	optionNameText: {
+		flex: 1,
+		minWidth: 0,
+	},
+	optionAvailabilityInline: {
+		flexDirection: "row",
+		alignItems: "center",
 		gap: 8,
 	},
-	optionTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-	optionBottom: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-	statusChip: {
-		borderWidth: StyleSheet.hairlineWidth,
-		borderRadius: 999,
-		paddingHorizontal: 8,
-		paddingVertical: 2,
+	sheetBackdrop: {
+		flex: 1,
+		justifyContent: "flex-end",
+		backgroundColor: "rgba(0,0,0,0.4)",
+	},
+	sheet: {
+		maxHeight: "80%",
+		padding: 16,
+		gap: 14,
+		marginBottom: 0,
+		borderBottomLeftRadius: 0,
+		borderBottomRightRadius: 0,
+	},
+	sheetHeaderRow: {
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "space-between",
+	},
+	sheetCloseBtn: {
+		width: 44,
+		height: 44,
+		borderRadius: 22,
+		alignItems: "center",
+		justifyContent: "center",
+	},
+	sheetListWrap: {
+		maxHeight: 300,
+		borderTopWidth: StyleSheet.hairlineWidth,
+		borderTopColor: "transparent",
+	},
+	sheetRow: {
+		minHeight: 58,
+		borderBottomWidth: StyleSheet.hairlineWidth,
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "space-between",
 	},
 });

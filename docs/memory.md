@@ -1,3 +1,12 @@
+## 2026-02-25 — Toast Placement Governance (Top-First Lock)
+
+### Memory Lock
+
+- Default transient completion feedback (toast/snackbar) must render at the top of the screen.
+- Bottom placement is disallowed by default in operational flows where the bottom area is shared by tab bars, bottom sheets, or keyboard surfaces.
+- This lock is especially enforced for Modifiers flows to avoid overlap with bottom sheets and action controls.
+- Any exception must be explicitly documented with a concrete UX reason before implementation.
+
 ## 2026-02-24 — Money Input Package Evaluation Lock (react-native-currency-input)
 
 ### Memory Lock

@@ -4,6 +4,7 @@ import { StatusCodes } from "http-status-codes";
 import { prisma } from "@/lib/prisma";
 import { ModifiersService } from "./modifiers.service";
 import {
+	applySharedModifierAvailabilitySchema,
 	createModifierGroupSchema,
 	createModifierOptionSchema,
 	groupIdParamSchema,
@@ -115,4 +116,19 @@ export const restoreModifierOption = asyncHandler(async (req: Request, res: Resp
 	const { id } = optionIdParamSchema.parse(req.params);
 	await service.archiveOption(businessId, id, false);
 	res.status(StatusCodes.OK).json({ success: true });
+});
+
+export const getSharedModifierAvailabilityPreview = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+	const businessId = getBusinessId(req);
+	const { id } = optionIdParamSchema.parse(req.params);
+	const item = await service.getSharedModifierAvailabilityPreview(businessId, id);
+	res.status(StatusCodes.OK).json({ success: true, data: { item } });
+});
+
+export const applySharedModifierAvailability = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+	const businessId = getBusinessId(req);
+	const { id } = optionIdParamSchema.parse(req.params);
+	const body = applySharedModifierAvailabilitySchema.parse(req.body);
+	const result = await service.applySharedModifierAvailability(businessId, id, body);
+	res.status(StatusCodes.OK).json({ success: true, data: result });
 });

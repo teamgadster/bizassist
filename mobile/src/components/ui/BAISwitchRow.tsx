@@ -93,8 +93,14 @@ function BAISwitchRowBase({
 }: BAISwitchRowProps) {
 	const theme = useTheme();
 
-	const borderColor = theme.colors.outlineVariant ?? theme.colors.outline;
-	const bg = (theme.colors as any).surfaceVariant ?? theme.colors.surface;
+	const outline = theme.colors.outlineVariant ?? theme.colors.outline;
+	const surfaceInteractive = useMemo(
+		() => ({
+			borderColor: outline,
+			backgroundColor: theme.colors.surface,
+		}),
+		[outline, theme.colors.surface],
+	);
 	const pressedBg = theme.dark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)";
 
 	const presetColor = switchVariant === "blue" ? SWITCH_BLUE : SWITCH_GREEN;
@@ -107,15 +113,13 @@ function BAISwitchRowBase({
 	 * - Thumb: slightly brighter overall; OFF thumb remains visible against brighter OFF track.
 	 */
 	const offTrackColor = useMemo(() => {
-		// Previously: 0.28 / 0.22 (a bit dull)
-		// New: brighter + more legible without looking ON.
-		return theme.dark ? "rgba(255,255,255,0.40)" : "rgba(0,0,0,0.30)";
+		// Extra contrast in light mode so OFF state is clearly visible on pale surfaces.
+		return theme.dark ? "rgba(255,255,255,0.40)" : "rgba(0,0,0,0.38)";
 	}, [theme.dark]);
 
 	const onTrackColor = useMemo(() => {
-		// Previously: dark 0.55, light 0.42
-		// New: higher alpha so ON reads instantly.
-		return theme.dark ? rgba(onColor as any, 0.72) : rgba(onColor as any, 0.58);
+		// Stronger ON contrast in light mode.
+		return theme.dark ? rgba(onColor as any, 0.72) : rgba(onColor as any, 0.68);
 	}, [onColor, theme.dark]);
 
 	const trackColor = useMemo(
@@ -138,19 +142,31 @@ function BAISwitchRowBase({
 	}, []);
 
 	const thumbColor = useMemo(() => (value ? onThumbColor : offThumbColor), [offThumbColor, onThumbColor, value]);
+	const iosOffTrackBackgroundColor = useMemo(
+		() => (theme.dark ? "rgba(255,255,255,0.40)" : "rgba(0,0,0,0.42)"),
+		[theme.dark],
+	);
+	const switchFrameStyle = useMemo(
+		() =>
+			theme.dark
+				? null
+				: {
+						backgroundColor: "rgba(0,0,0,0.04)",
+						borderColor: "rgba(0,0,0,0.14)",
+						borderWidth: StyleSheet.hairlineWidth,
+				  },
+		[theme.dark],
+	);
 
 	const containerStyle = useMemo(
 		() => [
 			styles.container,
-			{
-				backgroundColor: bg,
-				borderColor,
-				paddingVertical: dense ? 10 : 12,
-			},
+			surfaceInteractive,
+			{ paddingVertical: dense ? 10 : 12 },
 			disabled && { opacity: 0.55 },
 			style,
 		],
-		[bg, borderColor, dense, disabled, style],
+		[dense, disabled, style, surfaceInteractive],
 	);
 
 	const onPress = useCallback(() => {
@@ -185,7 +201,7 @@ function BAISwitchRowBase({
 			</View>
 
 			<View style={styles.right} pointerEvents='none'>
-				<View style={styles.switchWrap}>
+				<View style={[styles.switchWrap, switchFrameStyle]}>
 					<Switch
 						value={value}
 						onValueChange={(next) => {
@@ -195,6 +211,7 @@ function BAISwitchRowBase({
 						disabled={disabled}
 						trackColor={trackColor}
 						thumbColor={thumbColor}
+						ios_backgroundColor={iosOffTrackBackgroundColor}
 						// Keep for broad Paper compatibility.
 						color={onColor as any}
 					/>
@@ -226,6 +243,8 @@ const styles = StyleSheet.create({
 	switchWrap: {
 		transform: [{ scale: 1.08 }],
 		paddingVertical: 2,
+		paddingRight: 2,
 		paddingLeft: 2,
+		borderRadius: 999,
 	},
 });

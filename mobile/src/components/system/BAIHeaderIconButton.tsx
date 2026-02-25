@@ -41,17 +41,21 @@ export type BAIHeaderIconButtonProps = {
 
 // Deterministic Exit sizing (consistent across simulator + real devices)
 const EXIT_HIT_SIZE = 50; // stable touch target (>= 44 minimum)
-const EXIT_ICON_SIZE = 36; // exact requested glyph size
+const EXIT_ICON_SIZE = 32;
 const EXIT_RADIUS = 25;
 
 // Deterministic Back sizing (match Exit feel but use chevron glyph)
 // Enlarged for better tap target while keeping proportions.
 const BACK_HIT_SIZE = 50;
-const BACK_ICON_SIZE = 36; // exact requested glyph size
+const BACK_ICON_SIZE = 32;
 const BACK_RADIUS = 25;
+const HEADER_ICON_MARGIN_LEFT = Platform.OS === "ios" ? 6 : 2;
 
 export function BAIHeaderIconButton(props: BAIHeaderIconButtonProps) {
 	const theme = useTheme();
+	const neutralButtonBg = theme.dark
+		? theme.colors.surfaceVariant ?? theme.colors.surfaceDisabled ?? theme.colors.surface
+		: theme.colors.outline ?? theme.colors.surfaceDisabled ?? theme.colors.surfaceVariant;
 
 	const { disabled, onPress, wrapStyle, buttonStyle } = props;
 
@@ -64,8 +68,6 @@ export function BAIHeaderIconButton(props: BAIHeaderIconButtonProps) {
 					hitSize: BACK_HIT_SIZE,
 					iconSize: BACK_ICON_SIZE,
 					radius: BACK_RADIUS,
-					// Back tends to sit a bit closer to the screen edge in native headers
-					marginLeft: Platform.OS === "ios" ? 6 : 2,
 				};
 
 			case "exit":
@@ -76,13 +78,12 @@ export function BAIHeaderIconButton(props: BAIHeaderIconButtonProps) {
 					hitSize: EXIT_HIT_SIZE,
 					iconSize: EXIT_ICON_SIZE,
 					radius: EXIT_RADIUS,
-					marginLeft: Platform.OS === "ios" ? 8 : 4,
 				};
 		}
 	}, [props.variant]);
 
 	return (
-		<View style={[styles.wrap, { marginLeft: visual.marginLeft }, wrapStyle]}>
+		<View style={[styles.wrap, { marginLeft: HEADER_ICON_MARGIN_LEFT }, wrapStyle]}>
 			<IconButton
 				icon={visual.icon}
 				accessibilityLabel={props.accessibilityLabel ?? visual.defaultA11y}
@@ -96,6 +97,7 @@ export function BAIHeaderIconButton(props: BAIHeaderIconButtonProps) {
 						width: visual.hitSize,
 						height: visual.hitSize,
 						borderRadius: visual.radius,
+						backgroundColor: neutralButtonBg,
 						opacity: disabled ? 0.6 : 1,
 					},
 					buttonStyle,

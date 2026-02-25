@@ -63,19 +63,8 @@ export function AppToastProvider({ children }: { children: ReactNode }) {
 		[showToast],
 	);
 
-	const containerColor =
-		state.intent === "success"
-			? theme.colors.primaryContainer
-			: state.intent === "error"
-				? theme.colors.errorContainer
-				: theme.colors.surfaceVariant;
-
-	const textColor =
-		state.intent === "success"
-			? theme.colors.onPrimaryContainer
-			: state.intent === "error"
-				? theme.colors.onErrorContainer
-				: theme.colors.onSurfaceVariant;
+	const containerColor = theme.colors.inverseSurface;
+	const textColor = theme.colors.inverseOnSurface;
 
 	return (
 		<AppToastContext.Provider value={contextValue}>
