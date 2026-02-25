@@ -81,7 +81,9 @@ function resolveNextMinorFromInput(currentMinor: number, nextText: string): numb
 		return safeCurrentMinor;
 	}
 
-	const isSingleAppend = sanitized.length === currentDigits.length + 1 && sanitized.startsWith(currentDigits);
+	const isSingleAppend =
+		sanitized.length === currentDigits.length + 1 &&
+		sanitized.startsWith(currentDigits);
 
 	// Silent growth lock: append-mode for single-key growth, full reparse for bulk edits/paste.
 	return isSingleAppend
@@ -199,29 +201,29 @@ const ModifierOptionRow = memo(function ModifierOptionRow({
 		setIsPriceFocused(false);
 	}, [onChangePriceMinor, rowIndex]);
 
-	const onPriceChange = useCallback(
-		(value: string) => {
-			const baseMinor = isPriceFocused ? editingMinor : rowMinor;
-			const nextMinor = resolveNextMinorFromInput(baseMinor, value);
-			if (nextMinor === baseMinor) return;
-			setEditingMinor(nextMinor);
-			if (syncRafIdRef.current != null) {
-				cancelAnimationFrame(syncRafIdRef.current);
-				syncRafIdRef.current = null;
-			}
-			syncRafIdRef.current = requestAnimationFrame(() => {
-				syncRafIdRef.current = null;
-				onChangePriceMinor(rowIndex, nextMinor);
-			});
-		},
-		[editingMinor, isPriceFocused, onChangePriceMinor, rowIndex, rowMinor],
-	);
+	const onPriceChange = useCallback((value: string) => {
+		const baseMinor = isPriceFocused ? editingMinor : rowMinor;
+		const nextMinor = resolveNextMinorFromInput(baseMinor, value);
+		if (nextMinor === baseMinor) return;
+		setEditingMinor(nextMinor);
+		if (syncRafIdRef.current != null) {
+			cancelAnimationFrame(syncRafIdRef.current);
+			syncRafIdRef.current = null;
+		}
+		syncRafIdRef.current = requestAnimationFrame(() => {
+			syncRafIdRef.current = null;
+			onChangePriceMinor(rowIndex, nextMinor);
+		});
+	}, [editingMinor, isPriceFocused, onChangePriceMinor, rowIndex, rowMinor]);
 
 	return (
 		<View style={[styles.optionRow, { borderBottomColor }]}>
 			<View style={styles.optionInlineRow}>
 				<Animated.View
-					style={[styles.optionMainContent, isDeleteRevealed ? { marginRight: optionMainInsetRight } : null]}
+					style={[
+						styles.optionMainContent,
+						isDeleteRevealed ? { marginRight: optionMainInsetRight } : null,
+					]}
 				>
 					<Pressable onPress={() => onToggleDeleteReveal(row.key)} style={styles.removeBtn}>
 						<View style={[styles.removeBtnFill, { backgroundColor: errorColor }]}>
@@ -350,7 +352,9 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 		setMinSelected(seed.minSelected);
 		setMaxSelected(seed.maxSelected);
 		setOptions(
-			seed.options.length > 0 ? seed.options : [{ key: makeOptionKey(), name: "", deltaMinor: 0, isSoldOut: false }],
+			seed.options.length > 0
+				? seed.options
+				: [{ key: makeOptionKey(), name: "", deltaMinor: 0, isSoldOut: false }],
 		);
 		setShowSelectionRules(seed.minSelected !== "0" || seed.maxSelected !== "1");
 		setAppliedProductIds(Array.isArray(seed.appliedProductIds) ? seed.appliedProductIds : []);
@@ -527,10 +531,7 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 	}, []);
 
 	const formatPriceDisplay = useMemo(() => {
-		const code =
-			String(currencyCode ?? "PHP")
-				.trim()
-				.toUpperCase() || "PHP";
+		const code = String(currencyCode ?? "PHP").trim().toUpperCase() || "PHP";
 		let formatter: Intl.NumberFormat | null = null;
 
 		try {
@@ -555,7 +556,8 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 		};
 	}, [currencyCode]);
 	const maxPriceInputLength = useMemo(
-		() => formatPriceDisplay(digitsToMinorUnits("9".repeat(MONEY_MAX_MINOR_DIGITS), MONEY_MAX_MINOR_DIGITS)).length,
+		() =>
+			formatPriceDisplay(digitsToMinorUnits("9".repeat(MONEY_MAX_MINOR_DIGITS), MONEY_MAX_MINOR_DIGITS)).length,
 		[formatPriceDisplay],
 	);
 
@@ -573,7 +575,12 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 		if (parsedMin > parsedMax) return true;
 
 		return false;
-	}, [filledOptions.length, maxSelected, minSelected, name]);
+	}, [
+		filledOptions.length,
+		maxSelected,
+		minSelected,
+		name,
+	]);
 
 	const onAddModifier = useCallback(() => {
 		const hasIncompleteRows = activeOptions.some((row) => !row.name.trim());
@@ -672,42 +679,39 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 		});
 	}, []);
 
-	const onToggleDeleteReveal = useCallback(
-		(rowKey: string) => {
-			if (deleteRevealKey === rowKey) {
-				runDeleteActionAnimation(false, () => setDeleteRevealKey(null));
-				return;
-			}
+	const onToggleDeleteReveal = useCallback((rowKey: string) => {
+		if (deleteRevealKey === rowKey) {
+			runDeleteActionAnimation(false, () => setDeleteRevealKey(null));
+			return;
+		}
 
-			deleteActionTranslateX.setValue(DELETE_ACTION_WIDTH);
-			deleteActionOpacity.setValue(0);
-			deleteIconRotation.setValue(0);
-			optionMainInsetRight.setValue(0);
+		deleteActionTranslateX.setValue(DELETE_ACTION_WIDTH);
+		deleteActionOpacity.setValue(0);
+		deleteIconRotation.setValue(0);
+		optionMainInsetRight.setValue(0);
 
-			if (deleteRevealKey) {
-				runDeleteActionAnimation(false, () => {
-					deleteActionTranslateX.setValue(DELETE_ACTION_WIDTH);
-					deleteActionOpacity.setValue(0);
-					deleteIconRotation.setValue(0);
-					optionMainInsetRight.setValue(0);
-					setDeleteRevealKey(rowKey);
-					requestAnimationFrame(() => runDeleteActionAnimation(true));
-				});
-				return;
-			}
+		if (deleteRevealKey) {
+			runDeleteActionAnimation(false, () => {
+				deleteActionTranslateX.setValue(DELETE_ACTION_WIDTH);
+				deleteActionOpacity.setValue(0);
+				deleteIconRotation.setValue(0);
+				optionMainInsetRight.setValue(0);
+				setDeleteRevealKey(rowKey);
+				requestAnimationFrame(() => runDeleteActionAnimation(true));
+			});
+			return;
+		}
 
-			setDeleteRevealKey(rowKey);
-			requestAnimationFrame(() => runDeleteActionAnimation(true));
-		},
-		[
-			deleteActionOpacity,
-			deleteActionTranslateX,
-			deleteIconRotation,
-			deleteRevealKey,
-			optionMainInsetRight,
-			runDeleteActionAnimation,
-		],
-	);
+		setDeleteRevealKey(rowKey);
+		requestAnimationFrame(() => runDeleteActionAnimation(true));
+	}, [
+		deleteActionOpacity,
+		deleteActionTranslateX,
+		deleteIconRotation,
+		deleteRevealKey,
+		optionMainInsetRight,
+		runDeleteActionAnimation,
+	]);
 
 	const onDeleteOption = useCallback(
 		(row: ModifierOptionDraft) => {
@@ -840,7 +844,9 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 				}
 
 				clearModifierGroupDraft(draftId);
-				const successRoute = targetGroupId ? `${backRoute}/${encodeURIComponent(targetGroupId)}` : backRoute;
+				const successRoute = targetGroupId
+					? `${backRoute}/${encodeURIComponent(targetGroupId)}`
+					: backRoute;
 				router.replace(successRoute as any);
 			} catch (e: any) {
 				setError(e?.response?.data?.error?.message ?? e?.response?.data?.message ?? "Could not save modifier set.");
@@ -890,91 +896,95 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 					)}
 				/>
 				<TouchableWithoutFeedback onPress={dismissKeyboard} accessible={false}>
-					<View style={[styles.wrap, { paddingBottom: tabBarHeight + 8 }]}>
-						<View style={styles.contentWrap}>
-							<BAISurface bordered padded={false} style={[styles.card, surfaceInteractive]}>
-								<View style={styles.content}>
-									<BAITextInput
-										label='Modifier Set Name'
-										value={name}
-										onChangeText={setName}
-										maxLength={FIELD_LIMITS.productName}
-										placeholder='Modifier Set Name'
-									/>
-									<BAIText variant='caption' muted>
-										Selection rules apply during checkout. Configure the minimum and maximum selections for this set.
-									</BAIText>
-									<Pressable
-										onPress={onPressApplySet}
-										style={({ pressed }) => [
-											styles.applySetRow,
-											{ borderColor: theme.colors.outlineVariant ?? theme.colors.outline },
-											pressed ? { opacity: 0.86 } : null,
-										]}
-									>
-										<BAIText variant='subtitle'>Apply Set</BAIText>
-										<View style={styles.applySetRight}>
-											<BAIText variant='subtitle'>{applySetCount}</BAIText>
-											<MaterialCommunityIcons
-												name='chevron-right'
-												size={24}
-												color={theme.colors.onSurfaceVariant ?? theme.colors.onSurface}
-											/>
-										</View>
-									</Pressable>
-									<View
-										style={[
-											styles.advancedRulesContainer,
-											{ borderColor: theme.colors.outlineVariant ?? theme.colors.outline },
-										]}
-									>
+					<View style={[styles.wrap, { paddingBottom: tabBarHeight + 8 }] }>
+							<View style={styles.contentWrap}>
+								<BAISurface
+									bordered
+									padded={false}
+									style={[styles.card, surfaceInteractive]}
+								>
+									<View style={styles.content}>
+										<BAITextInput
+											label='Modifier Set Name'
+											value={name}
+											onChangeText={setName}
+											maxLength={FIELD_LIMITS.productName}
+											placeholder='Modifier Set Name'
+										/>
+										<BAIText variant='caption' muted>
+											Selection rules apply during checkout. Configure the minimum and maximum selections for this set.
+										</BAIText>
 										<Pressable
-											onPress={onToggleSelectionRules}
-											style={({ pressed }) => [styles.advancedRulesRow, pressed ? { opacity: 0.86 } : null]}
-										>
-											<View style={styles.advancedRulesLabelWrap}>
-												<BAIText variant='body'>Advanced rules</BAIText>
-												<BAIText variant='caption' muted>
-													{rulesSummary}
-												</BAIText>
-											</View>
-											<MaterialCommunityIcons
-												name={showSelectionRules ? "chevron-up" : "chevron-down"}
-												size={24}
-												color={theme.colors.onSurfaceVariant ?? theme.colors.onSurface}
-											/>
-										</Pressable>
-										{showSelectionRules ? (
-											<View style={styles.rulesRow}>
-												<BAITextInput
-													label='Minimum Selections'
-													value={minSelected}
-													onChangeText={(value) => setMinSelected(value.replace(/[^0-9]/g, ""))}
-													keyboardType='number-pad'
-													style={styles.ruleInput}
-												/>
-												<BAITextInput
-													label='Maximum Selections'
-													value={maxSelected}
-													onChangeText={(value) => setMaxSelected(value.replace(/[^0-9]/g, ""))}
-													keyboardType='number-pad'
-													style={styles.ruleInput}
-												/>
-											</View>
-										) : null}
-									</View>
-									<View style={styles.modifiersSection}>
-										<BAIText variant='subtitle'>Modifiers</BAIText>
-										<ScrollView
-											style={styles.modifiersList}
-											contentContainerStyle={[
-												styles.modifiersListContent,
-												{ paddingBottom: Math.max(0, modifiersListHeight * 0.5) },
+											onPress={onPressApplySet}
+											style={({ pressed }) => [
+												styles.applySetRow,
+												{ borderColor: theme.colors.outlineVariant ?? theme.colors.outline },
+												pressed ? { opacity: 0.86 } : null,
 											]}
-											onLayout={(event) => setModifiersListHeight(event.nativeEvent.layout.height)}
-											nestedScrollEnabled
-											showsVerticalScrollIndicator={false}
-											keyboardShouldPersistTaps='handled'
+										>
+											<BAIText variant='subtitle'>Apply Set</BAIText>
+											<View style={styles.applySetRight}>
+												<BAIText variant='subtitle'>{applySetCount}</BAIText>
+												<MaterialCommunityIcons
+													name='chevron-right'
+													size={24}
+													color={theme.colors.onSurfaceVariant ?? theme.colors.onSurface}
+												/>
+											</View>
+										</Pressable>
+										<View
+											style={[
+												styles.advancedRulesContainer,
+												{ borderColor: theme.colors.outlineVariant ?? theme.colors.outline },
+											]}
+										>
+											<Pressable
+												onPress={onToggleSelectionRules}
+												style={({ pressed }) => [styles.advancedRulesRow, pressed ? { opacity: 0.86 } : null]}
+											>
+												<View style={styles.advancedRulesLabelWrap}>
+													<BAIText variant='body'>Advanced rules</BAIText>
+													<BAIText variant='caption' muted>
+														{rulesSummary}
+													</BAIText>
+												</View>
+												<MaterialCommunityIcons
+													name={showSelectionRules ? "chevron-up" : "chevron-down"}
+													size={24}
+													color={theme.colors.onSurfaceVariant ?? theme.colors.onSurface}
+												/>
+											</Pressable>
+											{showSelectionRules ? (
+												<View style={styles.rulesRow}>
+													<BAITextInput
+														label='Minimum Selections'
+														value={minSelected}
+														onChangeText={(value) => setMinSelected(value.replace(/[^0-9]/g, ""))}
+														keyboardType='number-pad'
+														style={styles.ruleInput}
+													/>
+													<BAITextInput
+														label='Maximum Selections'
+														value={maxSelected}
+														onChangeText={(value) => setMaxSelected(value.replace(/[^0-9]/g, ""))}
+														keyboardType='number-pad'
+														style={styles.ruleInput}
+													/>
+												</View>
+											) : null}
+										</View>
+										<View style={styles.modifiersSection}>
+											<BAIText variant='subtitle'>Modifiers</BAIText>
+											<ScrollView
+												style={styles.modifiersList}
+												contentContainerStyle={[
+													styles.modifiersListContent,
+													{ paddingBottom: Math.max(0, modifiersListHeight * 0.5) },
+												]}
+												onLayout={(event) => setModifiersListHeight(event.nativeEvent.layout.height)}
+												nestedScrollEnabled
+												showsVerticalScrollIndicator={false}
+												keyboardShouldPersistTaps='handled'
 											keyboardDismissMode='on-drag'
 										>
 											{options.map((row, idx) =>
@@ -998,21 +1008,25 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 														onChangeOptionName={onChangeOptionName}
 														onChangePriceMinor={onChangePriceMinor}
 													/>
-												),
-											)}
-											<BAIButton variant='outline' style={styles.addOptionButton} onPress={onAddModifier}>
-												Add Modifier
-											</BAIButton>
-										</ScrollView>
+											),
+										)}
+												<BAIButton
+													variant='outline'
+													style={styles.addOptionButton}
+														onPress={onAddModifier}
+												>
+													Add Modifier
+												</BAIButton>
+											</ScrollView>
+										</View>
+										{error ? (
+											<BAIText variant='caption' style={{ color: theme.colors.error }}>
+												{error}
+											</BAIText>
+										) : null}
 									</View>
-									{error ? (
-										<BAIText variant='caption' style={{ color: theme.colors.error }}>
-											{error}
-										</BAIText>
-									) : null}
-								</View>
-							</BAISurface>
-						</View>
+								</BAISurface>
+							</View>
 					</View>
 				</TouchableWithoutFeedback>
 			</BAIScreen>
@@ -1159,5 +1173,6 @@ const styles = StyleSheet.create({
 		bottom: 0,
 		paddingLeft: DELETE_ACTION_GAP,
 		justifyContent: "center",
+		
 	},
 });

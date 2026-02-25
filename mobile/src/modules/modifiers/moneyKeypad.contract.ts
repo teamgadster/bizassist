@@ -20,7 +20,10 @@ function toMinorOrZero(value: unknown): number {
 	return normalized < 0 ? 0 : normalized;
 }
 
-export function parseMoneySelectionParams(raw: { [MONEY_OPTION_KEY]?: unknown; [MONEY_DELTA_MINOR_KEY]?: unknown }) {
+export function parseMoneySelectionParams(raw: {
+	[MONEY_OPTION_KEY]?: unknown;
+	[MONEY_DELTA_MINOR_KEY]?: unknown;
+}) {
 	return {
 		optionKey: normalizeParam(raw?.[MONEY_OPTION_KEY]),
 		deltaMinor: toMinorOrZero(raw?.[MONEY_DELTA_MINOR_KEY]),

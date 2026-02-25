@@ -53,10 +53,7 @@ export function formatMoneyFromMinor(args: {
 	const minorUnits = toNonNegativeInteger(args.minorUnits);
 	const divisor = 10 ** scale;
 	const major = minorUnits / divisor;
-	const code =
-		String(args.currencyCode ?? "PHP")
-			.trim()
-			.toUpperCase() || "PHP";
+	const code = String(args.currencyCode ?? "PHP").trim().toUpperCase() || "PHP";
 
 	try {
 		if (typeof Intl !== "undefined" && typeof Intl.NumberFormat === "function") {
