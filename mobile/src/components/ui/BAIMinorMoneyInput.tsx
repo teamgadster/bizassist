@@ -144,7 +144,7 @@ export function BAIMinorMoneyInput({
 			maxLength={maxLength}
 			placeholder={resolvedPlaceholder}
 			selection={maskedValue ? { start: caret, end: caret } : undefined}
-			contentStyle={[contentStyle, styles.rightAligned]}
+			contentStyle={[styles.rightAligned, contentStyle]}
 		/>
 	);
 }

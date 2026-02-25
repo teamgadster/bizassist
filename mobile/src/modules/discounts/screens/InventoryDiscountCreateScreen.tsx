@@ -275,6 +275,7 @@ export default function InventoryDiscountCreateScreen() {
 											value={valueText}
 											onChangeText={setValueText}
 											currencyCode={currencyCode}
+											contentStyle={{ textAlign: "left" }}
 											disabled={isUiDisabled}
 										/>
 									)}

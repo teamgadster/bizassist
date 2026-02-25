@@ -13,7 +13,7 @@ import { useTheme } from "react-native-paper";
 import { FontAwesome6 } from "@expo/vector-icons";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 
-import { BAIMoneyInput } from "@/components/ui/BAIMoneyInput";
+import { BAIMinorMoneyInput } from "@/components/ui/BAIMinorMoneyInput";
 import { BAIButton } from "@/components/ui/BAIButton";
 import { BAICTAPillButton } from "@/components/ui/BAICTAButton";
 import { BAIIconButton } from "@/components/ui/BAIIconButton";
@@ -957,21 +957,21 @@ export default function InventoryProductEditScreen({ routeScope = "inventory" }:
 
 										<BAIText variant='subtitle'>Pricing</BAIText>
 
-										<BAIMoneyInput
+										<BAIMinorMoneyInput
 											label='Price'
 											value={priceText}
 											onChangeText={setPriceText}
 											currencyCode={currencyCode}
-											maxLength={FIELD_LIMITS.price}
+											contentStyle={{ textAlign: "left" }}
 											disabled={isUiDisabled || isArchived}
 										/>
 
-										<BAIMoneyInput
+										<BAIMinorMoneyInput
 											label='Cost (optional)'
 											value={costText}
 											onChangeText={setCostText}
 											currencyCode={currencyCode}
-											maxLength={FIELD_LIMITS.cost}
+											contentStyle={{ textAlign: "left" }}
 											disabled={isUiDisabled || isArchived}
 										/>
 

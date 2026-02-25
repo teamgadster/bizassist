@@ -1005,6 +1005,7 @@ export function ServiceUpsertScreen(props: {
 								onChangeText={(text) => setDraft((prev) => ({ ...prev, priceText: sanitizeServicePriceInput(text) }))}
 								style={styles.formTextInput}
 								currencyCode={currencyCode}
+								contentStyle={{ textAlign: "left" }}
 								disabled={isUiDisabled}
 							/>
 

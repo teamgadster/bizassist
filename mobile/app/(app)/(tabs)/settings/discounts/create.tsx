@@ -15,7 +15,7 @@ import { BAISurface } from "@/components/ui/BAISurface";
 import { BAIText } from "@/components/ui/BAIText";
 import { BAIButton } from "@/components/ui/BAIButton";
 import { BAICTAButton } from "@/components/ui/BAICTAButton";
-import { BAIMoneyInput } from "@/components/ui/BAIMoneyInput";
+import { BAIMinorMoneyInput } from "@/components/ui/BAIMinorMoneyInput";
 import { BAITextarea } from "@/components/ui/BAITextarea";
 import { BAITextInput } from "@/components/ui/BAITextInput";
 import { BAIGroupTabs } from "@/components/ui/BAIGroupTabs";
@@ -234,14 +234,12 @@ export default function DiscountCreateScreen() {
 											disabled={isUiDisabled}
 										/>
 									) : (
-										<BAIMoneyInput
+										<BAIMinorMoneyInput
 											label='Amount'
 											value={valueText}
-											onChangeText={(value) =>
-												setValueText(value.length > valueLimit ? value.slice(0, valueLimit) : value)
-											}
+											onChangeText={setValueText}
 											currencyCode={currencyCode}
-											maxLength={valueLimit}
+											contentStyle={{ textAlign: "left" }}
 											disabled={isUiDisabled}
 										/>
 									)}

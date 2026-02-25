@@ -27,7 +27,7 @@ import { BAIScreen } from "@/components/ui/BAIScreen";
 import { BAISurface } from "@/components/ui/BAISurface";
 import { BAIText } from "@/components/ui/BAIText";
 import { BAITextInput } from "@/components/ui/BAITextInput";
-import { BAIMoneyInput } from "@/components/ui/BAIMoneyInput";
+import { BAIMinorMoneyInput } from "@/components/ui/BAIMinorMoneyInput";
 import { BAITextarea } from "@/components/ui/BAITextarea";
 import { BAISwitchRow } from "@/components/ui/BAISwitchRow";
 
@@ -367,14 +367,12 @@ export function DiscountEditScreen({ mode = "settings" }: { mode?: DiscountFlowM
 													disabled={isUiDisabled || isArchived}
 												/>
 											) : (
-												<BAIMoneyInput
+												<BAIMinorMoneyInput
 													label='Amount'
 													value={valueText}
-													onChangeText={(value) =>
-														setValueText(value.length > valueLimit ? value.slice(0, valueLimit) : value)
-													}
+													onChangeText={setValueText}
 													currencyCode={currencyCode}
-													maxLength={valueLimit}
+													contentStyle={{ textAlign: "left" }}
 													disabled={isUiDisabled || isArchived}
 												/>
 											)}

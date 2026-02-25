@@ -80,7 +80,7 @@ export function BAIMoneyInput({ value, onChangeText, currencyCode, onBlur, ...re
 			keyboardType='decimal-pad'
 			placeholder={placeholder}
 			left={currencySymbol ? <TextInput.Affix text={currencySymbol} textStyle={styles.moneyAffixText} /> : undefined}
-			contentStyle={[rest.contentStyle, styles.rightAligned]}
+			contentStyle={[styles.rightAligned, rest.contentStyle]}
 		/>
 	);
 }

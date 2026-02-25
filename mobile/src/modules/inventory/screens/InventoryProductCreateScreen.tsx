@@ -34,7 +34,6 @@ import { BAIButton } from "@/components/ui/BAIButton";
 import { BAIIconButton } from "@/components/ui/BAIIconButton";
 import { BAICTAPillButton } from "@/components/ui/BAICTAButton";
 import { BAIMinorMoneyInput } from "@/components/ui/BAIMinorMoneyInput";
-import { BAIMoneyInput } from "@/components/ui/BAIMoneyInput";
 import { BAITextInput } from "@/components/ui/BAITextInput";
 import { BAITextarea } from "@/components/ui/BAITextarea";
 import { BAIPressableRow } from "@/components/ui/BAIPressableRow";
@@ -1214,17 +1213,18 @@ export default function InventoryProductCreateScreen({
 								value={draft.priceText}
 								onChangeText={(value) => patch({ priceText: value })}
 								currencyCode={currencyCode}
+								contentStyle={{ textAlign: "left" }}
 								disabled={isUiDisabled}
 							/>
 
 							<View style={{ height: 0 }} />
 
-							<BAIMoneyInput
+							<BAIMinorMoneyInput
 								label='Cost (optional)'
 								value={draft.costText}
 								onChangeText={(value) => patch({ costText: value })}
 								currencyCode={currencyCode}
-								maxLength={FIELD_LIMITS.cost}
+								contentStyle={{ textAlign: "left" }}
 								disabled={isUiDisabled}
 							/>
 
