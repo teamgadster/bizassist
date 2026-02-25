@@ -343,11 +343,7 @@ export function ServiceUpsertScreen(props: {
 
 		const err = detailQuery.error as any;
 		const status = typeof err?.response?.status === "number" ? err.response.status : undefined;
-		const codeCandidate =
-			err?.response?.data?.code ??
-			err?.response?.data?.error?.code ??
-			err?.code ??
-			undefined;
+		const codeCandidate = err?.response?.data?.code ?? err?.response?.data?.error?.code ?? err?.code ?? undefined;
 		const code = typeof codeCandidate === "string" ? codeCandidate : undefined;
 		const fingerprint = `${resolvedServiceId}:${String(code ?? "")}::${String(status ?? "")}`;
 		if (loadErrorLoggedRef.current === fingerprint) return;
@@ -464,7 +460,9 @@ export function ServiceUpsertScreen(props: {
 		if (!detailQuery.data) return;
 
 		const detail = detailQuery.data as any;
-		const detailType = String(detail?.type ?? "").trim().toUpperCase();
+		const detailType = String(detail?.type ?? "")
+			.trim()
+			.toUpperCase();
 		if (detailType && detailType !== "SERVICE") {
 			trackServiceEditBreadcrumb({
 				name: "service_edit_hydrate_blocked_non_service",
@@ -877,255 +875,265 @@ export function ServiceUpsertScreen(props: {
 		<>
 			<BAIInlineHeaderScaffold title={headerTitle} variant='exit' onLeftPress={guardedOnExit} disabled={isUiDisabled}>
 				<BAIScreen padded={false} safeTop={false} safeBottom={false} style={styles.root}>
-				<TouchableWithoutFeedback onPress={dismissKeyboardOnBackgroundPress} accessible={false}>
-					<View
-						style={[
-							styles.screen,
-							styles.scroll,
-							{ backgroundColor: theme.colors.background, paddingBottom: screenBottomPad },
-						]}
-					>
-					<BAISurface style={[styles.card, { borderColor }]} padded={false}>
-						<View style={[styles.cardHeader, { borderBottomColor: borderColor }]}>
-							<BAIText variant='title'>{headerTitle}</BAIText>
-							<BAIText variant='body' muted>
-								{mode === "create" ? "Add service details below." : "Update service details below."}
-							</BAIText>
-						</View>
-						<ScrollView
-							style={styles.formScroll}
-							contentContainerStyle={styles.formContainer}
-							showsVerticalScrollIndicator={false}
-							showsHorizontalScrollIndicator={false}
-							keyboardShouldPersistTaps='handled'
+					<TouchableWithoutFeedback onPress={dismissKeyboardOnBackgroundPress} accessible={false}>
+						<View
+							style={[
+								styles.screen,
+								styles.scroll,
+								{ backgroundColor: theme.colors.background, paddingBottom: screenBottomPad },
+							]}
 						>
-							{detailLoadError ? (
-								<BAIText variant='caption' style={{ color: theme.colors.error }}>
-									{hasMissingEditId
-										? "Missing service id. Reopen Edit Service from Service Details."
-										: "Could not load service details. You can retry by reopening this screen."}
-								</BAIText>
-							) : null}
-
-							<View style={styles.imageSection}>
-								<View style={styles.imageInlineRow}>
-									<View
-										style={[
-											styles.imagePreview,
-											{
-												borderColor,
-												backgroundColor: theme.colors.surfaceVariant ?? theme.colors.surface,
-											},
-										]}
-									>
-										{previewHasImage ? (
-											<Image source={{ uri: previewImageUri }} style={styles.imagePreviewImage} resizeMode='cover' />
-										) : hasColor ? (
-											<View style={[styles.imagePreviewImage, { backgroundColor: tileColor }]} />
-										) : shouldShowEmpty ? (
-											<View style={styles.imagePreviewEmpty}>
-												<FontAwesome6
-													name='image'
-													size={64}
-													color={theme.colors.onSurfaceVariant ?? theme.colors.onSurface}
-												/>
-												<BAIText variant='caption' muted>
-													No Photo
-												</BAIText>
-											</View>
-										) : null}
-										{shouldShowTileTextOverlay ? <PosTileTextOverlay label={tileLabel} name={serviceName} textColor={tileLabelColor} /> : null}
-									</View>
-
-									<View style={styles.imageActionColumn}>
-										<BAIIconButton
-											variant='outlined'
-											size='md'
-											icon='camera'
-											iconSize={34}
-											accessibilityLabel='Edit image'
-											onPress={openTileEditor}
-											disabled={isUiDisabled}
-											style={styles.imageEditButtonOutside}
-										/>
-									</View>
+							<BAISurface style={[styles.card, { borderColor }]} padded={false}>
+								<View style={[styles.cardHeader, { borderBottomColor: borderColor }]}>
+									<BAIText variant='title'>{headerTitle}</BAIText>
+									<BAIText variant='body' muted>
+										{mode === "create" ? "Add service details below." : "Update service details below."}
+									</BAIText>
 								</View>
-							</View>
+								<ScrollView
+									style={styles.formScroll}
+									contentContainerStyle={styles.formContainer}
+									showsVerticalScrollIndicator={false}
+									showsHorizontalScrollIndicator={false}
+									keyboardShouldPersistTaps='handled'
+								>
+									{detailLoadError ? (
+										<BAIText variant='caption' style={{ color: theme.colors.error }}>
+											{hasMissingEditId
+												? "Missing service id. Reopen Edit Service from Service Details."
+												: "Could not load service details. You can retry by reopening this screen."}
+										</BAIText>
+									) : null}
 
-							<BAITextInput
-								label='Name'
-								value={draft.name}
-								onChangeText={(text) => setDraft((prev) => ({ ...prev, name: sanitizeServiceNameDraftInput(text) }))}
-								onBlur={() =>
-									setDraft((prev) => ({
-										...prev,
-										name: sanitizeServiceNameInput(prev.name),
-									}))
-								}
-								style={styles.formTextInput}
-								maxLength={FIELD_LIMITS.productName}
-								placeholder='e.g. Haircut'
-								autoCapitalize='words'
-								disabled={isUiDisabled}
-							/>
+									<View style={styles.imageSection}>
+										<View style={styles.imageInlineRow}>
+											<View
+												style={[
+													styles.imagePreview,
+													{
+														borderColor,
+														backgroundColor: theme.colors.surfaceVariant ?? theme.colors.surface,
+													},
+												]}
+											>
+												{previewHasImage ? (
+													<Image
+														source={{ uri: previewImageUri }}
+														style={styles.imagePreviewImage}
+														resizeMode='cover'
+													/>
+												) : hasColor ? (
+													<View style={[styles.imagePreviewImage, { backgroundColor: tileColor }]} />
+												) : shouldShowEmpty ? (
+													<View style={styles.imagePreviewEmpty}>
+														<FontAwesome6
+															name='image'
+															size={64}
+															color={theme.colors.onSurfaceVariant ?? theme.colors.onSurface}
+														/>
+														<BAIText variant='caption' muted>
+															No Photo
+														</BAIText>
+													</View>
+												) : null}
+												{shouldShowTileTextOverlay ? (
+													<PosTileTextOverlay label={tileLabel} name={serviceName} textColor={tileLabelColor} />
+												) : null}
+											</View>
 
-							<BAITextarea
-								label='Description (optional)'
-								value={draft.description}
-								onChangeText={(text) =>
-									setDraft((prev) => ({ ...prev, description: sanitizeServiceDescriptionDraft(text) }))
-								}
-								onBlur={() =>
-									setDraft((prev) => ({
-										...prev,
-										description: sanitizeServiceDescriptionFinal(prev.description),
-									}))
-								}
-								maxLength={FIELD_LIMITS.productDescription}
-								placeholder='Optional description…'
-								disabled={isUiDisabled}
-							/>
+											<View style={styles.imageActionColumn}>
+												<BAIIconButton
+													variant='outlined'
+													size='md'
+													icon='camera'
+													iconSize={34}
+													accessibilityLabel='Edit image'
+													onPress={openTileEditor}
+													disabled={isUiDisabled}
+													style={styles.imageEditButtonOutside}
+												/>
+											</View>
+										</View>
+									</View>
 
-							<BAIPressableRow
-								label='Category'
-								value={draft.categoryName || "None"}
-								onPress={openCategoryPicker}
-								disabled={isUiDisabled}
-							/>
-
-							<ModifierGroupSelector
-								selectedIds={draft.modifierGroupIds ?? []}
-								onChange={(modifierGroupIds) => setDraft((prev) => ({ ...prev, modifierGroupIds }))}
-								disabled={isUiDisabled}
-							/>
-
-							<BAIMinorMoneyInput
-								label='Price'
-								value={draft.priceText}
-								onChangeText={(text) => setDraft((prev) => ({ ...prev, priceText: sanitizeServicePriceInput(text) }))}
-								style={styles.formTextInput}
-								currencyCode={currencyCode}
-								contentStyle={{ textAlign: "left" }}
-								disabled={isUiDisabled}
-							/>
-
-							<DurationWheelAccordion
-								valueMinutes={draft.durationTotalMinutes}
-								onChangeMinutes={(nextMinutes) =>
-									setDraft((prev) => ({
-										...prev,
-										durationTotalMinutes: clampDurationMinutes(nextMinutes),
-									}))
-								}
-								disabled={isUiDisabled || draft.processingEnabled}
-								expanded={openDurationAccordion === "total"}
-								onExpandedChange={(next) => onDurationAccordionExpandedChange("total", next)}
-							/>
-
-							<BAISwitchRow
-								label='Add Processing Time'
-								value={draft.processingEnabled}
-								onValueChange={onToggleProcessing}
-								disabled={isUiDisabled}
-							/>
-
-							{draft.processingEnabled ? (
-								<>
-									<DurationWheelAccordion
-										label='Initial Duration'
-										valueMinutes={draft.durationInitialMinutes ?? DEFAULT_SERVICE_SEGMENT_DURATION_MINUTES}
-										onChangeMinutes={(nextMinutes) =>
+									<BAITextInput
+										label='Name'
+										value={draft.name}
+										onChangeText={(text) =>
+											setDraft((prev) => ({ ...prev, name: sanitizeServiceNameDraftInput(text) }))
+										}
+										onBlur={() =>
 											setDraft((prev) => ({
 												...prev,
-												durationInitialMinutes: clampDurationMinutes(nextMinutes),
-												durationTotalMinutes:
-													clampDurationMinutes(nextMinutes) +
-													(normalizeDurationOrNull(prev.durationProcessingMinutes) ?? 0) +
-													(normalizeDurationOrNull(prev.durationFinalMinutes) ?? 0),
+												name: sanitizeServiceNameInput(prev.name),
 											}))
 										}
+										style={styles.formTextInput}
+										maxLength={FIELD_LIMITS.productName}
+										placeholder='e.g. Haircut'
+										autoCapitalize='words'
 										disabled={isUiDisabled}
-										expanded={openDurationAccordion === "initial"}
-										onExpandedChange={(next) => onDurationAccordionExpandedChange("initial", next)}
+									/>
+
+									<BAITextarea
+										label='Description (optional)'
+										value={draft.description}
+										onChangeText={(text) =>
+											setDraft((prev) => ({ ...prev, description: sanitizeServiceDescriptionDraft(text) }))
+										}
+										onBlur={() =>
+											setDraft((prev) => ({
+												...prev,
+												description: sanitizeServiceDescriptionFinal(prev.description),
+											}))
+										}
+										maxLength={FIELD_LIMITS.productDescription}
+										placeholder='Optional description…'
+										disabled={isUiDisabled}
+									/>
+
+									<BAIPressableRow
+										label='Category'
+										value={draft.categoryName || "None"}
+										onPress={openCategoryPicker}
+										disabled={isUiDisabled}
+									/>
+
+									<ModifierGroupSelector
+										selectedIds={draft.modifierGroupIds ?? []}
+										onChange={(modifierGroupIds) => setDraft((prev) => ({ ...prev, modifierGroupIds }))}
+										disabled={isUiDisabled}
+									/>
+
+									<BAIMinorMoneyInput
+										label='Price'
+										value={draft.priceText}
+										onChangeText={(text) =>
+											setDraft((prev) => ({ ...prev, priceText: sanitizeServicePriceInput(text) }))
+										}
+										style={styles.formTextInput}
+										currencyCode={currencyCode}
+										contentStyle={{ textAlign: "left" }}
+										disabled={isUiDisabled}
 									/>
 
 									<DurationWheelAccordion
-										label='Processing Duration'
-										valueMinutes={draft.durationProcessingMinutes ?? DEFAULT_SERVICE_SEGMENT_DURATION_MINUTES}
+										valueMinutes={draft.durationTotalMinutes}
 										onChangeMinutes={(nextMinutes) =>
 											setDraft((prev) => ({
 												...prev,
-												durationProcessingMinutes: clampDurationMinutes(nextMinutes),
-												durationTotalMinutes:
-													(normalizeDurationOrNull(prev.durationInitialMinutes) ?? 0) +
-													clampDurationMinutes(nextMinutes) +
-													(normalizeDurationOrNull(prev.durationFinalMinutes) ?? 0),
+												durationTotalMinutes: clampDurationMinutes(nextMinutes),
 											}))
 										}
-										disabled={isUiDisabled}
-										expanded={openDurationAccordion === "processing"}
-										onExpandedChange={(next) => onDurationAccordionExpandedChange("processing", next)}
+										disabled={isUiDisabled || draft.processingEnabled}
+										expanded={openDurationAccordion === "total"}
+										onExpandedChange={(next) => onDurationAccordionExpandedChange("total", next)}
 									/>
 
-									<DurationWheelAccordion
-										label='Final Duration'
-										valueMinutes={draft.durationFinalMinutes ?? DEFAULT_SERVICE_SEGMENT_DURATION_MINUTES}
-										onChangeMinutes={(nextMinutes) =>
-											setDraft((prev) => ({
-												...prev,
-												durationFinalMinutes: clampDurationMinutes(nextMinutes),
-												durationTotalMinutes:
-													(normalizeDurationOrNull(prev.durationInitialMinutes) ?? 0) +
-													(normalizeDurationOrNull(prev.durationProcessingMinutes) ?? 0) +
-													clampDurationMinutes(nextMinutes),
-											}))
-										}
+									<BAISwitchRow
+										label='Add Processing Time'
+										value={draft.processingEnabled}
+										onValueChange={onToggleProcessing}
 										disabled={isUiDisabled}
-										expanded={openDurationAccordion === "final"}
-										onExpandedChange={(next) => onDurationAccordionExpandedChange("final", next)}
 									/>
-								</>
-							) : null}
 
-							{error ? (
-								<BAIText variant='caption' style={{ color: theme.colors.error }}>
-									{error}
-								</BAIText>
-							) : null}
+									{draft.processingEnabled ? (
+										<>
+											<DurationWheelAccordion
+												label='Initial Duration'
+												valueMinutes={draft.durationInitialMinutes ?? DEFAULT_SERVICE_SEGMENT_DURATION_MINUTES}
+												onChangeMinutes={(nextMinutes) =>
+													setDraft((prev) => ({
+														...prev,
+														durationInitialMinutes: clampDurationMinutes(nextMinutes),
+														durationTotalMinutes:
+															clampDurationMinutes(nextMinutes) +
+															(normalizeDurationOrNull(prev.durationProcessingMinutes) ?? 0) +
+															(normalizeDurationOrNull(prev.durationFinalMinutes) ?? 0),
+													}))
+												}
+												disabled={isUiDisabled}
+												expanded={openDurationAccordion === "initial"}
+												onExpandedChange={(next) => onDurationAccordionExpandedChange("initial", next)}
+											/>
 
-							<View style={styles.actions}>
-								<BAICTAPillButton
-									variant='outline'
-									intent='neutral'
-									onPress={guardedOnExit}
-									disabled={isUiDisabled}
-									style={styles.actionButton}
-								>
-									Cancel
-								</BAICTAPillButton>
-								<BAICTAPillButton
-									onPress={onSaveDetail}
-									disabled={isUiDisabled || !validation.isValid}
-									style={styles.actionButton}
-								>
-									Save
-								</BAICTAPillButton>
-							</View>
-							{mode === "create" ? (
-								<BAIButton
-									variant='solid'
-									onPress={onSaveAndAddAnother}
-									disabled={isUiDisabled || !validation.isValid}
-									style={styles.saveAnotherButton}
-									intent='primary'
-								>
-									Save & Add Another
-								</BAIButton>
-							) : null}
-						</ScrollView>
-					</BAISurface>
-					</View>
-				</TouchableWithoutFeedback>
+											<DurationWheelAccordion
+												label='Processing Duration'
+												valueMinutes={draft.durationProcessingMinutes ?? DEFAULT_SERVICE_SEGMENT_DURATION_MINUTES}
+												onChangeMinutes={(nextMinutes) =>
+													setDraft((prev) => ({
+														...prev,
+														durationProcessingMinutes: clampDurationMinutes(nextMinutes),
+														durationTotalMinutes:
+															(normalizeDurationOrNull(prev.durationInitialMinutes) ?? 0) +
+															clampDurationMinutes(nextMinutes) +
+															(normalizeDurationOrNull(prev.durationFinalMinutes) ?? 0),
+													}))
+												}
+												disabled={isUiDisabled}
+												expanded={openDurationAccordion === "processing"}
+												onExpandedChange={(next) => onDurationAccordionExpandedChange("processing", next)}
+											/>
+
+											<DurationWheelAccordion
+												label='Final Duration'
+												valueMinutes={draft.durationFinalMinutes ?? DEFAULT_SERVICE_SEGMENT_DURATION_MINUTES}
+												onChangeMinutes={(nextMinutes) =>
+													setDraft((prev) => ({
+														...prev,
+														durationFinalMinutes: clampDurationMinutes(nextMinutes),
+														durationTotalMinutes:
+															(normalizeDurationOrNull(prev.durationInitialMinutes) ?? 0) +
+															(normalizeDurationOrNull(prev.durationProcessingMinutes) ?? 0) +
+															clampDurationMinutes(nextMinutes),
+													}))
+												}
+												disabled={isUiDisabled}
+												expanded={openDurationAccordion === "final"}
+												onExpandedChange={(next) => onDurationAccordionExpandedChange("final", next)}
+											/>
+										</>
+									) : null}
+
+									{error ? (
+										<BAIText variant='caption' style={{ color: theme.colors.error }}>
+											{error}
+										</BAIText>
+									) : null}
+
+									<View style={styles.actions}>
+										<BAICTAPillButton
+											variant='outline'
+											intent='neutral'
+											onPress={guardedOnExit}
+											disabled={isUiDisabled}
+											style={styles.actionButton}
+										>
+											Cancel
+										</BAICTAPillButton>
+										<BAICTAPillButton
+											onPress={onSaveDetail}
+											disabled={isUiDisabled || !validation.isValid}
+											style={styles.actionButton}
+										>
+											Save
+										</BAICTAPillButton>
+									</View>
+									{mode === "create" ? (
+										<BAIButton
+											variant='solid'
+											onPress={onSaveAndAddAnother}
+											disabled={isUiDisabled || !validation.isValid}
+											style={styles.saveAnotherButton}
+											intent='primary'
+										>
+											Save & Add Another
+										</BAIButton>
+									) : null}
+								</ScrollView>
+							</BAISurface>
+						</View>
+					</TouchableWithoutFeedback>
 				</BAIScreen>
 			</BAIInlineHeaderScaffold>
 

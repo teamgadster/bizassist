@@ -1097,7 +1097,9 @@ export default function InventoryProductCreateScreen({
 												</BAIText>
 											</View>
 										) : null}
-										{shouldShowTileTextOverlay ? <PosTileTextOverlay label={tileLabel} name={itemName} textColor={tileLabelColor} /> : null}
+										{shouldShowTileTextOverlay ? (
+											<PosTileTextOverlay label={tileLabel} name={itemName} textColor={tileLabelColor} />
+										) : null}
 									</View>
 
 									<View style={styles.imageActionColumn}>
