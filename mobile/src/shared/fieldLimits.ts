@@ -63,7 +63,7 @@ export const FIELD_LIMITS = {
 	searchBarcode: 64,
 
 	// pricing inputs (string length)
-	price: 16,
+	price: 5,
 	cost: 16,
 
 	// OTP

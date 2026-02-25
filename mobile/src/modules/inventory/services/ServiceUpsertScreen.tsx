@@ -15,7 +15,7 @@ import { BAIButton } from "@/components/ui/BAIButton";
 import { BAICTAPillButton } from "@/components/ui/BAICTAButton";
 import { BAIInlineHeaderScaffold } from "@/components/ui/BAIInlineHeaderScaffold";
 import { BAIIconButton } from "@/components/ui/BAIIconButton";
-import { BAIMoneyInput } from "@/components/ui/BAIMoneyInput";
+import { BAIMinorMoneyInput } from "@/components/ui/BAIMinorMoneyInput";
 import { BAIPressableRow } from "@/components/ui/BAIPressableRow";
 import { BAIScreen } from "@/components/ui/BAIScreen";
 import { BAISurface } from "@/components/ui/BAISurface";
@@ -142,7 +142,7 @@ function sanitizeServiceNameDraftInput(raw: string): string {
 }
 
 function sanitizeServicePriceInput(raw: string): string {
-	return capText(sanitizeMoneyInput(raw), FIELD_LIMITS.price);
+	return sanitizeMoneyInput(raw);
 }
 
 function sanitizeServiceDescriptionDraft(raw: string): string {
@@ -999,13 +999,12 @@ export function ServiceUpsertScreen(props: {
 								disabled={isUiDisabled}
 							/>
 
-							<BAIMoneyInput
+							<BAIMinorMoneyInput
 								label='Price'
 								value={draft.priceText}
 								onChangeText={(text) => setDraft((prev) => ({ ...prev, priceText: sanitizeServicePriceInput(text) }))}
 								style={styles.formTextInput}
 								currencyCode={currencyCode}
-								maxLength={FIELD_LIMITS.price}
 								disabled={isUiDisabled}
 							/>
 

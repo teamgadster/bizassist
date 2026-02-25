@@ -4,7 +4,7 @@ export type ModifierOptionDraft = {
 	key: string;
 	id?: string;
 	name: string;
-	priceText: string;
+	deltaMinor: number;
 	isSoldOut: boolean;
 	removed?: boolean;
 };
@@ -57,7 +57,7 @@ function makeDefaultDraft(
 		isRequired: false,
 		minSelected: "0",
 		maxSelected: "1",
-		options: [{ key: makeOptionKey(), name: "", priceText: "0.00", isSoldOut: false }],
+		options: [{ key: makeOptionKey(), name: "", deltaMinor: 0, isSoldOut: false }],
 		appliedProductIds: [],
 		hydratedFromServer: intent === "create",
 	};

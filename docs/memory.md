@@ -1,3 +1,28 @@
+## 2026-02-24 — Money Input Package Evaluation Lock (react-native-currency-input)
+
+### Memory Lock
+
+- `react-native-currency-input` is approved for implementation behind the existing `BAIMoneyInput` abstraction (no direct feature-screen imports).
+- Migration must preserve current screen-level string contract (`value` / `onChangeText`) while adapting internally to package numeric control (`value` / `onChangeValue`).
+- `FakeCurrencyInput` is not approved for current BizAssist forms due to cursor/selection UX tradeoffs.
+- Money formatting defaults for BizAssist migration are locked to comma delimiter + dot decimal separator + 2 precision, with shared field budget enforcement retained.
+- Character budget governance remains centralized in shared limits (`FIELD_LIMITS`) and must not be replaced by per-screen ad hoc logic.
+- Canonical implementation plan is locked in `docs/features/MONEY_INPUT_REACT_NATIVE_CURRENCY_INPUT_MASTERPLAN_2026-02-24.md`.
+
+## 2026-02-24 — Money Input Cap Behavior Governance (Silent Growth Lock)
+
+### Memory Lock
+
+- Canonical term for this behavior is **Silent Growth Lock**.
+- Implementation term in tickets/code notes can be **Backspace-Safe Cap Guard**.
+- For number-pad money fields, once the configured max minor-digit budget is reached, additional numeric growth taps must be silently ignored (no jitter, no warning toast).
+- Backspace/delete must remain fully available after cap is reached.
+- Replacement edits that do not increase effective digit length remain allowed.
+- Preferred implementation pattern is dual guard:
+  - native/formatted `maxLength` aligned to rendered money format length
+  - handler-level growth guard in `onChangeText` based on minor-digit budget.
+- Reuse this pattern across other money inputs through shared utilities/abstractions before adding per-screen bespoke logic.
+
 ## 2026-02-24 — Purpose-Aligned Character Limit Governance (Masterplan + Memory)
 
 ### Memory Lock

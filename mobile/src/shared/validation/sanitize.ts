@@ -2,6 +2,7 @@
 // path: src/shared/validation/sanitize.ts
 
 import { sanitizeTextInput, stripControlChars } from "@/shared/text/sanitizeText";
+import { MONEY_INPUT_PRECISION } from "@/shared/money/money.constants";
 
 export function sanitizeSkuInput(raw: string): string {
 	if (!raw) return "";
@@ -148,7 +149,7 @@ export function sanitizeDescriptionInput(raw: string): string {
 	return joined.replace(/\n{3,}/g, "\n\n");
 }
 
-export function sanitizeMoneyInput(raw: string, maxDecimals = 2): string {
+export function sanitizeMoneyInput(raw: string, maxDecimals = MONEY_INPUT_PRECISION): string {
 	if (!raw) return "";
 
 	const withoutControlChars = stripControlChars(raw, {
