@@ -11,12 +11,12 @@ import { BAISurface } from "@/components/ui/BAISurface";
 import { BAIText } from "@/components/ui/BAIText";
 import { useActiveBusinessMeta } from "@/modules/business/useActiveBusinessMeta";
 import { runGovernedBack } from "@/modules/inventory/navigation.governance";
-	import {
-		MONEY_DELTA_MINOR_KEY,
-		MONEY_DRAFT_ID_KEY,
-		MONEY_OPTION_KEY,
-		parseMoneyKeypadParams,
-	} from "@/modules/modifiers/moneyKeypad.contract";
+import {
+	MONEY_DELTA_MINOR_KEY,
+	MONEY_DRAFT_ID_KEY,
+	MONEY_OPTION_KEY,
+	parseMoneyKeypadParams,
+} from "@/modules/modifiers/moneyKeypad.contract";
 import { MONEY_MAX_MINOR_DIGITS, formatMoneyFromMinor, moneyOps } from "@/shared/money/money.minor";
 
 const KEY_ROWS: readonly (readonly ("1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "00" | "0" | "back")[])[] = [
@@ -123,7 +123,7 @@ export default function ModifierOptionMoneyKeypadScreen() {
 				/>
 
 				<View style={styles.contentWrap}>
-					<BAISurface bordered style={[styles.card, { borderColor }]}> 
+					<BAISurface bordered style={[styles.card, { borderColor }]}>
 						<BAIText variant='title' style={styles.valueText}>
 							{formattedValue}
 						</BAIText>
@@ -153,11 +153,7 @@ export default function ModifierOptionMoneyKeypadScreen() {
 											disabled={isNavLocked}
 										>
 											{cell === "back" ? (
-												<MaterialCommunityIcons
-													name='backspace-outline'
-													size={22}
-													color={theme.colors.onSurface}
-												/>
+												<MaterialCommunityIcons name='backspace-outline' size={22} color={theme.colors.onSurface} />
 											) : (
 												<BAIText variant='title'>{cell}</BAIText>
 											)}

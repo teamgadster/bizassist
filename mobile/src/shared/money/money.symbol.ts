@@ -14,12 +14,17 @@ const CURRENCY_SYMBOL_FALLBACK: Record<string, string> = {
 };
 
 function normalizeCurrencyCode(code?: string | null): string {
-	return String(code ?? "").trim().toUpperCase();
+	return String(code ?? "")
+		.trim()
+		.toUpperCase();
 }
 
 function extractSymbolFromFormatter(formatter: Intl.NumberFormat, currencyCode: string): string {
 	if (typeof formatter.formatToParts === "function") {
-		const part = formatter.formatToParts(0).find((piece) => piece.type === "currency")?.value?.trim();
+		const part = formatter
+			.formatToParts(0)
+			.find((piece) => piece.type === "currency")
+			?.value?.trim();
 		if (part && part.toUpperCase() !== currencyCode) {
 			return part;
 		}

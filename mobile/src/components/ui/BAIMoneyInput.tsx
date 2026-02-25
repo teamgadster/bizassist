@@ -3,26 +3,22 @@ import { StyleSheet } from "react-native";
 import { TextInput } from "react-native-paper";
 
 import { BAITextInput } from "@/components/ui/BAITextInput";
-import {
-	MONEY_INPUT_MAX_VALUE,
-	MONEY_INPUT_PRECISION,
-} from "@/shared/money/money.constants";
+import { MONEY_INPUT_MAX_VALUE, MONEY_INPUT_PRECISION } from "@/shared/money/money.constants";
 import { resolveCurrencySymbol } from "@/shared/money/money.symbol";
 import { sanitizeMoneyInput } from "@/shared/validation/sanitize";
 
 type BAITextInputProps = React.ComponentProps<typeof BAITextInput>;
 
-type BAIMoneyInputProps = Omit<
-	BAITextInputProps,
-	"value" | "onChangeText" | "keyboardType"
-> & {
+type BAIMoneyInputProps = Omit<BAITextInputProps, "value" | "onChangeText" | "keyboardType"> & {
 	value: string;
 	onChangeText: (value: string) => void;
 	currencyCode: string;
 };
 
 function parseMoneyValue(raw: string): number | null {
-	const normalized = String(raw ?? "").replace(/,/g, "").trim();
+	const normalized = String(raw ?? "")
+		.replace(/,/g, "")
+		.trim();
 	if (!normalized) return null;
 	const value = Number(normalized);
 	return Number.isFinite(value) ? value : null;
@@ -52,9 +48,12 @@ export function BAIMoneyInput({ value, onChangeText, currencyCode, onBlur, ...re
 		return `${currencySymbol}${basePlaceholder}`;
 	}, [currencySymbol, rest.placeholder]);
 
-	const handleChangeText = useCallback((next: string) => {
-		onChangeText(sanitizeMoneyInput(next));
-	}, [onChangeText]);
+	const handleChangeText = useCallback(
+		(next: string) => {
+			onChangeText(sanitizeMoneyInput(next));
+		},
+		[onChangeText],
+	);
 
 	const handleBlur = useCallback(
 		(event: any) => {
