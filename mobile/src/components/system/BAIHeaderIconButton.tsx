@@ -54,8 +54,8 @@ const HEADER_ICON_MARGIN_LEFT = Platform.OS === "ios" ? 6 : 2;
 export function BAIHeaderIconButton(props: BAIHeaderIconButtonProps) {
 	const theme = useTheme();
 	const neutralButtonBg = theme.dark
-		? theme.colors.surfaceVariant ?? theme.colors.surfaceDisabled ?? theme.colors.surface
-		: theme.colors.outline ?? theme.colors.surfaceDisabled ?? theme.colors.surfaceVariant;
+		? (theme.colors.surfaceVariant ?? theme.colors.surfaceDisabled ?? theme.colors.surface)
+		: (theme.colors.outline ?? theme.colors.surfaceDisabled ?? theme.colors.surfaceVariant);
 
 	const { disabled, onPress, wrapStyle, buttonStyle } = props;
 

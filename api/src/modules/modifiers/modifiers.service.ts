@@ -467,14 +467,22 @@ export class ModifiersService {
 	): Promise<ApplySharedModifierAvailabilityResult> {
 		const preview = await this.getSharedModifierAvailabilityPreview(businessId, optionId);
 		if (preview.groups.length === 0) {
-			throw new AppError(StatusCodes.UNPROCESSABLE_ENTITY, "No modifier sets found to update.", "MODIFIER_GROUP_INVALID");
+			throw new AppError(
+				StatusCodes.UNPROCESSABLE_ENTITY,
+				"No modifier sets found to update.",
+				"MODIFIER_GROUP_INVALID",
+			);
 		}
 
 		const selectedIds = Array.from(
 			new Set((input.modifierGroupIds ?? []).map((id) => String(id ?? "").trim()).filter(Boolean)),
 		);
 		if (selectedIds.length === 0) {
-			throw new AppError(StatusCodes.UNPROCESSABLE_ENTITY, "Select at least one modifier set.", "MODIFIER_GROUP_INVALID");
+			throw new AppError(
+				StatusCodes.UNPROCESSABLE_ENTITY,
+				"Select at least one modifier set.",
+				"MODIFIER_GROUP_INVALID",
+			);
 		}
 
 		const validGroupIds = new Set(preview.groups.map((group) => group.modifierGroupId));

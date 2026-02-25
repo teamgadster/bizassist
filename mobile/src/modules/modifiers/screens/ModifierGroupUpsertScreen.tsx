@@ -41,11 +41,7 @@ import type { ModifierSelectionType, SharedModifierAvailabilityPreview } from "@
 import { useAppToast } from "@/providers/AppToastProvider";
 import { FIELD_LIMITS } from "@/shared/fieldLimits";
 import { MONEY_INPUT_PRECISION } from "@/shared/money/money.constants";
-import {
-	digitsToMinorUnits,
-	parseMinorUnits,
-	sanitizeDigits,
-} from "@/shared/money/money.minor";
+import { digitsToMinorUnits, parseMinorUnits, sanitizeDigits } from "@/shared/money/money.minor";
 
 type Props = { mode: "settings" | "inventory"; intent: "create" | "edit" };
 const DELETE_ACTION_WIDTH = 88;
@@ -140,7 +136,9 @@ function buildSnapshot(input: {
 		minSelected: input.minSelected,
 		maxSelected: input.maxSelected,
 		appliedProductIds: Array.from(
-			new Set((input.appliedProductIds ?? []).map((value) => String(value ?? "").trim()).filter((value) => value.length > 0)),
+			new Set(
+				(input.appliedProductIds ?? []).map((value) => String(value ?? "").trim()).filter((value) => value.length > 0),
+			),
 		).sort(),
 		options: input.options
 			.filter((option) => !option.removed && hasModifierOptionInput(option))
@@ -317,7 +315,12 @@ const ModifierOptionRow = memo(function ModifierOptionRow({
 							/>
 							{!isNameFocused && row.name.trim().length > 0 ? (
 								<View pointerEvents='none' style={styles.optionNameOverlayWrap}>
-									<BAIText variant='body' numberOfLines={1} ellipsizeMode='tail' style={[styles.optionNameOverlayText, { color: nameTextColor }]}>
+									<BAIText
+										variant='body'
+										numberOfLines={1}
+										ellipsizeMode='tail'
+										style={[styles.optionNameOverlayText, { color: nameTextColor }]}
+									>
 										{row.name}
 									</BAIText>
 								</View>
@@ -442,7 +445,7 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 				? seed.options.map((option) => ({
 						...option,
 						name: clampFieldValue(option.name, MODIFIER_NAME_CHAR_LIMIT),
-				  }))
+					}))
 				: [makeEmptyOptionDraft()];
 		setOptions(ensureTrailingPlaceholderOption(seededOptions));
 		setShowSelectionRules(seed.minSelected !== "0" || seed.maxSelected !== "1");
@@ -598,15 +601,15 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 		if (!initialized) return false;
 		const baseline =
 			initialSnapshot ??
-				buildSnapshot({
-					name: "",
-					selectionType: "MULTI",
-					isRequired: false,
-					minSelected: "0",
-					maxSelected: "1",
-					options: [{ key: "base", name: "", deltaMinor: 0, isSoldOut: false }],
-					appliedProductIds: [],
-				});
+			buildSnapshot({
+				name: "",
+				selectionType: "MULTI",
+				isRequired: false,
+				minSelected: "0",
+				maxSelected: "1",
+				options: [{ key: "base", name: "", deltaMinor: 0, isSoldOut: false }],
+				appliedProductIds: [],
+			});
 		return baseline !== currentSnapshot;
 	}, [currentSnapshot, initialSnapshot, initialized]);
 
@@ -678,9 +681,8 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 	}, [currencyCode]);
 	const maxPriceInputLength = useMemo(
 		() =>
-			formatPriceDisplay(
-				digitsToMinorUnits("9".repeat(PRICE_INPUT_MAX_MINOR_DIGITS), PRICE_INPUT_MAX_MINOR_DIGITS),
-			).length,
+			formatPriceDisplay(digitsToMinorUnits("9".repeat(PRICE_INPUT_MAX_MINOR_DIGITS), PRICE_INPUT_MAX_MINOR_DIGITS))
+				.length,
 		[formatPriceDisplay],
 	);
 	const pricePlaceholder = useMemo(() => formatPriceDisplay(0), [formatPriceDisplay]);
@@ -762,17 +764,20 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 		[deleteActionOpacity, deleteActionTranslateX, deleteIconRotation, optionMainInsetRight],
 	);
 
-	const closeDeleteReveal = useCallback((onClosed?: () => void) => {
-		if (!deleteRevealKey) {
-			onClosed?.();
-			return;
-		}
-		runDeleteActionAnimation(false, () => {
-			resetDeleteRevealAnimationValues();
-			setDeleteRevealKey(null);
-			onClosed?.();
-		});
-	}, [deleteRevealKey, resetDeleteRevealAnimationValues, runDeleteActionAnimation]);
+	const closeDeleteReveal = useCallback(
+		(onClosed?: () => void) => {
+			if (!deleteRevealKey) {
+				onClosed?.();
+				return;
+			}
+			runDeleteActionAnimation(false, () => {
+				resetDeleteRevealAnimationValues();
+				setDeleteRevealKey(null);
+				onClosed?.();
+			});
+		},
+		[deleteRevealKey, resetDeleteRevealAnimationValues, runDeleteActionAnimation],
+	);
 
 	const dismissKeyboard = useCallback(() => {
 		Keyboard.dismiss();
@@ -817,9 +822,7 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 
 	const onToggleSharedGroupSelection = useCallback((modifierGroupId: string) => {
 		setSharedAvailabilitySelectedGroupIds((prev) =>
-			prev.includes(modifierGroupId)
-				? prev.filter((entry) => entry !== modifierGroupId)
-				: [...prev, modifierGroupId],
+			prev.includes(modifierGroupId) ? prev.filter((entry) => entry !== modifierGroupId) : [...prev, modifierGroupId],
 		);
 	}, []);
 
@@ -901,12 +904,7 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 			setDeleteRevealKey(rowKey);
 			requestAnimationFrame(() => runDeleteActionAnimation(true));
 		},
-		[
-			closeDeleteReveal,
-			deleteRevealKey,
-			resetDeleteRevealAnimationValues,
-			runDeleteActionAnimation,
-		],
+		[closeDeleteReveal, deleteRevealKey, resetDeleteRevealAnimationValues, runDeleteActionAnimation],
 	);
 
 	const onDeleteOption = useCallback(
@@ -932,12 +930,7 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 				}
 			});
 		},
-		[
-			queryClient,
-			removeDraftOptionLocally,
-			resetDeleteRevealAnimationValues,
-			withBusy,
-		],
+		[queryClient, removeDraftOptionLocally, resetDeleteRevealAnimationValues, withBusy],
 	);
 
 	const deleteIconRotate = useMemo(
@@ -1249,7 +1242,10 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 														pressed ? { opacity: 0.86 } : null,
 													]}
 												>
-													<BAIText variant='subtitle' style={[styles.archiveButtonText, { color: theme.colors.onSurface }]}> 
+													<BAIText
+														variant='subtitle'
+														style={[styles.archiveButtonText, { color: theme.colors.onSurface }]}
+													>
 														Archive Modifier Set
 													</BAIText>
 												</Pressable>

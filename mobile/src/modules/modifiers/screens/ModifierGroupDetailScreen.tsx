@@ -45,11 +45,11 @@ export function ModifierGroupDetailScreen({ mode }: { mode: "settings" | "invent
 	const { withBusy } = useAppBusy();
 	const { showSuccess } = useAppToast();
 	const baseRoute = mode === "settings" ? "/(app)/(tabs)/settings/modifiers" : "/(app)/(tabs)/inventory/modifiers";
-		const [sharedAvailabilityOpen, setSharedAvailabilityOpen] = useState(false);
-		const [sharedAvailability, setSharedAvailability] = useState<SharedModifierAvailabilityPreview | null>(null);
-		const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([]);
-		const [pendingOptionId, setPendingOptionId] = useState<string>("");
-		const [pendingNextIsSoldOut, setPendingNextIsSoldOut] = useState<boolean>(false);
+	const [sharedAvailabilityOpen, setSharedAvailabilityOpen] = useState(false);
+	const [sharedAvailability, setSharedAvailability] = useState<SharedModifierAvailabilityPreview | null>(null);
+	const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([]);
+	const [pendingOptionId, setPendingOptionId] = useState<string>("");
+	const [pendingNextIsSoldOut, setPendingNextIsSoldOut] = useState<boolean>(false);
 
 	const outline = theme.colors.outlineVariant ?? theme.colors.outline;
 	const surfaceAlt = theme.colors.surfaceVariant ?? theme.colors.surface;
@@ -116,9 +116,7 @@ export function ModifierGroupDetailScreen({ mode }: { mode: "settings" | "invent
 
 	const toggleGroupSelection = useCallback((modifierGroupId: string) => {
 		setSelectedGroupIds((prev) =>
-			prev.includes(modifierGroupId)
-				? prev.filter((entry) => entry !== modifierGroupId)
-				: [...prev, modifierGroupId],
+			prev.includes(modifierGroupId) ? prev.filter((entry) => entry !== modifierGroupId) : [...prev, modifierGroupId],
 		);
 	}, []);
 
@@ -208,11 +206,7 @@ export function ModifierGroupDetailScreen({ mode }: { mode: "settings" | "invent
 			<BAIScreen tabbed padded={false} safeTop={false} safeBottom={false} style={styles.root}>
 				<View style={[styles.wrap, { paddingBottom: tabBarHeight + 8 }]}>
 					<View style={styles.content}>
-						<BAISurface
-							bordered
-							padded
-							style={[styles.card, surfaceInteractive]}
-						>
+						<BAISurface bordered padded style={[styles.card, surfaceInteractive]}>
 							{query.isLoading ? (
 								<View style={styles.stateWrap}>
 									<BAIText variant='body'>Loading modifier set...</BAIText>
@@ -223,12 +217,7 @@ export function ModifierGroupDetailScreen({ mode }: { mode: "settings" | "invent
 								</View>
 							) : (
 								<>
-									<View
-										style={[
-											styles.tableHead,
-											{ borderBottomColor: outline },
-										]}
-									>
+									<View style={[styles.tableHead, { borderBottomColor: outline }]}>
 										<BAIText variant='subtitle'>Modifiers</BAIText>
 										<BAIText variant='subtitle'>Availability</BAIText>
 									</View>
