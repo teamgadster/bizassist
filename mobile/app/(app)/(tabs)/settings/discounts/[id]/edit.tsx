@@ -372,7 +372,9 @@ export function DiscountEditScreen({ mode = "settings" }: { mode?: DiscountFlowM
 													value={valueText}
 													onChangeText={setValueText}
 													currencyCode={currencyCode}
-													contentStyle={{ textAlign: "left" }}
+													maxMinorDigits={11}
+													style={styles.moneyHalfInput}
+													contentStyle={styles.moneyValueInputContent}
 													disabled={isUiDisabled || isArchived}
 												/>
 											)}
@@ -444,6 +446,8 @@ const styles = StyleSheet.create({
 	screen: { flex: 1, padding: 12, paddingTop: 0 },
 	banner: { borderRadius: 16 },
 	card: { gap: 12 },
+	moneyHalfInput: { width: "50%", alignSelf: "flex-start" },
+	moneyValueInputContent: { paddingLeft: 16, paddingRight: 20 },
 	notice: { borderRadius: 12 },
 	typeSurface: { borderRadius: 12, gap: 2, marginBottom: 0 },
 	noteInputPadding: { paddingTop: 16, paddingBottom: 16 },

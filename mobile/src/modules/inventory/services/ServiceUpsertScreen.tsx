@@ -1011,9 +1011,10 @@ export function ServiceUpsertScreen(props: {
 										onChangeText={(text) =>
 											setDraft((prev) => ({ ...prev, priceText: sanitizeServicePriceInput(text) }))
 										}
-										style={styles.formTextInput}
+										style={[styles.formTextInput, styles.moneyHalfInput]}
+										contentStyle={styles.moneyValueInputContent}
 										currencyCode={currencyCode}
-										contentStyle={{ textAlign: "left" }}
+										maxMinorDigits={11}
 										disabled={isUiDisabled}
 									/>
 
@@ -1185,6 +1186,14 @@ const styles = StyleSheet.create({
 	},
 	formTextInput: {
 		marginBottom: 0,
+	},
+	moneyHalfInput: {
+		width: "50%",
+		alignSelf: "flex-start",
+	},
+	moneyValueInputContent: {
+		paddingLeft: 16,
+		paddingRight: 20,
 	},
 	imageSection: {
 		alignItems: "center",

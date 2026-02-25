@@ -239,7 +239,9 @@ export default function DiscountCreateScreen() {
 											value={valueText}
 											onChangeText={setValueText}
 											currencyCode={currencyCode}
-											contentStyle={{ textAlign: "left" }}
+											maxMinorDigits={11}
+											style={styles.moneyHalfInput}
+											contentStyle={styles.moneyValueInputContent}
 											disabled={isUiDisabled}
 										/>
 									)}
@@ -302,6 +304,8 @@ const styles = StyleSheet.create({
 	keyboardContent: { flex: 1 },
 	screen: { flex: 1, padding: 12, paddingTop: 0 },
 	card: { gap: 12 },
+	moneyHalfInput: { width: "50%", alignSelf: "flex-start" },
+	moneyValueInputContent: { paddingLeft: 16, paddingRight: 20 },
 	noteInputPadding: { paddingTop: 16, paddingBottom: 16 },
 	actions: { flexDirection: "row", gap: 10, flexWrap: "nowrap", marginTop: 20 },
 	actionButton: { flex: 1 },

@@ -964,7 +964,9 @@ export default function InventoryProductEditScreen({ routeScope = "inventory" }:
 											value={priceText}
 											onChangeText={setPriceText}
 											currencyCode={currencyCode}
-											contentStyle={{ textAlign: "left" }}
+											maxMinorDigits={11}
+											style={styles.moneyHalfInput}
+											contentStyle={styles.moneyValueInputContent}
 											disabled={isUiDisabled || isArchived}
 										/>
 
@@ -973,7 +975,9 @@ export default function InventoryProductEditScreen({ routeScope = "inventory" }:
 											value={costText}
 											onChangeText={setCostText}
 											currencyCode={currencyCode}
-											contentStyle={{ textAlign: "left" }}
+											maxMinorDigits={11}
+											style={styles.moneyHalfInput}
+											contentStyle={styles.moneyValueInputContent}
 											disabled={isUiDisabled || isArchived}
 										/>
 
@@ -1084,6 +1088,14 @@ const styles = StyleSheet.create({
 	formContainer: {
 		paddingHorizontal: 14,
 		paddingBottom: 220,
+	},
+	moneyHalfInput: {
+		width: "50%",
+		alignSelf: "flex-start",
+	},
+	moneyValueInputContent: {
+		paddingLeft: 16,
+		paddingRight: 20,
 	},
 	banner: { borderRadius: 16, gap: 10 },
 	notice: { borderRadius: 12 },

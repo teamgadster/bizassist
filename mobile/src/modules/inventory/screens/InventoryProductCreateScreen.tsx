@@ -1215,7 +1215,9 @@ export default function InventoryProductCreateScreen({
 								value={draft.priceText}
 								onChangeText={(value) => patch({ priceText: value })}
 								currencyCode={currencyCode}
-								contentStyle={{ textAlign: "left" }}
+								maxMinorDigits={11}
+								style={styles.moneyHalfInput}
+								contentStyle={styles.moneyValueInputContent}
 								disabled={isUiDisabled}
 							/>
 
@@ -1226,7 +1228,9 @@ export default function InventoryProductCreateScreen({
 								value={draft.costText}
 								onChangeText={(value) => patch({ costText: value })}
 								currencyCode={currencyCode}
-								contentStyle={{ textAlign: "left" }}
+								maxMinorDigits={11}
+								style={styles.moneyHalfInput}
+								contentStyle={styles.moneyValueInputContent}
 								disabled={isUiDisabled}
 							/>
 
@@ -1377,6 +1381,14 @@ const styles = StyleSheet.create({
 	formContainer: {
 		paddingHorizontal: 14,
 		paddingBottom: 0,
+	},
+	moneyHalfInput: {
+		width: "50%",
+		alignSelf: "flex-start",
+	},
+	moneyValueInputContent: {
+		paddingLeft: 16,
+		paddingRight: 20,
 	},
 	imageSection: {
 		alignItems: "center",

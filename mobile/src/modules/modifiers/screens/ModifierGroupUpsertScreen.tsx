@@ -38,10 +38,9 @@ import {
 import { modifiersApi } from "@/modules/modifiers/modifiers.api";
 import type { ModifierSelectionType } from "@/modules/modifiers/modifiers.types";
 import { FIELD_LIMITS } from "@/shared/fieldLimits";
-import { MONEY_INPUT_MAX_WHOLE_DIGITS, MONEY_INPUT_PRECISION } from "@/shared/money/money.constants";
+import { MONEY_INPUT_PRECISION } from "@/shared/money/money.constants";
 import {
 	digitsToMinorUnits,
-	MONEY_MAX_MINOR_DIGITS,
 	parseMinorUnits,
 	sanitizeDigits,
 } from "@/shared/money/money.minor";
@@ -50,7 +49,8 @@ type Props = { mode: "settings" | "inventory"; intent: "create" | "edit" };
 const DELETE_ACTION_WIDTH = 88;
 const DELETE_ACTION_GAP = 2;
 const DELETE_REVEAL_INSET = DELETE_ACTION_WIDTH + DELETE_ACTION_GAP;
-const PRICE_INPUT_MAX_WHOLE_DIGITS = MONEY_INPUT_MAX_WHOLE_DIGITS;
+const PRICE_INPUT_MAX_MINOR_DIGITS = 11;
+const PRICE_INPUT_MAX_WHOLE_DIGITS = PRICE_INPUT_MAX_MINOR_DIGITS - MONEY_INPUT_PRECISION;
 const PRICE_INPUT_DECIMAL_DIGITS = MONEY_INPUT_PRECISION;
 const PRICE_INPUT_SEPARATOR_DIGITS = 1;
 const PRICE_INPUT_GROUPING_SEPARATORS = Math.floor((PRICE_INPUT_MAX_WHOLE_DIGITS - 1) / 3);
@@ -73,7 +73,7 @@ function resolveNextMinorFromInput(currentMinor: number, nextText: string): numb
 	const safeCurrentMinor = toSafeMinor(currentMinor);
 	const sanitized = sanitizeDigits(nextText);
 	const currentDigits = sanitizeDigits(String(safeCurrentMinor));
-	const capReached = currentDigits.length >= MONEY_MAX_MINOR_DIGITS;
+	const capReached = currentDigits.length >= PRICE_INPUT_MAX_MINOR_DIGITS;
 	const isGrowthAttempt = sanitized.length > currentDigits.length;
 
 	// Backspace-safe cap guard: allow deletes/edits while silently blocking overflow growth.
@@ -85,8 +85,8 @@ function resolveNextMinorFromInput(currentMinor: number, nextText: string): numb
 
 	// Silent growth lock: append-mode for single-key growth, full reparse for bulk edits/paste.
 	return isSingleAppend
-		? digitsToMinorUnits(currentDigits + sanitized[sanitized.length - 1], MONEY_MAX_MINOR_DIGITS)
-		: digitsToMinorUnits(sanitized, MONEY_MAX_MINOR_DIGITS);
+		? digitsToMinorUnits(currentDigits + sanitized[sanitized.length - 1], PRICE_INPUT_MAX_MINOR_DIGITS)
+		: digitsToMinorUnits(sanitized, PRICE_INPUT_MAX_MINOR_DIGITS);
 }
 
 function makeOptionKey() {
@@ -555,7 +555,10 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 		};
 	}, [currencyCode]);
 	const maxPriceInputLength = useMemo(
-		() => formatPriceDisplay(digitsToMinorUnits("9".repeat(MONEY_MAX_MINOR_DIGITS), MONEY_MAX_MINOR_DIGITS)).length,
+		() =>
+			formatPriceDisplay(
+				digitsToMinorUnits("9".repeat(PRICE_INPUT_MAX_MINOR_DIGITS), PRICE_INPUT_MAX_MINOR_DIGITS),
+			).length,
 		[formatPriceDisplay],
 	);
 
