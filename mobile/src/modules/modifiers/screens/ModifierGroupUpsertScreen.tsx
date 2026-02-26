@@ -699,7 +699,10 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 
 	const activeOptions = useMemo(() => options.filter((opt) => !opt.removed), [options]);
 	const archivedOptions = useMemo(() => options.filter((opt) => opt.removed && opt.id), [options]);
-	const activeTabCount = useMemo(() => activeOptions.filter((row) => hasModifierOptionInput(row)).length, [activeOptions]);
+	const activeTabCount = useMemo(
+		() => activeOptions.filter((row) => hasModifierOptionInput(row)).length,
+		[activeOptions],
+	);
 	const optionTabs = useMemo<readonly BAIGroupTab<ModifierOptionsTab>[]>(
 		() => [
 			{ label: "Active", value: "active", count: activeTabCount },
@@ -711,7 +714,9 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 		() =>
 			options
 				.map((row, index) => ({ row, index }))
-				.filter((entry) => (optionsTab === "archived" ? Boolean(entry.row.removed && entry.row.id) : !entry.row.removed)),
+				.filter((entry) =>
+					optionsTab === "archived" ? Boolean(entry.row.removed && entry.row.id) : !entry.row.removed,
+				),
 		[options, optionsTab],
 	);
 	const filledOptions = useMemo(() => activeOptions.filter((row) => row.name.trim().length > 0), [activeOptions]);
@@ -952,9 +957,7 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 				try {
 					await modifiersApi.archiveOption(row.id!);
 					setOptions((prev) =>
-						ensureTrailingPlaceholderOption(
-							prev.map((opt) => (opt.key === row.key ? { ...opt, removed: true } : opt)),
-						),
+						ensureTrailingPlaceholderOption(prev.map((opt) => (opt.key === row.key ? { ...opt, removed: true } : opt))),
 					);
 					await queryClient.invalidateQueries({ queryKey: ["modifiers"] });
 				} catch (e: any) {

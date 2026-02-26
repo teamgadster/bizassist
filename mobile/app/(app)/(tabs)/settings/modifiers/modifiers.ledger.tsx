@@ -24,7 +24,11 @@ const modifierGroupsKey = ["modifiers", "groups", "settings"] as const;
 type ModifierFilter = "active" | "archived";
 
 function resolveModifierFilter(raw: unknown): ModifierFilter {
-	return String(raw ?? "").trim().toLowerCase() === "archived" ? "archived" : "active";
+	return String(raw ?? "")
+		.trim()
+		.toLowerCase() === "archived"
+		? "archived"
+		: "active";
 }
 
 function Row({

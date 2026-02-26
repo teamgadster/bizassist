@@ -296,17 +296,17 @@ export function ModifierGroupDetailScreen({ mode }: { mode: "settings" | "invent
 											ListFooterComponent={
 												group.isArchived
 													? () => (
-														<View style={styles.restoreActionWrap}>
-															<BAIButton
-																widthPreset='full'
-																onPress={onOpenRestoreConfirm}
-																disabled={busy.isBusy}
-																labelStyle={styles.restoreActionLabel}
-															>
-																Restore Modifier Set
-															</BAIButton>
-														</View>
-													)
+															<View style={styles.restoreActionWrap}>
+																<BAIButton
+																	widthPreset='full'
+																	onPress={onOpenRestoreConfirm}
+																	disabled={busy.isBusy}
+																	labelStyle={styles.restoreActionLabel}
+																>
+																	Restore Modifier Set
+																</BAIButton>
+															</View>
+														)
 													: null
 											}
 										/>
@@ -341,11 +341,7 @@ export function ModifierGroupDetailScreen({ mode }: { mode: "settings" | "invent
 									color={theme.colors.onSurfaceVariant ?? theme.colors.onSurface}
 								/>
 							</Pressable>
-							<BAIButton
-								onPress={onApplySharedAvailability}
-								disabled={selectedGroupIds.length === 0}
-								shape='pill'
-							>
+							<BAIButton onPress={onApplySharedAvailability} disabled={selectedGroupIds.length === 0} shape='pill'>
 								Apply to all
 							</BAIButton>
 						</View>
