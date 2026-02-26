@@ -1,6 +1,6 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { FlatList, Keyboard, Pressable, StyleSheet, TouchableWithoutFeedback, View } from "react-native";
-import { Stack, useRouter } from "expo-router";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useTheme } from "react-native-paper";
 import { useQuery } from "@tanstack/react-query";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -22,6 +22,10 @@ import { sanitizeSearchInput } from "@/shared/validation/sanitize";
 
 const modifierGroupsKey = ["modifiers", "groups", "settings"] as const;
 type ModifierFilter = "active" | "archived";
+
+function resolveModifierFilter(raw: unknown): ModifierFilter {
+	return String(raw ?? "").trim().toLowerCase() === "archived" ? "archived" : "active";
+}
 
 function Row({
 	item,
@@ -99,11 +103,16 @@ export function ModifiersLedgerScreen({
 }) {
 	const router = useRouter();
 	const theme = useTheme();
+	const params = useLocalSearchParams<{ filter?: string }>();
 	const { countryCode } = useActiveBusinessMeta();
 	const [search, setSearch] = useState("");
-	const [filter, setFilter] = useState<ModifierFilter>("active");
+	const [filter, setFilter] = useState<ModifierFilter>(() => resolveModifierFilter(params.filter));
 	const baseRoute = mode === "settings" ? "/(app)/(tabs)/settings/modifiers" : "/(app)/(tabs)/inventory/modifiers";
 	const backRoute = mode === "settings" ? "/(app)/(tabs)/settings" : "/(app)/(tabs)/inventory";
+
+	useEffect(() => {
+		setFilter(resolveModifierFilter(params.filter));
+	}, [params.filter]);
 
 	const groupsQuery = useQuery({
 		queryKey: modifierGroupsKey,
@@ -113,9 +122,11 @@ export function ModifiersLedgerScreen({
 
 	const onOpen = useCallback(
 		(item: ModifierGroup) => {
-			router.push(`${baseRoute}/${encodeURIComponent(item.id)}` as any);
+			const detailRoute = `${baseRoute}/${encodeURIComponent(item.id)}`;
+			const returnTo = `${baseRoute}?filter=${filter}`;
+			router.push(`${detailRoute}?returnTo=${encodeURIComponent(returnTo)}` as any);
 		},
-		[baseRoute, router],
+		[baseRoute, filter, router],
 	);
 
 	const searchedItems = useMemo(() => {
@@ -252,24 +263,24 @@ export default function ModifiersLedgerRoute() {
 
 const styles = StyleSheet.create({
 	root: { flex: 1 },
-	wrap: { flex: 1, paddingHorizontal: 10, paddingTop: 0 },
+	wrap: { flex: 1, paddingHorizontal: 8, paddingTop: 0 },
 	content: { flex: 1, width: "100%", alignSelf: "center" },
 	tablet: { maxWidth: 720 },
-	card: { flex: 1, borderRadius: 18, gap: 8, marginTop: 10 },
-	controls: { gap: 6, paddingBottom: 4 },
+	card: { flex: 1, borderRadius: 18, gap: 6, marginTop: 8 },
+	controls: { gap: 4, paddingBottom: 2 },
 	groupTabsWrap: {
-		paddingTop: 10,
+		paddingTop: 6,
 	},
 	listSection: { flex: 1, minHeight: 0 },
 	list: { flex: 1, minHeight: 0 },
 	stateWrap: { paddingTop: 8, alignItems: "flex-start" },
-	listContent: { gap: 0, paddingBottom: 6 },
+	listContent: { gap: 0, paddingBottom: 4 },
 	row: {
 		borderWidth: 1,
 		borderRadius: 12,
 		flexDirection: "row",
 		alignItems: "center",
-		paddingVertical: 8,
+		paddingVertical: 6,
 	},
 	pressArea: {
 		flex: 1,
@@ -277,7 +288,7 @@ const styles = StyleSheet.create({
 		flexDirection: "row",
 		alignItems: "center",
 		justifyContent: "space-between",
-		paddingVertical: 4,
+		paddingVertical: 2,
 	},
 	left: {
 		flex: 1,
@@ -305,8 +316,8 @@ const styles = StyleSheet.create({
 	rightSide: {
 		flexDirection: "row",
 		alignItems: "center",
-		gap: 8,
-		marginLeft: 8,
+		gap: 6,
+		marginLeft: 6,
 	},
 	rightMeta: {
 		alignItems: "flex-end",

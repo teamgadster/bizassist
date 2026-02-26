@@ -1,6 +1,6 @@
 // BizAssist_mobile path: src/components/system/ConfirmActionModal.tsx
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { Pressable, StyleSheet, View } from "react-native";
+import { Pressable, StyleSheet, View, type TextStyle } from "react-native";
 import { Modal, Portal, useTheme } from "react-native-paper";
 
 import { BAICTAPillButton } from "@/components/ui/BAICTAButton";
@@ -20,6 +20,8 @@ export function ConfirmActionModal({
 	onConfirm,
 	onCancel,
 	disabled,
+	confirmLabelStyle,
+	cancelLabelStyle,
 }: {
 	visible: boolean;
 	title: string;
@@ -32,6 +34,8 @@ export function ConfirmActionModal({
 	onConfirm: () => void;
 	onCancel?: () => void;
 	disabled?: boolean;
+	confirmLabelStyle?: TextStyle;
+	cancelLabelStyle?: TextStyle;
 }) {
 	const theme = useTheme();
 
@@ -89,6 +93,7 @@ export function ConfirmActionModal({
 							size='md'
 							style={styles.actionBtnWrap}
 							contentStyle={styles.actionBtnContent}
+							labelStyle={cancelLabelStyle}
 						>
 							{cancelLabel}
 						</BAICTAPillButton>
@@ -101,6 +106,7 @@ export function ConfirmActionModal({
 							size='md'
 							style={styles.actionBtnWrap}
 							contentStyle={styles.actionBtnContent}
+							labelStyle={confirmLabelStyle}
 						>
 							{confirmLabel}
 						</BAICTAPillButton>

@@ -6,6 +6,7 @@ import { Switch, useTheme } from "react-native-paper";
 import { useQuery } from "@tanstack/react-query";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 
+import { ConfirmActionModal } from "@/components/settings/ConfirmActionModal";
 import { BAIButton } from "@/components/ui/BAIButton";
 import { BAIHeader } from "@/components/ui/BAIHeader";
 import { BAIRetryButton } from "@/components/ui/BAIRetryButton";
@@ -14,6 +15,7 @@ import { BAISurface } from "@/components/ui/BAISurface";
 import { BAIText } from "@/components/ui/BAIText";
 import { useAppBusy } from "@/hooks/useAppBusy";
 import { useResponsiveLayout } from "@/lib/layout/useResponsiveLayout";
+import { runGovernedProcessExit } from "@/modules/inventory/navigation.governance";
 import { useInventoryHeader } from "@/modules/inventory/useInventoryHeader";
 import { useAppHeader } from "@/modules/navigation/useAppHeader";
 import { modifiersApi } from "@/modules/modifiers/modifiers.api";
@@ -22,7 +24,7 @@ import { useAppToast } from "@/providers/AppToastProvider";
 
 const HEADER_SIDE_PADDING_FALLBACK = 16;
 const HEADER_RAIL_SIZE = 56;
-const HEADER_EDIT_PILL_WIDTH = 72;
+const HEADER_EDIT_PILL_WIDTH = 90;
 const HEADER_TITLE_SAFETY_GAP = 28;
 const HEADER_TITLE_ESTIMATED_CHAR_WIDTH = 10;
 const HEADER_TITLE_HORIZONTAL_PADDING = 18;
@@ -40,12 +42,15 @@ export function ModifierGroupDetailScreen({ mode }: { mode: "settings" | "invent
 	const { paddingX } = useResponsiveLayout();
 	const tabBarHeight = useBottomTabBarHeight();
 	const theme = useTheme();
-	const params = useLocalSearchParams<{ id?: string }>();
+	const params = useLocalSearchParams<{ id?: string; returnTo?: string }>();
 	const groupId = String(params.id ?? "").trim();
-	const { withBusy } = useAppBusy();
+	const exitReturnTo = String(params.returnTo ?? "").trim();
+	const { withBusy, busy } = useAppBusy();
 	const { showSuccess } = useAppToast();
 	const baseRoute = mode === "settings" ? "/(app)/(tabs)/settings/modifiers" : "/(app)/(tabs)/inventory/modifiers";
+	const archivedListRoute = `${baseRoute}?filter=archived`;
 	const [sharedAvailabilityOpen, setSharedAvailabilityOpen] = useState(false);
+	const [confirmRestoreOpen, setConfirmRestoreOpen] = useState(false);
 	const [sharedAvailability, setSharedAvailability] = useState<SharedModifierAvailabilityPreview | null>(null);
 	const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([]);
 	const [pendingOptionId, setPendingOptionId] = useState<string>("");
@@ -140,13 +145,35 @@ export function ModifierGroupDetailScreen({ mode }: { mode: "settings" | "invent
 	}, [closeSharedAvailability, pendingNextIsSoldOut, pendingOptionId, query, selectedGroupIds, showSuccess, withBusy]);
 
 	const onBackToList = useCallback(() => {
-		router.replace(baseRoute as any);
-	}, [baseRoute, router]);
+		const fallbackRoute = exitReturnTo || (group?.isArchived ? archivedListRoute : baseRoute);
+		runGovernedProcessExit(undefined, fallbackRoute, { router: router as any });
+	}, [archivedListRoute, baseRoute, exitReturnTo, group?.isArchived, router]);
 
 	const onEditGroup = useCallback(() => {
 		if (!group) return;
-		router.push(`${baseRoute}/${group.id}/edit` as any);
-	}, [baseRoute, group, router]);
+		const editRoute = `${baseRoute}/${group.id}/edit`;
+		const returnTo = exitReturnTo || (group.isArchived ? archivedListRoute : baseRoute);
+		router.push(`${editRoute}?returnTo=${encodeURIComponent(returnTo)}` as any);
+	}, [archivedListRoute, baseRoute, exitReturnTo, group, router]);
+
+	const onOpenRestoreConfirm = useCallback(() => {
+		if (!group?.isArchived) return;
+		setConfirmRestoreOpen(true);
+	}, [group?.isArchived]);
+
+	const onCloseRestoreConfirm = useCallback(() => {
+		setConfirmRestoreOpen(false);
+	}, []);
+
+	const onConfirmRestoreGroup = useCallback(() => {
+		if (!group?.id || !group.isArchived) return;
+		withBusy("Restoring modifier set...", async () => {
+			await modifiersApi.restoreGroup(group.id);
+			setConfirmRestoreOpen(false);
+			showSuccess("Modifier set restored");
+			runGovernedProcessExit(undefined, baseRoute, { router: router as any });
+		});
+	}, [baseRoute, group?.id, group?.isArchived, router, showSuccess, withBusy]);
 
 	const headerBase = useAppHeader("detail", {
 		title: modifierHeaderTitle,
@@ -165,23 +192,31 @@ export function ModifierGroupDetailScreen({ mode }: { mode: "settings" | "invent
 					variant='back'
 					titleHorizontalPadding={HEADER_TITLE_HORIZONTAL_PADDING}
 					onLeftPress={onBackToList}
-					onRightPress={onEditGroup}
-					rightDisabled={!group}
-					rightSlot={({ disabled }) => (
-						<View
-							style={[
-								styles.headerEditPill,
-								{ backgroundColor: disabled ? theme.colors.surfaceDisabled : theme.colors.primary },
-							]}
-						>
-							<BAIText
-								variant='body'
-								style={{ color: disabled ? theme.colors.onSurfaceDisabled : theme.colors.onPrimary }}
-							>
-								Edit
-							</BAIText>
-						</View>
-					)}
+					onRightPress={group?.isArchived ? undefined : onEditGroup}
+					rightDisabled={!group || !!group?.isArchived}
+					rightSlot={
+						group?.isArchived
+							? undefined
+							: ({ disabled }) => (
+									<View
+										style={[
+											styles.headerEditPill,
+											{ backgroundColor: disabled ? theme.colors.surfaceDisabled : theme.colors.primary },
+										]}
+									>
+										<BAIText
+											variant='body'
+											style={{
+												color: disabled ? theme.colors.onSurfaceDisabled : theme.colors.onPrimary,
+												fontSize: 16,
+												fontWeight: "600",
+											}}
+										>
+											Edit
+										</BAIText>
+									</View>
+								)
+					}
 				/>
 			),
 		}),
@@ -258,6 +293,22 @@ export function ModifierGroupDetailScreen({ mode }: { mode: "settings" | "invent
 											contentContainerStyle={styles.listContent}
 											keyboardShouldPersistTaps='handled'
 											showsVerticalScrollIndicator={false}
+											ListFooterComponent={
+												group.isArchived
+													? () => (
+														<View style={styles.restoreActionWrap}>
+															<BAIButton
+																widthPreset='full'
+																onPress={onOpenRestoreConfirm}
+																disabled={busy.isBusy}
+																labelStyle={styles.restoreActionLabel}
+															>
+																Restore Modifier Set
+															</BAIButton>
+														</View>
+													)
+													: null
+											}
 										/>
 									</View>
 								</>
@@ -290,7 +341,11 @@ export function ModifierGroupDetailScreen({ mode }: { mode: "settings" | "invent
 									color={theme.colors.onSurfaceVariant ?? theme.colors.onSurface}
 								/>
 							</Pressable>
-							<BAIButton onPress={onApplySharedAvailability} disabled={selectedGroupIds.length === 0}>
+							<BAIButton
+								onPress={onApplySharedAvailability}
+								disabled={selectedGroupIds.length === 0}
+								shape='pill'
+							>
 								Apply to all
 							</BAIButton>
 						</View>
@@ -327,6 +382,20 @@ export function ModifierGroupDetailScreen({ mode }: { mode: "settings" | "invent
 					</BAISurface>
 				</View>
 			</Modal>
+
+			<ConfirmActionModal
+				visible={confirmRestoreOpen}
+				title='Restore Modifier'
+				message='Restored modifier sets become available for new product and service attachments.'
+				confirmLabel='Restore'
+				confirmIntent='primary'
+				confirmLabelStyle={styles.restoreModalLabel}
+				cancelLabelStyle={styles.restoreModalLabel}
+				onDismiss={onCloseRestoreConfirm}
+				onCancel={onCloseRestoreConfirm}
+				onConfirm={onConfirmRestoreGroup}
+				disabled={busy.isBusy}
+			/>
 		</>
 	);
 }
@@ -338,9 +407,9 @@ const styles = StyleSheet.create({
 	card: { flex: 1, borderRadius: 18, gap: 8, marginTop: 0 },
 	headerEditPill: {
 		width: HEADER_EDIT_PILL_WIDTH,
-		height: 32,
-		paddingHorizontal: 12,
-		borderRadius: 16,
+		height: 40,
+		paddingHorizontal: 16,
+		borderRadius: 20,
 		alignItems: "center",
 		justifyContent: "center",
 	},
@@ -348,6 +417,9 @@ const styles = StyleSheet.create({
 	listContent: { gap: 0, paddingBottom: 6 },
 	rowsListWrap: { flex: 1, minHeight: 0 },
 	rowsList: { flex: 1, minHeight: 0 },
+	restoreActionWrap: { paddingTop: 30 },
+	restoreActionLabel: { fontWeight: "400" },
+	restoreModalLabel: { fontWeight: "400" },
 	tableHead: {
 		paddingTop: 4,
 		paddingBottom: 10,

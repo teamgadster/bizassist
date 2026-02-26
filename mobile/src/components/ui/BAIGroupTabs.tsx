@@ -85,14 +85,17 @@ const styles = StyleSheet.create({
 	container: {
 		flexDirection: "row",
 		borderRadius: 999,
-		padding: 3,
+		padding: 4,
+		minHeight: 44,
 		borderWidth: 1,
 	},
 	tab: {
 		flex: 1,
 		alignItems: "center",
-		paddingVertical: 6,
+		minHeight: 36,
+		paddingVertical: 8,
 		paddingHorizontal: 6,
 		borderRadius: 999,
+		justifyContent: "center",
 	},
 });

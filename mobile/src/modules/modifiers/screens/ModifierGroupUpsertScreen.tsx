@@ -18,6 +18,8 @@ import { useTheme } from "react-native-paper";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { ConfirmActionModal } from "@/components/settings/ConfirmActionModal";
+import { BAIButton } from "@/components/ui/BAIButton";
+import { BAIGroupTabs, type BAIGroupTab } from "@/components/ui/BAIGroupTabs";
 import { BAIHeader } from "@/components/ui/BAIHeader";
 import { BAIScreen } from "@/components/ui/BAIScreen";
 import { BAISurface } from "@/components/ui/BAISurface";
@@ -44,6 +46,7 @@ import { MONEY_INPUT_PRECISION } from "@/shared/money/money.constants";
 import { digitsToMinorUnits, parseMinorUnits, sanitizeDigits } from "@/shared/money/money.minor";
 
 type Props = { mode: "settings" | "inventory"; intent: "create" | "edit" };
+type ModifierOptionsTab = "active" | "archived";
 const DELETE_ACTION_WIDTH = 88;
 const DELETE_ACTION_GAP = 2;
 const DELETE_REVEAL_INSET = DELETE_ACTION_WIDTH + DELETE_ACTION_GAP;
@@ -51,7 +54,7 @@ const DELETE_OPEN_DURATION_MS = 300;
 const DELETE_CLOSE_DURATION_MS = 180;
 const REMOVE_BUTTON_WIDTH = 30;
 const REMOVE_BUTTON_HEIGHT = 30;
-const REMOVE_BUTTON_LEFT_PADDING = 6;
+const REMOVE_BUTTON_LEFT_PADDING = 12;
 const PRICE_INPUT_MAX_MINOR_DIGITS = 11;
 const PRICE_INPUT_ESTIMATED_CHAR_WIDTH = 10;
 const PRICE_INPUT_LEFT_INSET = 0;
@@ -158,8 +161,10 @@ type ModifierOptionRowProps = {
 	nameTextColor: string;
 	cursorIndicatorColor: string;
 	showDeleteControl: boolean;
-	errorColor: string;
-	onErrorColor: string;
+	actionColor: string;
+	onActionColor: string;
+	actionLabel: string;
+	isReadOnly: boolean;
 	isDeleteRevealed: boolean;
 	deleteIconRotate: Animated.AnimatedInterpolation<string | number>;
 	deleteActionTranslateX: Animated.Value;
@@ -169,7 +174,7 @@ type ModifierOptionRowProps = {
 	pricePlaceholder: string;
 	formatPriceDisplay: (minorUnits: number) => string;
 	onToggleDeleteReveal: (rowKey: string) => void;
-	onDeleteOption: (row: ModifierOptionDraft) => void;
+	onActionOption: (row: ModifierOptionDraft) => void;
 	onChangeOptionName: (rowIndex: number, value: string) => void;
 	onChangePriceMinor: (rowIndex: number, nextMinor: number) => void;
 };
@@ -181,8 +186,10 @@ const ModifierOptionRow = memo(function ModifierOptionRow({
 	nameTextColor,
 	cursorIndicatorColor,
 	showDeleteControl,
-	errorColor,
-	onErrorColor,
+	actionColor,
+	onActionColor,
+	actionLabel,
+	isReadOnly,
 	isDeleteRevealed,
 	deleteIconRotate,
 	deleteActionTranslateX,
@@ -192,7 +199,7 @@ const ModifierOptionRow = memo(function ModifierOptionRow({
 	pricePlaceholder,
 	formatPriceDisplay,
 	onToggleDeleteReveal,
-	onDeleteOption,
+	onActionOption,
 	onChangeOptionName,
 	onChangePriceMinor,
 }: ModifierOptionRowProps) {
@@ -274,13 +281,13 @@ const ModifierOptionRow = memo(function ModifierOptionRow({
 				>
 					{showDeleteControl ? (
 						<Pressable onPress={() => onToggleDeleteReveal(row.key)} style={[styles.removeBtnSlot, styles.removeBtn]}>
-							<View style={[styles.removeBtnFill, { backgroundColor: errorColor }]}>
+							<View style={[styles.removeBtnFill, { backgroundColor: actionColor }]}>
 								{isDeleteRevealed ? (
 									<Animated.View style={{ transform: [{ rotate: deleteIconRotate }] }}>
-										<MaterialCommunityIcons name='minus' size={16} color={onErrorColor} />
+										<MaterialCommunityIcons name='minus' size={16} color={onActionColor} />
 									</Animated.View>
 								) : (
-									<MaterialCommunityIcons name='minus' size={16} color={onErrorColor} />
+									<MaterialCommunityIcons name='minus' size={16} color={onActionColor} />
 								)}
 							</View>
 						</Pressable>
@@ -305,12 +312,13 @@ const ModifierOptionRow = memo(function ModifierOptionRow({
 								returnKeyType='done'
 								lineBreakStrategyIOS='none'
 								textBreakStrategy='simple'
+								editable={!isReadOnly}
 								height={56}
 								style={[styles.modifierInput, styles.optionNameInput]}
 								contentStyle={[styles.optionInputContent, styles.optionNameInputContent]}
 								textColor={isNameFocused ? nameTextColor : "transparent"}
-								onFocus={() => setIsNameFocused(true)}
-								onBlur={() => setIsNameFocused(false)}
+								onFocus={() => !isReadOnly && setIsNameFocused(true)}
+								onBlur={() => !isReadOnly && setIsNameFocused(false)}
 								onChangeText={(value) => onChangeOptionName(rowIndex, value)}
 							/>
 							{!isNameFocused && row.name.trim().length > 0 ? (
@@ -343,6 +351,7 @@ const ModifierOptionRow = memo(function ModifierOptionRow({
 							style={styles.modifierInput}
 							contentStyle={styles.priceInputContent}
 							maxLength={maxPriceInputLength}
+							editable={!isReadOnly}
 							onChangeText={onPriceChange}
 							onFocus={onPriceFocus}
 							onBlur={onPriceBlur}
@@ -360,11 +369,11 @@ const ModifierOptionRow = memo(function ModifierOptionRow({
 						]}
 					>
 						<Pressable
-							onPress={() => onDeleteOption(row)}
-							style={[styles.deleteActionBtn, { backgroundColor: errorColor }]}
+							onPress={() => onActionOption(row)}
+							style={[styles.deleteActionBtn, { backgroundColor: actionColor }]}
 						>
-							<BAIText variant='subtitle' style={{ color: onErrorColor }}>
-								{row.id ? "Archive" : "Delete"}
+							<BAIText variant='subtitle' style={{ color: onActionColor }}>
+								{actionLabel}
 							</BAIText>
 						</Pressable>
 					</Animated.View>
@@ -413,6 +422,7 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 	const [deleteRevealKey, setDeleteRevealKey] = useState<string | null>(null);
 	const [deleteControlVisibleKeys, setDeleteControlVisibleKeys] = useState<Set<string>>(() => new Set());
 	const [modifiersListHeight, setModifiersListHeight] = useState(0);
+	const [optionsTab, setOptionsTab] = useState<ModifierOptionsTab>("active");
 	const [initialSnapshot, setInitialSnapshot] = useState<string | null>(null);
 	const deleteAnimationTokenRef = useRef(0);
 	const deleteActionTranslateX = useRef(new Animated.Value(DELETE_ACTION_WIDTH)).current;
@@ -688,6 +698,22 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 	const pricePlaceholder = useMemo(() => formatPriceDisplay(0), [formatPriceDisplay]);
 
 	const activeOptions = useMemo(() => options.filter((opt) => !opt.removed), [options]);
+	const archivedOptions = useMemo(() => options.filter((opt) => opt.removed && opt.id), [options]);
+	const activeTabCount = useMemo(() => activeOptions.filter((row) => hasModifierOptionInput(row)).length, [activeOptions]);
+	const optionTabs = useMemo<readonly BAIGroupTab<ModifierOptionsTab>[]>(
+		() => [
+			{ label: "Active", value: "active", count: activeTabCount },
+			{ label: "Archived", value: "archived", count: archivedOptions.length },
+		],
+		[activeTabCount, archivedOptions.length],
+	);
+	const visibleOptionRows = useMemo(
+		() =>
+			options
+				.map((row, index) => ({ row, index }))
+				.filter((entry) => (optionsTab === "archived" ? Boolean(entry.row.removed && entry.row.id) : !entry.row.removed)),
+		[options, optionsTab],
+	);
 	const filledOptions = useMemo(() => activeOptions.filter((row) => row.name.trim().length > 0), [activeOptions]);
 	const isSaveDisabled = useMemo(() => {
 		const trimmedName = name.trim();
@@ -778,6 +804,10 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 		},
 		[deleteRevealKey, resetDeleteRevealAnimationValues, runDeleteActionAnimation],
 	);
+
+	useEffect(() => {
+		closeDeleteReveal();
+	}, [closeDeleteReveal, optionsTab]);
 
 	const dismissKeyboard = useCallback(() => {
 		Keyboard.dismiss();
@@ -907,7 +937,7 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 		[closeDeleteReveal, deleteRevealKey, resetDeleteRevealAnimationValues, runDeleteActionAnimation],
 	);
 
-	const onDeleteOption = useCallback(
+	const onArchiveOption = useCallback(
 		(row: ModifierOptionDraft) => {
 			setError(null);
 			resetDeleteRevealAnimationValues();
@@ -921,7 +951,11 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 			withBusy("Archiving modifier...", async () => {
 				try {
 					await modifiersApi.archiveOption(row.id!);
-					setOptions((prev) => ensureTrailingPlaceholderOption(prev.filter((opt) => opt.key !== row.key)));
+					setOptions((prev) =>
+						ensureTrailingPlaceholderOption(
+							prev.map((opt) => (opt.key === row.key ? { ...opt, removed: true } : opt)),
+						),
+					);
 					await queryClient.invalidateQueries({ queryKey: ["modifiers"] });
 				} catch (e: any) {
 					setError(
@@ -931,6 +965,32 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 			});
 		},
 		[queryClient, removeDraftOptionLocally, resetDeleteRevealAnimationValues, withBusy],
+	);
+
+	const onRestoreOption = useCallback(
+		(row: ModifierOptionDraft) => {
+			if (!row.id) return;
+			setError(null);
+			resetDeleteRevealAnimationValues();
+			setDeleteRevealKey(null);
+
+			withBusy("Restoring modifier...", async () => {
+				try {
+					await modifiersApi.restoreOption(row.id!);
+					setOptions((prev) =>
+						ensureTrailingPlaceholderOption(
+							prev.map((opt) => (opt.key === row.key ? { ...opt, removed: false } : opt)),
+						),
+					);
+					await queryClient.invalidateQueries({ queryKey: ["modifiers"] });
+				} catch (e: any) {
+					setError(
+						e?.response?.data?.error?.message ?? e?.response?.data?.message ?? "Could not restore modifier option.",
+					);
+				}
+			});
+		},
+		[queryClient, resetDeleteRevealAnimationValues, withBusy],
 	);
 
 	const deleteIconRotate = useMemo(
@@ -1090,7 +1150,11 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 						>
 							<BAIText
 								variant='body'
-								style={{ color: disabled ? theme.colors.onSurfaceDisabled : theme.colors.onPrimary }}
+								style={{
+									color: disabled ? theme.colors.onSurfaceDisabled : theme.colors.onPrimary,
+									fontSize: 16,
+									fontWeight: "600",
+								}}
 							>
 								Save
 							</BAIText>
@@ -1184,6 +1248,15 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 										<BAIText variant='subtitle' style={styles.modifiersTitle}>
 											Modifiers
 										</BAIText>
+										{intent === "edit" ? (
+											<View style={styles.optionTabsWrap}>
+												<BAIGroupTabs<ModifierOptionsTab>
+													tabs={optionTabs}
+													value={optionsTab}
+													onChange={setOptionsTab}
+												/>
+											</View>
+										) : null}
 										<ScrollView
 											style={styles.modifiersList}
 											contentContainerStyle={[
@@ -1200,20 +1273,22 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 											keyboardShouldPersistTaps='handled'
 											keyboardDismissMode='on-drag'
 										>
-											{options.map((row, idx) => {
-												if (row.removed) return null;
+											{visibleOptionRows.map(({ row, index }) => {
 												const showDeleteControl = shouldShowDeleteControl(row);
+												const isArchivedTab = optionsTab === "archived";
 												return (
 													<ModifierOptionRow
 														key={row.key}
 														row={row}
-														rowIndex={idx}
+														rowIndex={index}
 														borderBottomColor={theme.colors.outlineVariant ?? theme.colors.outline}
 														nameTextColor={theme.colors.onSurface}
 														cursorIndicatorColor={theme.colors.primary}
 														showDeleteControl={showDeleteControl}
-														errorColor={theme.colors.error}
-														onErrorColor={theme.colors.onError}
+														actionColor={isArchivedTab ? theme.colors.primary : theme.colors.error}
+														onActionColor={isArchivedTab ? theme.colors.onPrimary : theme.colors.onError}
+														actionLabel={isArchivedTab ? "Restore" : row.id ? "Archive" : "Delete"}
+														isReadOnly={isArchivedTab}
 														isDeleteRevealed={showDeleteControl && deleteRevealKey === row.key}
 														deleteIconRotate={deleteIconRotate}
 														deleteActionTranslateX={deleteActionTranslateX}
@@ -1223,7 +1298,7 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 														pricePlaceholder={pricePlaceholder}
 														formatPriceDisplay={formatPriceDisplay}
 														onToggleDeleteReveal={onToggleDeleteReveal}
-														onDeleteOption={onDeleteOption}
+														onActionOption={isArchivedTab ? onRestoreOption : onArchiveOption}
 														onChangeOptionName={onChangeOptionName}
 														onChangePriceMinor={onChangePriceMinor}
 													/>
@@ -1236,8 +1311,9 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 														styles.archiveButton,
 														{
 															borderColor: theme.colors.outlineVariant ?? theme.colors.outline,
-															backgroundColor:
-																theme.colors.surfaceVariant ?? theme.colors.surfaceDisabled ?? theme.colors.surface,
+															backgroundColor: theme.dark
+																? (theme.colors.surfaceVariant ?? theme.colors.surfaceDisabled ?? theme.colors.surface)
+																: (theme.colors.surfaceDisabled ?? theme.colors.surfaceVariant ?? theme.colors.surface),
 														},
 														pressed ? { opacity: 0.86 } : null,
 													]}
@@ -1286,32 +1362,13 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 									color={theme.colors.onSurfaceVariant ?? theme.colors.onSurface}
 								/>
 							</Pressable>
-							<Pressable
+							<BAIButton
 								onPress={onApplySharedAvailability}
 								disabled={sharedAvailabilitySelectedGroupIds.length === 0}
-								style={({ pressed }) => [
-									styles.sheetApplyBtn,
-									{
-										backgroundColor:
-											sharedAvailabilitySelectedGroupIds.length === 0
-												? theme.colors.surfaceDisabled
-												: theme.colors.primary,
-									},
-									pressed ? { opacity: 0.85 } : null,
-								]}
+								shape='pill'
 							>
-								<BAIText
-									variant='subtitle'
-									style={{
-										color:
-											sharedAvailabilitySelectedGroupIds.length === 0
-												? theme.colors.onSurfaceDisabled
-												: theme.colors.onPrimary,
-									}}
-								>
-									Apply to all
-								</BAIText>
-							</Pressable>
+								Apply to all
+							</BAIButton>
 						</View>
 
 						<BAIText variant='title'>Apply to all at this location</BAIText>
@@ -1407,10 +1464,10 @@ const styles = StyleSheet.create({
 	},
 	applySetRight: { flexDirection: "row", alignItems: "center", gap: 6 },
 	headerSavePill: {
-		minWidth: 76,
-		height: 36,
-		paddingHorizontal: 14,
-		borderRadius: 18,
+		minWidth: 90,
+		height: 40,
+		paddingHorizontal: 16,
+		borderRadius: 20,
 		alignItems: "center",
 		justifyContent: "center",
 	},
@@ -1450,6 +1507,9 @@ const styles = StyleSheet.create({
 	modifiersTitle: {
 		marginHorizontal: 12,
 	},
+	optionTabsWrap: {
+		marginHorizontal: 12,
+	},
 	modifiersList: {
 		flex: 1,
 		minHeight: 0,
@@ -1468,7 +1528,7 @@ const styles = StyleSheet.create({
 		marginHorizontal: 12,
 	},
 	archiveButtonText: {
-		fontWeight: "700",
+		fontWeight: "500",
 	},
 	optionInlineRow: {
 		flexDirection: "row",
@@ -1594,14 +1654,6 @@ const styles = StyleSheet.create({
 	sheetCloseBtn: {
 		width: 44,
 		height: 44,
-		borderRadius: 22,
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	sheetApplyBtn: {
-		minWidth: 120,
-		height: 44,
-		paddingHorizontal: 14,
 		borderRadius: 22,
 		alignItems: "center",
 		justifyContent: "center",

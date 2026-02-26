@@ -66,7 +66,6 @@ export default function SettingsStackLayout() {
 				options={{ headerShown: false, animation: "none" }}
 			/>
 			<Stack.Screen name='items-services/products/pos-tile-crop' options={{ headerShown: false, animation: "none" }} />
-			<Stack.Screen name='modifiers/price-keypad' options={{ headerShown: false, animation: "slide_from_bottom" }} />
 		</Stack>
 	);
 }

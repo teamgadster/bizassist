@@ -384,7 +384,21 @@ const infoTheme = buildIntentTheme(baiSemanticColors.info, baiSemanticColors.tex
 // ✅ Added: teal theme
 const tealTheme = buildIntentTheme(baiSemanticColors.teal, "#FFFFFF");
 
-const neutralTheme: Record<BAIButtonVariant, BAIButtonColorConfig> = {
+const neutralThemeLight: Record<BAIButtonVariant, BAIButtonColorConfig> = {
+	...buildIntentTheme(baiSemanticColors.neutral, baiSemanticColors.text.onPrimary),
+	solid: {
+		background: baiColors.neutral[500],
+		border: baiColors.neutral[600],
+		text: baiSemanticColors.text.onPrimary,
+	},
+	outline: {
+		background: "transparent",
+		border: baiSemanticColors.neutral.main,
+		text: baiSemanticColors.neutral.dark,
+	},
+};
+
+const neutralThemeDark: Record<BAIButtonVariant, BAIButtonColorConfig> = {
 	...buildIntentTheme(baiSemanticColors.neutral, baiSemanticColors.text.onPrimary),
 	outline: {
 		background: "transparent",
@@ -415,7 +429,7 @@ export const baiButtonThemeByMode: Record<
 		error: errorTheme,
 		danger: dangerTheme,
 		info: infoTheme,
-		neutral: neutralTheme,
+		neutral: neutralThemeLight,
 		teal: tealTheme,
 	},
 	dark: {
@@ -426,7 +440,7 @@ export const baiButtonThemeByMode: Record<
 		error: errorTheme,
 		danger: dangerTheme,
 		info: infoTheme,
-		neutral: neutralTheme,
+		neutral: neutralThemeDark,
 		teal: tealTheme,
 	},
 };
