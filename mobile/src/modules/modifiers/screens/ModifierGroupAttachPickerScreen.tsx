@@ -4,7 +4,6 @@ import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useTheme } from "react-native-paper";
 import { useQuery } from "@tanstack/react-query";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 
 import { BAIButton } from "@/components/ui/BAIButton";
 import { BAIHeader } from "@/components/ui/BAIHeader";
@@ -35,7 +34,6 @@ const modifierPickerKey = ["modifiers", "groups", "attach-picker-screen"] as con
 export function ModifierGroupAttachPickerScreen({ routeScope = "inventory" }: { routeScope?: InventoryRouteScope }) {
 	const router = useRouter();
 	const theme = useTheme();
-	const tabBarHeight = useBottomTabBarHeight();
 	const params = useLocalSearchParams<ModifierPickerInboundParams>();
 	const { busy } = useAppBusy();
 
@@ -179,20 +177,12 @@ export function ModifierGroupAttachPickerScreen({ routeScope = "inventory" }: { 
 					)}
 				/>
 				<TouchableWithoutFeedback onPress={dismissKeyboard} accessible={false}>
-					<View style={[styles.wrap, { paddingBottom: tabBarHeight + 8 }]}>
+					<View style={styles.wrap}>
 						<BAISurface
-							style={[
-								styles.card,
-								{ borderColor: theme.colors.outlineVariant ?? theme.colors.outline },
-							]}
+							style={[styles.card, { borderColor: theme.colors.outlineVariant ?? theme.colors.outline }]}
 							bordered
 						>
 							<View style={styles.panelContent}>
-								<BAIText variant='title'>Modifiers</BAIText>
-								<BAIText variant='caption' muted style={styles.subtitle}>
-									Select modifiers for this item.
-								</BAIText>
-
 								<BAISearchBar
 									value={search}
 									onChangeText={(value) => {
@@ -294,21 +284,11 @@ function ModifierRow({
 	const borderColor = checked ? theme.colors.primary : outline;
 	const surfaceAlt = theme.colors.surfaceVariant ?? theme.colors.surface;
 	return (
-		<BAISurface
-			style={[
-				styles.rowCard,
-				{ borderColor, backgroundColor: surfaceAlt },
-			]}
-			padded
-		>
+		<BAISurface style={[styles.rowCard, { borderColor, backgroundColor: surfaceAlt }]} padded>
 			<Pressable
 				onPress={onPress}
 				disabled={disabled}
-				style={({ pressed }) => [
-					styles.row,
-					pressed && !disabled && { opacity: 0.9 },
-					disabled && { opacity: 0.55 },
-				]}
+				style={({ pressed }) => [styles.row, pressed && !disabled && { opacity: 0.9 }, disabled && { opacity: 0.55 }]}
 			>
 				<View style={styles.rowText}>
 					<BAIText variant='subtitle' numberOfLines={1}>
@@ -321,7 +301,7 @@ function ModifierRow({
 				<MaterialCommunityIcons
 					name={checked ? "check-circle" : "checkbox-blank-circle-outline"}
 					size={28}
-					color={checked ? theme.colors.primary : theme.colors.onSurfaceVariant ?? theme.colors.onSurface}
+					color={checked ? theme.colors.primary : (theme.colors.onSurfaceVariant ?? theme.colors.onSurface)}
 				/>
 			</Pressable>
 		</BAISurface>
@@ -330,10 +310,9 @@ function ModifierRow({
 
 const styles = StyleSheet.create({
 	root: { flex: 1 },
-	wrap: { flex: 1, paddingHorizontal: 12, paddingBottom: 12, paddingTop: 0 },
-	card: { flex: 1, gap: 10 },
-	panelContent: { gap: 10 },
-	subtitle: { marginTop: -6 },
+	wrap: { flex: 1, paddingHorizontal: 10, paddingBottom: 0, paddingTop: 0 },
+	card: { flex: 1, gap: 8 },
+	panelContent: { gap: 6 },
 	headerApplyPill: {
 		minWidth: 90,
 		height: 40,
@@ -342,9 +321,9 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 		justifyContent: "center",
 	},
-	actionRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+	actionRow: { flexDirection: "row", alignItems: "center", gap: 6 },
 	actionButton: { flex: 1 },
-	selectedCaption: { alignSelf: "flex-end", marginTop: -2 },
+	selectedCaption: { alignSelf: "flex-end", marginTop: -6 },
 	listContainer: {
 		flex: 1,
 		minHeight: 0,
@@ -356,18 +335,18 @@ const styles = StyleSheet.create({
 		gap: 8,
 		padding: 16,
 	},
-	listContent: { paddingTop: 0, paddingBottom: 0, gap: 8 },
+	listContent: { paddingTop: 0, paddingBottom: 0, gap: 0 },
 	rowCard: {
 		borderWidth: 1,
 		borderRadius: 12,
-		paddingVertical: 8,
+		paddingVertical: 6,
 	},
 	row: {
-		minHeight: 48,
+		minHeight: 36,
 		flexDirection: "row",
 		alignItems: "center",
 		justifyContent: "space-between",
-		paddingVertical: 4,
+		paddingVertical: 6,
 	},
-	rowText: { flex: 1, marginRight: 12, minWidth: 0, gap: 2 },
+	rowText: { flex: 1, marginRight: 8, minWidth: 0, gap: 0 },
 });

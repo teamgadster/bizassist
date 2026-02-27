@@ -194,7 +194,7 @@ const styles = StyleSheet.create({
 	nameRow: {
 		flexDirection: "row",
 		alignItems: "center",
-		gap: 6,
+		gap: 0,
 		minWidth: 0,
 	},
 	countText: {
