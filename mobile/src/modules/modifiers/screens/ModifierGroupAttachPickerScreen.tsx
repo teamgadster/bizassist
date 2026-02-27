@@ -281,10 +281,9 @@ function ModifierRow({
 }) {
 	const theme = useTheme();
 	const outline = theme.colors.outlineVariant ?? theme.colors.outline;
-	const borderColor = checked ? theme.colors.primary : outline;
 	const surfaceAlt = theme.colors.surfaceVariant ?? theme.colors.surface;
 	return (
-		<BAISurface style={[styles.rowCard, { borderColor, backgroundColor: surfaceAlt }]} padded>
+		<BAISurface style={[styles.rowCard, { borderColor: outline, backgroundColor: surfaceAlt }]} padded>
 			<Pressable
 				onPress={onPress}
 				disabled={disabled}
