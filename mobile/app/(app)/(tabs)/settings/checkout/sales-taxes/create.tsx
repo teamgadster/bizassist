@@ -34,15 +34,7 @@ function selectionLabel(count: number, emptyLabel: string, singular: string, plu
 	return `${count} ${plural}`;
 }
 
-function NavRow({
-	title,
-	value,
-	onPress,
-}: {
-	title: string;
-	value: string;
-	onPress: () => void;
-}) {
+function NavRow({ title, value, onPress }: { title: string; value: string; onPress: () => void }) {
 	const theme = useTheme();
 	return (
 		<Pressable
@@ -81,7 +73,7 @@ export default function SalesTaxCreateScreen() {
 	const hydratedTaxIdRef = useRef<string | null>(null);
 
 	const taxIdParam = params.taxId;
-	const taxId = Array.isArray(taxIdParam) ? taxIdParam[0] ?? null : taxIdParam ?? null;
+	const taxId = Array.isArray(taxIdParam) ? (taxIdParam[0] ?? null) : (taxIdParam ?? null);
 	const isEditMode = !!taxId;
 	const taxQuery = useSalesTaxById(taxId);
 
@@ -114,7 +106,8 @@ export default function SalesTaxCreateScreen() {
 
 	const selectedItemsLabel = selectionLabel(draft.itemIds.length, "No items", "item", "items");
 	const selectedServicesLabel = selectionLabel(draft.serviceIds.length, "No services", "service", "services");
-	const itemPricingLabel = draft.itemPricingMode === "INCLUDE_IN_ITEM_PRICE" ? "Include tax in item price" : "Add tax to item price";
+	const itemPricingLabel =
+		draft.itemPricingMode === "INCLUDE_IN_ITEM_PRICE" ? "Include tax in item price" : "Add tax to item price";
 	const percentageDisplay = useMemo(() => {
 		const value = draft.percentageText.trim();
 		return value ? `${value}%` : "";
@@ -142,9 +135,9 @@ export default function SalesTaxCreateScreen() {
 			normalizedPercentageText === draft.percentageText
 				? draft
 				: {
-					...draft,
-					percentageText: normalizedPercentageText,
-				};
+						...draft,
+						percentageText: normalizedPercentageText,
+					};
 
 		await withBusy("Saving sales tax...", async () => {
 			try {
@@ -343,11 +336,23 @@ export default function SalesTaxCreateScreen() {
 
 							{isEditMode && taxId ? (
 								isArchived ? (
-									<BAIButton variant='soft' intent='neutral' onPress={onRestore} shape='default' style={styles.actionButton}>
+									<BAIButton
+										variant='soft'
+										intent='neutral'
+										onPress={onRestore}
+										shape='default'
+										style={styles.actionButton}
+									>
 										Restore tax
 									</BAIButton>
 								) : (
-									<BAIButton variant='soft' intent='danger' onPress={onArchive} shape='default' style={styles.actionButton}>
+									<BAIButton
+										variant='soft'
+										intent='danger'
+										onPress={onArchive}
+										shape='default'
+										style={styles.actionButton}
+									>
 										Archive tax
 									</BAIButton>
 								)

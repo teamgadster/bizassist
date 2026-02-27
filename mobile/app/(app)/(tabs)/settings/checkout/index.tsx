@@ -16,7 +16,17 @@ type CheckoutRow = {
 	onPress?: () => void;
 };
 
-function Row({ item, borderColor, onSurface, onSurfaceVariant }: { item: CheckoutRow; borderColor: string; onSurface: string; onSurfaceVariant: string }) {
+function Row({
+	item,
+	borderColor,
+	onSurface,
+	onSurfaceVariant,
+}: {
+	item: CheckoutRow;
+	borderColor: string;
+	onSurface: string;
+	onSurfaceVariant: string;
+}) {
 	return (
 		<Pressable
 			onPress={item.onPress}
@@ -36,9 +46,7 @@ function Row({ item, borderColor, onSurface, onSurfaceVariant }: { item: Checkou
 						{item.value}
 					</BAIText>
 				) : null}
-				{item.onPress ? (
-					<MaterialCommunityIcons name='chevron-right' size={24} color={onSurfaceVariant} />
-				) : null}
+				{item.onPress ? <MaterialCommunityIcons name='chevron-right' size={24} color={onSurfaceVariant} /> : null}
 			</View>
 		</Pressable>
 	);

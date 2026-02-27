@@ -185,16 +185,13 @@ export function ModifierGroupAttachPickerScreen({ routeScope = "inventory" }: { 
 								styles.card,
 								{ borderColor: theme.colors.outlineVariant ?? theme.colors.outline },
 							]}
-							padded={false}
 							bordered
 						>
 							<View style={styles.panelContent}>
-								<View style={styles.headRow}>
-									<BAIText variant='subtitle'>Modifiers</BAIText>
-									<BAIText variant='caption' muted>
-										{selectedIds.length} selected
-									</BAIText>
-								</View>
+								<BAIText variant='title'>Modifiers</BAIText>
+								<BAIText variant='caption' muted style={styles.subtitle}>
+									Select modifiers for this item.
+								</BAIText>
 
 								<BAISearchBar
 									value={search}
@@ -207,7 +204,7 @@ export function ModifierGroupAttachPickerScreen({ routeScope = "inventory" }: { 
 									disabled={isUiDisabled}
 								/>
 
-								<View style={styles.actionsRow}>
+								<View style={styles.actionRow}>
 									<BAIButton
 										mode='outlined'
 										variant='outline'
@@ -229,15 +226,13 @@ export function ModifierGroupAttachPickerScreen({ routeScope = "inventory" }: { 
 										Apply All
 									</BAIButton>
 								</View>
+
+								<BAIText variant='caption' muted style={styles.selectedCaption}>
+									{selectedIds.length} selected
+								</BAIText>
 							</View>
 
-							<View style={styles.listWrap}>
-								<View
-									style={[
-										styles.listTopDivider,
-										{ borderColor: theme.colors.outlineVariant ?? theme.colors.outline },
-									]}
-								/>
+							<View style={styles.listContainer}>
 								{query.isLoading ? (
 									<View style={styles.stateWrap}>
 										<BAIText variant='body' muted>
@@ -261,12 +256,17 @@ export function ModifierGroupAttachPickerScreen({ routeScope = "inventory" }: { 
 										data={filtered}
 										keyExtractor={(item) => item.id}
 										renderItem={({ item }) => (
-											<ModifierRow item={item} checked={selectedSet.has(item.id)} onPress={() => toggle(item.id)} />
+											<ModifierRow
+												item={item}
+												checked={selectedSet.has(item.id)}
+												onPress={() => toggle(item.id)}
+												disabled={isUiDisabled}
+											/>
 										)}
 										contentContainerStyle={styles.listContent}
 										keyboardShouldPersistTaps='handled'
 										showsVerticalScrollIndicator={false}
-										ItemSeparatorComponent={null}
+										showsHorizontalScrollIndicator={false}
 									/>
 								)}
 							</View>
@@ -278,39 +278,62 @@ export function ModifierGroupAttachPickerScreen({ routeScope = "inventory" }: { 
 	);
 }
 
-function ModifierRow({ item, checked, onPress }: { item: ModifierGroup; checked: boolean; onPress: () => void }) {
+function ModifierRow({
+	item,
+	checked,
+	onPress,
+	disabled,
+}: {
+	item: ModifierGroup;
+	checked: boolean;
+	onPress: () => void;
+	disabled?: boolean;
+}) {
 	const theme = useTheme();
-	const borderColor = theme.colors.outlineVariant ?? theme.colors.outline;
+	const outline = theme.colors.outlineVariant ?? theme.colors.outline;
+	const borderColor = checked ? theme.colors.primary : outline;
+	const surfaceAlt = theme.colors.surfaceVariant ?? theme.colors.surface;
 	return (
-		<Pressable
-			onPress={onPress}
-			style={({ pressed }) => [
-				styles.row,
-				{ borderBottomColor: borderColor, backgroundColor: pressed ? theme.colors.surfaceVariant : "transparent" },
+		<BAISurface
+			style={[
+				styles.rowCard,
+				{ borderColor, backgroundColor: surfaceAlt },
 			]}
+			padded
 		>
-			<View style={styles.rowText}>
-				<BAIText variant='subtitle' numberOfLines={1}>
-					{item.name}
-				</BAIText>
-				<BAIText variant='caption' muted numberOfLines={1}>
-					{item.options.length} option{item.options.length === 1 ? "" : "s"}
-				</BAIText>
-			</View>
-			<MaterialCommunityIcons
-				name={checked ? "check-circle" : "checkbox-blank-circle-outline"}
-				size={28}
-				color={checked ? theme.colors.primary : theme.colors.onSurfaceVariant ?? theme.colors.onSurface}
-			/>
-		</Pressable>
+			<Pressable
+				onPress={onPress}
+				disabled={disabled}
+				style={({ pressed }) => [
+					styles.row,
+					pressed && !disabled && { opacity: 0.9 },
+					disabled && { opacity: 0.55 },
+				]}
+			>
+				<View style={styles.rowText}>
+					<BAIText variant='subtitle' numberOfLines={1}>
+						{item.name}
+					</BAIText>
+					<BAIText variant='caption' muted numberOfLines={1}>
+						{item.options.length} option{item.options.length === 1 ? "" : "s"}
+					</BAIText>
+				</View>
+				<MaterialCommunityIcons
+					name={checked ? "check-circle" : "checkbox-blank-circle-outline"}
+					size={28}
+					color={checked ? theme.colors.primary : theme.colors.onSurfaceVariant ?? theme.colors.onSurface}
+				/>
+			</Pressable>
+		</BAISurface>
 	);
 }
 
 const styles = StyleSheet.create({
 	root: { flex: 1 },
 	wrap: { flex: 1, paddingHorizontal: 12, paddingBottom: 12, paddingTop: 0 },
-	card: { flex: 1, borderRadius: 16, overflow: "hidden" },
-	panelContent: { paddingHorizontal: 10, paddingTop: 12, paddingBottom: 10, gap: 10 },
+	card: { flex: 1, gap: 10 },
+	panelContent: { gap: 10 },
+	subtitle: { marginTop: -6 },
 	headerApplyPill: {
 		minWidth: 90,
 		height: 40,
@@ -319,14 +342,13 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 		justifyContent: "center",
 	},
-	headRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-	actionsRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 8 },
+	actionRow: { flexDirection: "row", alignItems: "center", gap: 8 },
 	actionButton: { flex: 1 },
-	listWrap: {
+	selectedCaption: { alignSelf: "flex-end", marginTop: -2 },
+	listContainer: {
 		flex: 1,
 		minHeight: 0,
 	},
-	listTopDivider: { borderTopWidth: StyleSheet.hairlineWidth },
 	stateWrap: {
 		flex: 1,
 		alignItems: "center",
@@ -334,15 +356,18 @@ const styles = StyleSheet.create({
 		gap: 8,
 		padding: 16,
 	},
-	listContent: { paddingBottom: 8 },
+	listContent: { paddingTop: 0, paddingBottom: 0, gap: 8 },
+	rowCard: {
+		borderWidth: 1,
+		borderRadius: 12,
+		paddingVertical: 8,
+	},
 	row: {
-		minHeight: 74,
+		minHeight: 48,
 		flexDirection: "row",
 		alignItems: "center",
 		justifyContent: "space-between",
-		paddingHorizontal: 10,
-		paddingVertical: 6,
-		borderBottomWidth: StyleSheet.hairlineWidth,
+		paddingVertical: 4,
 	},
-	rowText: { flex: 1, marginRight: 12, gap: 2 },
+	rowText: { flex: 1, marginRight: 12, minWidth: 0, gap: 2 },
 });

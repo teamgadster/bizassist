@@ -68,7 +68,11 @@ export class SalesTaxesService {
 		if (serviceIds.length > 0) {
 			const found = await this.repo.countProductsByIds({ businessId, ids: serviceIds, type: "SERVICE" });
 			if (found !== serviceIds.length) {
-				throw new AppError(StatusCodes.BAD_REQUEST, "Some selected services are invalid.", "SALES_TAX_INVALID_SERVICES");
+				throw new AppError(
+					StatusCodes.BAD_REQUEST,
+					"Some selected services are invalid.",
+					"SALES_TAX_INVALID_SERVICES",
+				);
 			}
 		}
 
@@ -114,7 +118,11 @@ export class SalesTaxesService {
 		if (input.serviceIds !== undefined && serviceIds.length > 0) {
 			const found = await this.repo.countProductsByIds({ businessId, ids: serviceIds, type: "SERVICE" });
 			if (found !== serviceIds.length) {
-				throw new AppError(StatusCodes.BAD_REQUEST, "Some selected services are invalid.", "SALES_TAX_INVALID_SERVICES");
+				throw new AppError(
+					StatusCodes.BAD_REQUEST,
+					"Some selected services are invalid.",
+					"SALES_TAX_INVALID_SERVICES",
+				);
 			}
 		}
 

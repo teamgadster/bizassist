@@ -43,11 +43,12 @@ export default function SalesTaxItemPricingScreen() {
 						/>
 					</BAISurface>
 
-					<BAIText variant='body' style={[styles.helpText, { color: theme.colors.onSurfaceVariant }]}> 
-						Item pricing allows you to determine whether the tax you are creating is added to the final item price or included in the item price.
+					<BAIText variant='body' style={[styles.helpText, { color: theme.colors.onSurfaceVariant }]}>
+						Item pricing allows you to determine whether the tax you are creating is added to the final item price or
+						included in the item price.
 					</BAIText>
 
-					<BAIText variant='body' style={[styles.helpText, { color: theme.colors.onSurfaceVariant }]}> 
+					<BAIText variant='body' style={[styles.helpText, { color: theme.colors.onSurfaceVariant }]}>
 						If it is included, the tax will appear in your reports, but your customers will not see the tax.
 					</BAIText>
 				</View>

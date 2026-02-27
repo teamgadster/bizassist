@@ -65,7 +65,7 @@ export function BAISearchBar({
 
 	// Use existing theme tokens to stay consistent across light/dark.
 	const bg = theme.colors.surface;
-	const border = theme.dark ? theme.colors.outline : theme.colors.outlineVariant ?? theme.colors.outline;
+	const border = theme.dark ? theme.colors.outline : (theme.colors.outlineVariant ?? theme.colors.outline);
 	const textColor = theme.colors.onSurface;
 	const placeholderColor = theme.colors.onSurfaceVariant ?? theme.colors.onSurfaceDisabled ?? theme.colors.outline;
 
@@ -78,7 +78,7 @@ export function BAISearchBar({
 		(v: string) => {
 			onChangeText(capText(v, cap));
 		},
-		[cap, onChangeText]
+		[cap, onChangeText],
 	);
 
 	const handleClear = useCallback(() => {
@@ -98,7 +98,7 @@ export function BAISearchBar({
 			},
 			style,
 		],
-		[bg, border, height, style]
+		[bg, border, height, style],
 	);
 
 	return (

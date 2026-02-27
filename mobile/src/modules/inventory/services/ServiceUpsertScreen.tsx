@@ -1038,7 +1038,9 @@ export function ServiceUpsertScreen(props: {
 
 									<BAIPressableRow
 										label='Modifiers'
-										value={(draft.modifierGroupIds?.length ?? 0) > 0 ? `${draft.modifierGroupIds.length} selected` : "None"}
+										value={
+											(draft.modifierGroupIds?.length ?? 0) > 0 ? `${draft.modifierGroupIds.length} selected` : "None"
+										}
 										onPress={openModifierPicker}
 										disabled={isUiDisabled}
 									/>

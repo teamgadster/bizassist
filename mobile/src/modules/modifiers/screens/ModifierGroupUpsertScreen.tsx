@@ -647,7 +647,10 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 	const headerTitle = intent === "create" ? "Create Modifier Set" : "Edit Modifier";
 
 	const applySetCount = appliedProductIds.length;
-	const applySetCountLabel = useMemo(() => formatCompactNumber(applySetCount, countryCode), [applySetCount, countryCode]);
+	const applySetCountLabel = useMemo(
+		() => formatCompactNumber(applySetCount, countryCode),
+		[applySetCount, countryCode],
+	);
 	const rulesSummary = `Min ${minSelected || "0"} · Max ${maxSelected || "1"}`;
 	const applySetRoute =
 		mode === "settings" ? "/(app)/(tabs)/settings/modifiers/apply-set" : "/(app)/(tabs)/inventory/modifiers/apply-set";

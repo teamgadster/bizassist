@@ -134,7 +134,7 @@ export default function SalesTaxServicesScreen() {
 							</Pressable>
 						</View>
 
-						<BAIText variant='body' style={[styles.countLabel, { color: theme.colors.onSurfaceVariant }]}> 
+						<BAIText variant='body' style={[styles.countLabel, { color: theme.colors.onSurfaceVariant }]}>
 							{countLabel}
 						</BAIText>
 
@@ -161,7 +161,7 @@ export default function SalesTaxServicesScreen() {
 							</BAIButton>
 						</View>
 
-						<BAIText variant='body' style={[styles.notice, { color: theme.colors.onSurfaceVariant }]}> 
+						<BAIText variant='body' style={[styles.notice, { color: theme.colors.onSurfaceVariant }]}>
 							Some of your services are nontaxable and will not be available for tax assignment
 						</BAIText>
 

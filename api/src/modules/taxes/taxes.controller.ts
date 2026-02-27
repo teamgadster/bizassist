@@ -4,7 +4,11 @@ import { StatusCodes } from "http-status-codes";
 
 import { prisma } from "@/lib/prisma";
 import { SalesTaxesService } from "@/modules/taxes/taxes.service";
-import { createSalesTaxBodySchema, listSalesTaxesQuerySchema, updateSalesTaxBodySchema } from "@/modules/taxes/taxes.validators";
+import {
+	createSalesTaxBodySchema,
+	listSalesTaxesQuerySchema,
+	updateSalesTaxBodySchema,
+} from "@/modules/taxes/taxes.validators";
 
 const service = new SalesTaxesService(prisma);
 

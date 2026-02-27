@@ -50,7 +50,9 @@ export function buildModifierSelectionParams(input: {
 	selectionSource?: ModifierSelectionSource;
 	draftId?: string;
 }) {
-	const csv = Array.from(new Set((input.selectedModifierGroupIds ?? []).map((id) => normalizeString(id)).filter(Boolean)))
+	const csv = Array.from(
+		new Set((input.selectedModifierGroupIds ?? []).map((id) => normalizeString(id)).filter(Boolean)),
+	)
 		.sort()
 		.join(",");
 	return {

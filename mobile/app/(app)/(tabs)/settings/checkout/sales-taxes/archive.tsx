@@ -26,7 +26,7 @@ export default function SalesTaxArchiveScreen() {
 	const [error, setError] = useState<string | null>(null);
 
 	const taxIdParam = params.taxId;
-	const taxId = Array.isArray(taxIdParam) ? taxIdParam[0] ?? "" : taxIdParam ?? "";
+	const taxId = Array.isArray(taxIdParam) ? (taxIdParam[0] ?? "") : (taxIdParam ?? "");
 
 	const taxQuery = useSalesTaxById(taxId || null);
 	const archiveSalesTax = useArchiveSalesTax();

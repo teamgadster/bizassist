@@ -176,7 +176,7 @@ export function ModifiersLedgerScreen({
 					onLeftPress={onCancel}
 					onRightPress={onCreate}
 					rightSlot={({ disabled }) => (
-						<View style={[styles.addCircle, { backgroundColor: theme.colors.primary, opacity: disabled ? 0.5 : 1 }]}> 
+						<View style={[styles.addCircle, { backgroundColor: theme.colors.primary, opacity: disabled ? 0.5 : 1 }]}>
 							<MaterialCommunityIcons name='plus' size={30} color={theme.colors.onPrimary} />
 						</View>
 					)}

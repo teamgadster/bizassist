@@ -62,7 +62,7 @@ function TaxRow({
 					</View>
 
 					<View style={styles.taxRowRight}>
-						<View style={[styles.statusPill, { backgroundColor: statusBg, borderColor }]}> 
+						<View style={[styles.statusPill, { backgroundColor: statusBg, borderColor }]}>
 							<BAIText variant='caption' style={{ color: statusColor }}>
 								{statusLabel}
 							</BAIText>
@@ -132,7 +132,7 @@ export default function SalesTaxesIndexScreen() {
 					onLeftPress={onBack}
 					onRightPress={onCreate}
 					rightSlot={({ disabled }) => (
-						<View style={[styles.addCircle, { backgroundColor: theme.colors.primary, opacity: disabled ? 0.5 : 1 }]}> 
+						<View style={[styles.addCircle, { backgroundColor: theme.colors.primary, opacity: disabled ? 0.5 : 1 }]}>
 							<MaterialCommunityIcons name='plus' size={30} color={theme.colors.onPrimary} />
 						</View>
 					)}
@@ -155,7 +155,7 @@ export default function SalesTaxesIndexScreen() {
 								>
 									Create tax
 								</BAIButton>
-								<BAIText variant='body' style={[styles.infoText, { color: theme.colors.onSurfaceVariant }]}> 
+								<BAIText variant='body' style={[styles.infoText, { color: theme.colors.onSurfaceVariant }]}>
 									Sales taxes will be automatically calculated at purchase.
 								</BAIText>
 							</>
