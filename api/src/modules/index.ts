@@ -13,6 +13,7 @@ import { inventoryRoutes } from "@/modules/inventory/inventory.routes";
 import { posRoutes } from "@/modules/pos/pos.routes";
 import { categoriesRoutes } from "@/modules/categories/categories.routes";
 import { discountsRoutes } from "@/modules/discounts/discounts.routes";
+import { taxesRoutes } from "@/modules/taxes/taxes.routes";
 
 // Media (Supabase Storage)
 import { mediaRoutes } from "@/modules/media/media.routes";
@@ -50,6 +51,7 @@ apiRouter.use("/categories", categoriesRoutes);
 // Discounts
 // ─────────────────────────────────────────────────────────────
 apiRouter.use("/discounts", discountsRoutes);
+apiRouter.use("/taxes", taxesRoutes);
 
 // ─────────────────────────────────────────────────────────────
 // Unit of measures

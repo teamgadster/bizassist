@@ -72,7 +72,7 @@ export function BAISearchBar({
 	const iconColor = theme.colors.onSurfaceDisabled ?? theme.colors.outline;
 	const canClear = !isDisabled && showClear && value.trim().length > 0;
 
-	const cap = maxLength ?? FIELD_LIMITS.search;
+	const cap = Math.max(0, Math.min(maxLength ?? FIELD_LIMITS.search, FIELD_LIMITS.search));
 
 	const handleChangeText = useCallback(
 		(v: string) => {

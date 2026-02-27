@@ -15,6 +15,8 @@ import { BAISurface } from "@/components/ui/BAISurface";
 import { BAIText } from "@/components/ui/BAIText";
 import { useAppBusy } from "@/hooks/useAppBusy";
 import { useResponsiveLayout } from "@/lib/layout/useResponsiveLayout";
+import { formatCompactNumber } from "@/lib/locale/businessLocale";
+import { useActiveBusinessMeta } from "@/modules/business/useActiveBusinessMeta";
 import { runGovernedProcessExit } from "@/modules/inventory/navigation.governance";
 import { useInventoryHeader } from "@/modules/inventory/useInventoryHeader";
 import { useAppHeader } from "@/modules/navigation/useAppHeader";
@@ -45,6 +47,7 @@ export function ModifierGroupDetailScreen({ mode }: { mode: "settings" | "invent
 	const params = useLocalSearchParams<{ id?: string; returnTo?: string }>();
 	const groupId = String(params.id ?? "").trim();
 	const exitReturnTo = String(params.returnTo ?? "").trim();
+	const { countryCode } = useActiveBusinessMeta();
 	const { withBusy, busy } = useAppBusy();
 	const { showSuccess } = useAppToast();
 	const baseRoute = mode === "settings" ? "/(app)/(tabs)/settings/modifiers" : "/(app)/(tabs)/inventory/modifiers";
@@ -234,6 +237,10 @@ export function ModifierGroupDetailScreen({ mode }: { mode: "settings" | "invent
 			theme.colors.surfaceDisabled,
 		],
 	);
+	const sharedAvailabilityGroupCountLabel = useMemo(
+		() => formatCompactNumber(sharedAvailability?.groups.length ?? 0, countryCode),
+		[countryCode, sharedAvailability?.groups.length],
+	);
 
 	return (
 		<>
@@ -348,7 +355,7 @@ export function ModifierGroupDetailScreen({ mode }: { mode: "settings" | "invent
 
 						<BAIText variant='title'>Apply to all at this location</BAIText>
 						<BAIText variant='body' muted>
-							{`${sharedAvailability?.optionName ?? "This modifier"} is currently ${pendingNextIsSoldOut ? "available" : "sold out"} in ${sharedAvailability?.groups.length ?? 0} modifier sets at this location. Do you want to mark them all as ${pendingNextIsSoldOut ? "sold out" : "available"}?`}
+							{`${sharedAvailability?.optionName ?? "This modifier"} is currently ${pendingNextIsSoldOut ? "available" : "sold out"} in ${sharedAvailabilityGroupCountLabel} modifier sets at this location. Do you want to mark them all as ${pendingNextIsSoldOut ? "sold out" : "available"}?`}
 						</BAIText>
 
 						<View style={styles.sheetListWrap}>

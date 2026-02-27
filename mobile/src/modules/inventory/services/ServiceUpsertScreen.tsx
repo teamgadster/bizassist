@@ -64,7 +64,14 @@ import { DurationWheelAccordion } from "@/modules/inventory/services/components/
 import { clampDurationMinutes, SERVICE_DURATION_MAX_MINUTES } from "@/modules/inventory/services/serviceDuration";
 import { uploadProductImage } from "@/modules/media/media.upload";
 import { toMediaDomainError } from "@/modules/media/media.errors";
-import { ModifierGroupSelector } from "@/modules/modifiers/components/ModifierGroupSelector";
+import {
+	buildModifierSelectionParams,
+	MODIFIER_PICKER_ROUTE,
+	MODIFIER_SELECTED_IDS_KEY,
+	MODIFIER_SELECTION_SOURCE_KEY,
+	parseModifierSelectionParams,
+	RETURN_TO_KEY as MODIFIER_RETURN_TO_KEY,
+} from "@/modules/modifiers/modifierPicker.contract";
 import { unitsApi } from "@/modules/units/units.api";
 import { unitKeys } from "@/modules/units/units.queries";
 import type { Unit } from "@/modules/units/units.types";
@@ -414,6 +421,7 @@ export function ServiceUpsertScreen(props: {
 	}, [defaultServiceUnit, setDraft]);
 
 	const categorySelection = useMemo(() => parseCategorySelectionParams(params as any), [params]);
+	const modifierSelection = useMemo(() => parseModifierSelectionParams(params as any), [params]);
 	useEffect(() => {
 		if (!categorySelection.hasSelectionKey) return;
 		setDraft((prev) => ({
@@ -428,6 +436,19 @@ export function ServiceUpsertScreen(props: {
 			[CATEGORY_SELECTION_SOURCE_KEY]: undefined,
 		});
 	}, [categorySelection, router, setDraft]);
+
+	useEffect(() => {
+		if (!modifierSelection.hasSelectionKey) return;
+		setDraft((prev) => ({
+			...prev,
+			modifierGroupIds: modifierSelection.selectedModifierGroupIds,
+		}));
+
+		(router as any).setParams?.({
+			[MODIFIER_SELECTED_IDS_KEY]: undefined,
+			[MODIFIER_SELECTION_SOURCE_KEY]: undefined,
+		});
+	}, [modifierSelection, router, setDraft]);
 
 	const durationSelection = useMemo(() => parseDurationSelectionParams(params as any), [params]);
 	useEffect(() => {
@@ -655,6 +676,22 @@ export function ServiceUpsertScreen(props: {
 			} as any,
 		});
 	}, [draft.categoryId, draft.categoryName, draftId, isUiDisabled, lockNav, router, thisRoute, toScopedRoute]);
+
+	const openModifierPicker = useCallback(() => {
+		if (isUiDisabled) return;
+		if (!lockNav()) return;
+		router.replace({
+			pathname: toScopedRoute(MODIFIER_PICKER_ROUTE) as any,
+			params: {
+				[MODIFIER_RETURN_TO_KEY]: thisRoute,
+				...buildModifierSelectionParams({
+					selectedModifierGroupIds: draft.modifierGroupIds,
+					selectionSource: (draft.modifierGroupIds?.length ?? 0) > 0 ? "existing" : "cleared",
+					draftId,
+				}),
+			} as any,
+		});
+	}, [draft.modifierGroupIds, draftId, isUiDisabled, lockNav, router, thisRoute, toScopedRoute]);
 
 	const openTileEditor = useCallback(() => {
 		if (isUiDisabled) return;
@@ -999,9 +1036,10 @@ export function ServiceUpsertScreen(props: {
 										disabled={isUiDisabled}
 									/>
 
-									<ModifierGroupSelector
-										selectedIds={draft.modifierGroupIds ?? []}
-										onChange={(modifierGroupIds) => setDraft((prev) => ({ ...prev, modifierGroupIds }))}
+									<BAIPressableRow
+										label='Modifiers'
+										value={(draft.modifierGroupIds?.length ?? 0) > 0 ? `${draft.modifierGroupIds.length} selected` : "None"}
+										onPress={openModifierPicker}
 										disabled={isUiDisabled}
 									/>
 

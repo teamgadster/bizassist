@@ -123,6 +123,13 @@ export default function SettingsPhoneScreen() {
 				onPress: () => router.push("/(app)/(tabs)/settings/items"),
 			},
 			{
+				key: "checkout",
+				title: "Checkout",
+				subtitle: "Tax and checkout behavior",
+				icon: "credit-card-outline",
+				onPress: () => router.push("/(app)/(tabs)/settings/checkout"),
+			},
+			{
 				key: "devices",
 				title: "Devices",
 				subtitle: "Connected devices (v1: placeholder)",

@@ -10,7 +10,6 @@ import { BAISurface } from "@/components/ui/BAISurface";
 import { BAIText } from "@/components/ui/BAIText";
 import { BAIRetryButton } from "@/components/ui/BAIRetryButton";
 import { BAIHeader } from "@/components/ui/BAIHeader";
-import { BAIIconButton } from "@/components/ui/BAIIconButton";
 import { BAIGroupTabs, type BAIGroupTab } from "@/components/ui/BAIGroupTabs";
 import { BAISearchBar } from "@/components/ui/BAISearchBar";
 import { formatCompactNumber } from "@/lib/locale/businessLocale";
@@ -175,17 +174,12 @@ export function ModifiersLedgerScreen({
 					title='Modifiers'
 					variant='back'
 					onLeftPress={onCancel}
-					rightSlot={
-						<BAIIconButton
-							icon='plus'
-							variant='filled'
-							size='xxl'
-							iconSize={36}
-							onPress={onCreate}
-							accessibilityLabel='Create modifier'
-							style={styles.headerAddButton}
-						/>
-					}
+					onRightPress={onCreate}
+					rightSlot={({ disabled }) => (
+						<View style={[styles.addCircle, { backgroundColor: theme.colors.primary, opacity: disabled ? 0.5 : 1 }]}> 
+							<MaterialCommunityIcons name='plus' size={30} color={theme.colors.onPrimary} />
+						</View>
+					)}
 				/>
 				<TouchableWithoutFeedback onPress={dismissKeyboard} accessible={false}>
 					<View style={styles.wrap}>
@@ -270,7 +264,7 @@ const styles = StyleSheet.create({
 	wrap: { flex: 1, paddingHorizontal: 8, paddingTop: 0 },
 	content: { flex: 1, width: "100%", alignSelf: "center" },
 	tablet: { maxWidth: 720 },
-	card: { flex: 1, borderRadius: 18, gap: 6, marginTop: 8 },
+	card: { flex: 1, borderRadius: 18, gap: 6 },
 	controls: { gap: 4, paddingBottom: 2 },
 	groupTabsWrap: {
 		paddingTop: 6,
@@ -327,8 +321,12 @@ const styles = StyleSheet.create({
 		alignItems: "flex-end",
 		minWidth: 102,
 	},
-	headerAddButton: {
-		marginRight: 8,
+	addCircle: {
+		width: 44,
+		height: 44,
+		borderRadius: 22,
+		alignItems: "center",
+		justifyContent: "center",
 	},
 	emptyWrap: { padding: 12, borderRadius: 12, gap: 4 },
 });

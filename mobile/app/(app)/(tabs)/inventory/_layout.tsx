@@ -80,6 +80,7 @@ export default function InventoryStackLayout() {
 			<Stack.Screen name='discounts/[id]/index' options={{ headerShown: false }} />
 			<Stack.Screen name='discounts/[id]/edit' options={{ title: "Edit Discount" }} />
 			<Stack.Screen name='modifiers/index' options={{ title: "Modifiers" }} />
+			<Stack.Screen name='modifiers/picker' options={{ title: "Select Modifiers" }} />
 			<Stack.Screen name='modifiers/create' options={{ title: "Create Modifier" }} />
 			<Stack.Screen name='modifiers/[id]/index' options={{ title: "Modifier Details" }} />
 			<Stack.Screen name='modifiers/[id]/edit' options={{ title: "Edit Modifier" }} />

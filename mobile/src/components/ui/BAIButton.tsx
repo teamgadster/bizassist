@@ -40,6 +40,7 @@ type PaperButtonMode = React.ComponentProps<typeof Button>["mode"];
 const MODE_BY_VARIANT: Record<BAIButtonVariant, PaperButtonMode> = {
 	solid: "contained",
 	soft: "contained-tonal",
+	lightNeutral: "contained-tonal",
 	outline: "outlined",
 	ghost: "text",
 };

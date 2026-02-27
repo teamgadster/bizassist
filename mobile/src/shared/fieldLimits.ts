@@ -61,6 +61,9 @@ export const FIELD_LIMITS = {
 	discountPercent: 3,
 	discountAmount: 16,
 
+	// taxes
+	salesTaxPercent: 3,
+
 	// common UX
 	search: 80,
 	note: 255,

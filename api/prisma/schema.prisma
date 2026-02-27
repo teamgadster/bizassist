@@ -115,6 +115,7 @@ model Business {
   CategoryVisibility     CategoryVisibility[]
   Devices                Device[]
   Discounts              Discount[]
+  SalesTaxes             SalesTax[]
   DiscountVisibility     DiscountVisibility[]
   InventoryMovements     InventoryMovement[]
   ModifierGroups         ModifierGroup[]
@@ -136,6 +137,29 @@ model Business {
   @@index([createdAt])
   @@index([countryCode])
   @@index([currencyCode])
+}
+
+model SalesTax {
+  id               String             @id @default(uuid())
+  businessId       String
+  name             String             @db.VarChar(120)
+  nameNormalized   String             @db.VarChar(120)
+  percentage       Decimal            @db.Decimal(5, 2)
+  isEnabled        Boolean            @default(true)
+  applicationMode  TaxApplicationMode @default(ALL_TAXABLE)
+  customAmounts    Boolean            @default(true)
+  itemPricingMode  TaxItemPricingMode @default(INCLUDE_IN_ITEM_PRICE)
+  itemIds          Json?
+  serviceIds       Json?
+  archivedAt       DateTime?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  Business         Business           @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@unique([businessId, nameNormalized])
+  @@index([businessId, isEnabled])
+  @@index([businessId, archivedAt])
+  @@index([businessId, createdAt])
 }
 
 model Store {
@@ -695,6 +719,16 @@ enum DiscountType {
 enum DiscountScope {
   SALE
   LINE_ITEM
+}
+
+enum TaxApplicationMode {
+  ALL_TAXABLE
+  SELECT_ITEMS
+}
+
+enum TaxItemPricingMode {
+  ADD_TO_ITEM_PRICE
+  INCLUDE_IN_ITEM_PRICE
 }
 
 enum PosTileMode {

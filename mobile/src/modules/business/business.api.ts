@@ -7,6 +7,7 @@ import type {
 	CreateBusinessPayload,
 	CreateBusinessResponse,
 } from "./business.types";
+import { extractActiveBusinessIdFromContext } from "./business.context";
 
 import { mmkv, MMKVKeys } from "@/lib/storage/mmkv";
 
@@ -65,30 +66,6 @@ function extractBusinessIdFromCreateResponse(res: CreateBusinessResponse): strin
 	return null;
 }
 
-/**
- * Attempt to extract a business id from the active business context envelope.
- */
-function extractBusinessIdFromActiveContext(env: ApiEnvelope<ActiveBusinessContext>): string | null {
-	const anyEnv = env as any;
-	const data = anyEnv?.data;
-
-	const candidates: unknown[] = [
-		data?.activeBusinessId,
-		data?.businessId,
-
-		data?.business?.id,
-		data?.activeBusiness?.id,
-		data?.id,
-	];
-
-	for (const c of candidates) {
-		const id = safeString(c);
-		if (id) return id;
-	}
-
-	return null;
-}
-
 export const businessApi = {
 	async createBusiness(payload: CreateBusinessPayload): Promise<CreateBusinessResponse> {
 		// Back-compat mapping: current backend expects { country, timezone, currency? }
@@ -121,7 +98,7 @@ export const businessApi = {
 		// Fallback: fetch active business context, then persist if possible.
 		try {
 			const active = await this.getActiveBusiness();
-			const activeId = extractBusinessIdFromActiveContext(active);
+			const activeId = extractActiveBusinessIdFromContext(active);
 			if (activeId) persistActiveBusinessId(activeId);
 		} catch {
 			// If /business/active fails, we still return create response.
@@ -139,7 +116,7 @@ export const businessApi = {
 		 * Defensive persistence:
 		 * If the backend provides active business context, persist it immediately.
 		 */
-		const id = extractBusinessIdFromActiveContext(env);
+		const id = extractActiveBusinessIdFromContext(env);
 		if (id) persistActiveBusinessId(id);
 
 		return env;

@@ -69,7 +69,14 @@ import { PosTileTextOverlay } from "@/modules/inventory/components/PosTileTextOv
 import type { CreateProductInput } from "@/modules/inventory/inventory.types";
 import { uploadProductImage } from "@/modules/media/media.upload";
 import { toMediaDomainError } from "@/modules/media/media.errors";
-import { ModifierGroupSelector } from "@/modules/modifiers/components/ModifierGroupSelector";
+import {
+	buildModifierSelectionParams,
+	MODIFIER_PICKER_ROUTE,
+	MODIFIER_SELECTED_IDS_KEY,
+	MODIFIER_SELECTION_SOURCE_KEY,
+	parseModifierSelectionParams,
+	RETURN_TO_KEY as MODIFIER_RETURN_TO_KEY,
+} from "@/modules/modifiers/modifierPicker.contract";
 
 import {
 	CATEGORY_PICKER_ROUTE,
@@ -472,6 +479,7 @@ export default function InventoryProductCreateScreen({
 	/* ---------------- return params: category ---------------- */
 
 	const categorySelection = useMemo(() => parseCategorySelectionParams(params as any), [params]);
+	const modifierSelection = useMemo(() => parseModifierSelectionParams(params as any), [params]);
 
 	useEffect(() => {
 		if (!categorySelection.hasSelectionKey) return;
@@ -488,6 +496,18 @@ export default function InventoryProductCreateScreen({
 		});
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [categorySelection.hasSelectionKey, categorySelection.selectedCategoryId, categorySelection.selectedCategoryName]);
+
+	useEffect(() => {
+		if (!modifierSelection.hasSelectionKey) return;
+
+		patch({ modifierGroupIds: modifierSelection.selectedModifierGroupIds });
+
+		(router as any).setParams?.({
+			[MODIFIER_SELECTED_IDS_KEY]: undefined,
+			[MODIFIER_SELECTION_SOURCE_KEY]: undefined,
+		});
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [modifierSelection.hasSelectionKey, modifierSelection.selectedModifierGroupIds.join("|")]);
 
 	/* ---------------- return params: unit (hardened) ---------------- */
 
@@ -724,6 +744,7 @@ export default function InventoryProductCreateScreen({
 		if (hasValue(draft.initialOnHandText)) return true;
 		if (hasValue(draft.reorderPointText)) return true;
 		if (hasValue(draft.categoryId) || hasValue(draft.categoryName)) return true;
+		if ((draft.modifierGroupIds?.length ?? 0) > 0) return true;
 		if (hasValue(draft.imageLocalUri)) return true;
 
 		if (!draft.trackInventory) return true;
@@ -739,6 +760,7 @@ export default function InventoryProductCreateScreen({
 		draft.costText,
 		draft.description,
 		draft.imageLocalUri,
+		draft.modifierGroupIds,
 		draft.initialOnHandText,
 		draft.name,
 		draft.priceText,
@@ -814,6 +836,23 @@ export default function InventoryProductCreateScreen({
 		toScopedRoute,
 		unitProductType,
 	]);
+
+	const openModifierPicker = useCallback(() => {
+		if (isUiDisabled) return;
+		if (!lockNav()) return;
+
+		router.replace({
+			pathname: toScopedRoute(MODIFIER_PICKER_ROUTE) as any,
+			params: {
+				[MODIFIER_RETURN_TO_KEY]: thisRoute,
+				...buildModifierSelectionParams({
+					selectedModifierGroupIds: draft.modifierGroupIds,
+					selectionSource: draft.modifierGroupIds.length ? "existing" : "cleared",
+					draftId,
+				}),
+			} as any,
+		});
+	}, [draft.modifierGroupIds, draftId, isUiDisabled, lockNav, router, thisRoute, toScopedRoute]);
 
 	/* ---------------- save ---------------- */
 
@@ -1186,9 +1225,10 @@ export default function InventoryProductCreateScreen({
 								style={{ marginTop: 10 }}
 							/>
 
-							<ModifierGroupSelector
-								selectedIds={draft.modifierGroupIds}
-								onChange={(modifierGroupIds) => patch({ modifierGroupIds })}
+							<BAIPressableRow
+								label='Modifiers'
+								value={draft.modifierGroupIds.length > 0 ? `${draft.modifierGroupIds.length} selected` : "None"}
+								onPress={openModifierPicker}
 								disabled={isUiDisabled}
 							/>
 

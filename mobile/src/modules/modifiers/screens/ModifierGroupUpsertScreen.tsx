@@ -26,6 +26,7 @@ import { BAISurface } from "@/components/ui/BAISurface";
 import { BAIText } from "@/components/ui/BAIText";
 import { BAITextInput } from "@/components/ui/BAITextInput";
 import { useAppBusy } from "@/hooks/useAppBusy";
+import { formatCompactNumber, getBusinessLocale } from "@/lib/locale/businessLocale";
 import { useActiveBusinessMeta } from "@/modules/business/useActiveBusinessMeta";
 import { runGovernedProcessExit } from "@/modules/inventory/navigation.governance";
 import { useProcessExitGuard } from "@/modules/navigation/useProcessExitGuard";
@@ -387,7 +388,7 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 	const router = useRouter();
 	const tabBarHeight = useBottomTabBarHeight();
 	const theme = useTheme();
-	const { currencyCode } = useActiveBusinessMeta();
+	const { currencyCode, countryCode } = useActiveBusinessMeta();
 	const params = useLocalSearchParams<{ id?: string; returnTo?: string }>();
 	const groupId = String(params.id ?? "").trim();
 	const exitReturnTo = String(params.returnTo ?? "").trim();
@@ -646,6 +647,7 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 	const headerTitle = intent === "create" ? "Create Modifier Set" : "Edit Modifier";
 
 	const applySetCount = appliedProductIds.length;
+	const applySetCountLabel = useMemo(() => formatCompactNumber(applySetCount, countryCode), [applySetCount, countryCode]);
 	const rulesSummary = `Min ${minSelected || "0"} · Max ${maxSelected || "1"}`;
 	const applySetRoute =
 		mode === "settings" ? "/(app)/(tabs)/settings/modifiers/apply-set" : "/(app)/(tabs)/inventory/modifiers/apply-set";
@@ -666,11 +668,12 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 			String(currencyCode ?? "PHP")
 				.trim()
 				.toUpperCase() || "PHP";
+		const locale = getBusinessLocale(countryCode);
 		let formatter: Intl.NumberFormat | null = null;
 
 		try {
 			if (typeof Intl !== "undefined" && typeof Intl.NumberFormat === "function") {
-				formatter = new Intl.NumberFormat(undefined, {
+				formatter = new Intl.NumberFormat(locale, {
 					style: "currency",
 					currency: code,
 					currencyDisplay: "symbol",
@@ -688,7 +691,7 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 			if (formatter) return formatter.format(major);
 			return `${code} ${major.toFixed(MONEY_INPUT_PRECISION)}`;
 		};
-	}, [currencyCode]);
+	}, [countryCode, currencyCode]);
 	const maxPriceInputLength = useMemo(
 		() =>
 			formatPriceDisplay(digitsToMinorUnits("9".repeat(PRICE_INPUT_MAX_MINOR_DIGITS), PRICE_INPUT_MAX_MINOR_DIGITS))
@@ -709,6 +712,10 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 			{ label: "Archived", value: "archived", count: archivedOptions.length },
 		],
 		[activeTabCount, archivedOptions.length],
+	);
+	const sharedAvailabilityGroupCountLabel = useMemo(
+		() => formatCompactNumber(sharedAvailability?.groups.length ?? 0, countryCode),
+		[countryCode, sharedAvailability?.groups.length],
 	);
 	const visibleOptionRows = useMemo(
 		() =>
@@ -1011,7 +1018,7 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 	);
 
 	const onSave = useCallback(() => {
-		const trimmedName = name.trim();
+		const trimmedName = clampFieldValue(name.trim(), MODIFIER_SET_NAME_CHAR_LIMIT);
 		if (!trimmedName) {
 			setError("Modifier set name is required.");
 			return;
@@ -1140,6 +1147,7 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 			<BAIScreen tabbed padded={false} safeTop={false} safeBottom={false} style={styles.root}>
 				<BAIHeader
 					title={headerTitle}
+					titleHorizontalPadding={30}
 					variant='exit'
 					onLeftPress={guardedExit}
 					onRightPress={onSave}
@@ -1197,7 +1205,7 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 										>
 											<BAIText variant='subtitle'>Apply Set</BAIText>
 											<View style={styles.applySetRight}>
-												<BAIText variant='subtitle'>{applySetCount}</BAIText>
+												<BAIText variant='subtitle'>{applySetCountLabel}</BAIText>
 												<MaterialCommunityIcons
 													name='chevron-right'
 													size={24}
@@ -1257,6 +1265,7 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 													tabs={optionTabs}
 													value={optionsTab}
 													onChange={setOptionsTab}
+													countFormatter={(count) => formatCompactNumber(count, countryCode)}
 												/>
 											</View>
 										) : null}
@@ -1376,7 +1385,7 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 
 						<BAIText variant='title'>Apply to all at this location</BAIText>
 						<BAIText variant='body' muted>
-							{`${sharedAvailability?.optionName ?? "This modifier"} is currently ${sharedAvailabilityNextIsSoldOut ? "available" : "sold out"} in ${sharedAvailability?.groups.length ?? 0} modifier sets at this location. Do you want to mark them all as ${sharedAvailabilityNextIsSoldOut ? "sold out" : "available"}?`}
+							{`${sharedAvailability?.optionName ?? "This modifier"} is currently ${sharedAvailabilityNextIsSoldOut ? "available" : "sold out"} in ${sharedAvailabilityGroupCountLabel} modifier sets at this location. Do you want to mark them all as ${sharedAvailabilityNextIsSoldOut ? "sold out" : "available"}?`}
 						</BAIText>
 
 						<View style={styles.sheetListWrap}>

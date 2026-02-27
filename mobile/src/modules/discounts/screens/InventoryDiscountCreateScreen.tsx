@@ -28,9 +28,13 @@ import { FIELD_LIMITS } from "@/shared/fieldLimits";
 import {
 	sanitizeEntityNameDraftInput,
 	sanitizeEntityNameInput,
-	sanitizeMoneyInput,
 	sanitizeNoteDraftInput,
 } from "@/shared/validation/sanitize";
+import {
+	formatPercentageInput,
+	parsePercentageInput,
+	sanitizePercentageInput,
+} from "@/shared/validation/percentageInput";
 import { useActiveBusinessMeta } from "@/modules/business/useActiveBusinessMeta";
 import {
 	buildInventoryDiscountDetailsRoute,
@@ -146,6 +150,28 @@ export default function InventoryDiscountCreateScreen() {
 		setName((prev) => sanitizeEntityNameInput(prev));
 	}, [isUiDisabled]);
 
+	const valuePlaceholder = type === "PERCENT" ? "0%" : undefined;
+	const valueLimit = type === "PERCENT" ? FIELD_LIMITS.discountPercent : FIELD_LIMITS.discountAmount;
+	const valueMaxLength = type === "PERCENT" ? valueLimit + 1 : valueLimit;
+
+	const onPercentChange = useCallback(
+		(v: string) => {
+			const cleaned = sanitizePercentageInput(v);
+			const numeric = parsePercentageInput(cleaned, { max: Number.MAX_SAFE_INTEGER });
+			if (numeric !== null && numeric > 100) {
+				setValueText("100");
+				return;
+			}
+			setValueText(cleaned.length > valueLimit ? cleaned.slice(0, valueLimit) : cleaned);
+		},
+		[valueLimit],
+	);
+
+	const onPercentBlur = useCallback(() => {
+		if (isUiDisabled) return;
+		setValueText((prev) => formatPercentageInput(prev));
+	}, [isUiDisabled]);
+
 	const onSave = useCallback(async () => {
 		if (!canSave) return;
 
@@ -187,10 +213,6 @@ export default function InventoryDiscountCreateScreen() {
 		valueCheck,
 		withBusy,
 	]);
-
-	const valuePlaceholder = type === "PERCENT" ? "0%" : undefined;
-	const valueLimit = type === "PERCENT" ? FIELD_LIMITS.discountPercent : FIELD_LIMITS.discountAmount;
-	const valueMaxLength = type === "PERCENT" ? valueLimit + 1 : valueLimit;
 
 	return (
 		<BAIInlineHeaderScaffold title='Create Discount' variant='exit' onLeftPress={onExit} disabled={isUiDisabled}>
@@ -253,16 +275,8 @@ export default function InventoryDiscountCreateScreen() {
 										<BAITextInput
 											label='Percentage'
 											value={percentDisplay}
-											onChangeText={(v) => {
-												const raw = v.replace(/%/g, "").trim();
-												const cleaned = sanitizeMoneyInput(raw);
-												const numeric = Number(cleaned);
-												if (Number.isFinite(numeric) && numeric > 100) {
-													setValueText("100");
-													return;
-												}
-												setValueText(cleaned.length > valueLimit ? cleaned.slice(0, valueLimit) : cleaned);
-											}}
+											onChangeText={onPercentChange}
+											onBlur={onPercentBlur}
 											selection={valueText ? percentSelection : undefined}
 											maxLength={valueMaxLength}
 											keyboardType='decimal-pad'
