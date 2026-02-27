@@ -322,7 +322,7 @@ const styles = StyleSheet.create({
 	},
 	actionRow: { flexDirection: "row", alignItems: "center", gap: 6 },
 	actionButton: { flex: 1 },
-	selectedCaption: { alignSelf: "flex-end", marginTop: -6 },
+	selectedCaption: { alignSelf: "flex-end", marginTop: 2 },
 	listContainer: {
 		flex: 1,
 		minHeight: 0,

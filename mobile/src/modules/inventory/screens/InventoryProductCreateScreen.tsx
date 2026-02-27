@@ -1069,7 +1069,7 @@ export default function InventoryProductCreateScreen({
 	}, [isUiDisabled]);
 
 	const tabBarHeight = useBottomTabBarHeight();
-	const screenBottomPad = tabBarHeight + 12;
+	const screenBottomPad = tabBarHeight;
 
 	const headerOptions = useInventoryHeader("process", {
 		title: "Create Item",
@@ -1206,6 +1206,7 @@ export default function InventoryProductCreateScreen({
 								placeholder='Scan or enter UPC / EAN / ISBN'
 								keyboardType='number-pad'
 								disabled={isUiDisabled}
+								style={{ marginTop: 4 }}
 							/>
 
 							<BAITextInput
@@ -1230,6 +1231,7 @@ export default function InventoryProductCreateScreen({
 								value={draft.modifierGroupIds.length > 0 ? `${draft.modifierGroupIds.length} selected` : "None"}
 								onPress={openModifierPicker}
 								disabled={isUiDisabled}
+								style={{ marginTop: 10 }}
 							/>
 
 							<BAIPressableRow
@@ -1397,21 +1399,21 @@ export default function InventoryProductCreateScreen({
 
 const styles = StyleSheet.create({
 	root: { flex: 1 },
-	screen: { paddingHorizontal: 12, paddingBottom: 0 },
+	screen: { paddingHorizontal: 10, paddingBottom: 0 },
 	scroll: { flex: 1 },
 	card: {
 		flex: 1,
 		minHeight: 0,
 		borderWidth: 1,
 		borderRadius: 24,
-		gap: 6,
+		gap: 4,
 		paddingHorizontal: 0,
-		paddingTop: 12,
+		paddingTop: 10,
 		paddingBottom: 0,
 	},
 	cardHeader: {
-		paddingHorizontal: 14,
-		paddingBottom: 10,
+		paddingHorizontal: 12,
+		paddingBottom: 8,
 		marginBottom: 0,
 		borderBottomWidth: StyleSheet.hairlineWidth,
 	},
@@ -1419,7 +1421,7 @@ const styles = StyleSheet.create({
 		flex: 1,
 	},
 	formContainer: {
-		paddingHorizontal: 14,
+		paddingHorizontal: 12,
 		paddingBottom: 0,
 	},
 	moneyHalfInput: {
@@ -1432,9 +1434,9 @@ const styles = StyleSheet.create({
 	},
 	imageSection: {
 		alignItems: "center",
-		gap: 10,
-		marginBottom: 16,
-		marginTop: 6,
+		gap: 8,
+		marginBottom: 12,
+		marginTop: 4,
 	},
 	imagePreview: {
 		width: 180,
@@ -1531,8 +1533,8 @@ const styles = StyleSheet.create({
 	},
 	sectionDivider: {
 		height: 1,
-		marginTop: 14,
-		marginBottom: 14,
+		marginTop: 10,
+		marginBottom: 10,
 	},
 	saveAnotherButton: {
 		marginTop: 10,
