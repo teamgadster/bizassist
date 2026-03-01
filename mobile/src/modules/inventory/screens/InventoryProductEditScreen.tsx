@@ -598,7 +598,9 @@ export default function InventoryProductEditScreen({ routeScope = "inventory" }:
 			currentSnapshot.trackInventory !== baseline.trackInventory ||
 			currentSnapshot.reorderPoint !== baseline.reorderPoint ||
 			currentSnapshot.modifierGroupIds.join("|") !== baseline.modifierGroupIds.join("|") ||
-			currentSnapshot.attributeSelections.map((entry) => `${entry.attributeId}:${entry.isRequired ? 1 : 0}`).join("|") !==
+			currentSnapshot.attributeSelections
+				.map((entry) => `${entry.attributeId}:${entry.isRequired ? 1 : 0}`)
+				.join("|") !==
 				baseline.attributeSelections.map((entry) => `${entry.attributeId}:${entry.isRequired ? 1 : 0}`).join("|") ||
 			currentSnapshot.tileMode !== baseline.tileMode ||
 			currentSnapshot.tileColor !== baseline.tileColor ||
@@ -1029,7 +1031,11 @@ export default function InventoryProductEditScreen({ routeScope = "inventory" }:
 
 										<BAIPressableRow
 											label='Attributes'
-											value={selectedAttributeSelections.length > 0 ? `${selectedAttributeSelections.length} selected` : "None"}
+											value={
+												selectedAttributeSelections.length > 0
+													? `${selectedAttributeSelections.length} selected`
+													: "None"
+											}
 											onPress={openAttributePicker}
 											disabled={isUiDisabled || isArchived}
 										/>

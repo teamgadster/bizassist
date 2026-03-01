@@ -1285,7 +1285,9 @@ export default function InventoryProductCreateScreen({
 
 							<BAIPressableRow
 								label='Attributes'
-								value={(draft.attributeSelections?.length ?? 0) > 0 ? `${draft.attributeSelections.length} selected` : "None"}
+								value={
+									(draft.attributeSelections?.length ?? 0) > 0 ? `${draft.attributeSelections.length} selected` : "None"
+								}
 								onPress={openAttributePicker}
 								disabled={isUiDisabled}
 								style={{ marginTop: 10 }}
