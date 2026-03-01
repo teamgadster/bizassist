@@ -57,7 +57,7 @@ export function BAIPressableRow({
 			disabled && { opacity: 0.45 },
 			style,
 		],
-		[backgroundColor, borderColor, disabled, style]
+		[backgroundColor, borderColor, disabled, style],
 	);
 
 	return (

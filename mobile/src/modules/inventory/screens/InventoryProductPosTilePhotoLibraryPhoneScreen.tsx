@@ -555,12 +555,7 @@ export default function PosTilePhotoLibraryPhone({ routeScope = "inventory" }: {
 								<BAIText variant='body' muted style={{ marginTop: 6, textAlign: "center" }}>
 									Allow Access to Choose a POS Tile Photo From Your Library.
 								</BAIText>
-								<BAIButton
-									intent='primary'
-									variant='solid'
-									onPress={onRequestPermission}
-									style={{ marginTop: 12 }}
-								>
+								<BAIButton intent='primary' variant='solid' onPress={onRequestPermission} style={{ marginTop: 12 }}>
 									Grant Access
 								</BAIButton>
 								<BAIButton

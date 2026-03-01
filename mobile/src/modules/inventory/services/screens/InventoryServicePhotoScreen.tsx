@@ -120,14 +120,14 @@ export default function InventoryServicePhotoScreen({
 		if (!lockNav()) return;
 		setErrorMessage(null);
 		try {
-				const permissionState = await requestCameraAccess();
-				if (permissionState !== "granted") {
-					if (permissionState === "blocked") {
-						setErrorMessage("Camera access is blocked. Open Settings to allow camera access, or use Photo Library.");
-						return;
-					}
+			const permissionState = await requestCameraAccess();
+			if (permissionState !== "granted") {
+				if (permissionState === "blocked") {
+					setErrorMessage("Camera access is blocked. Open Settings to allow camera access, or use Photo Library.");
+					return;
+				}
 
-					setErrorMessage("Camera permission is required. Use Photo Library if you prefer.");
+				setErrorMessage("Camera permission is required. Use Photo Library if you prefer.");
 				return;
 			}
 

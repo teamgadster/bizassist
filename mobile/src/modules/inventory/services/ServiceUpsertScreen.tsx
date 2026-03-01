@@ -981,11 +981,7 @@ export function ServiceUpsertScreen(props: {
 													</View>
 												) : null}
 												{shouldShowTileTextOverlay ? (
-													<PosTileTextOverlay
-														label={displayTileLabel}
-														name={serviceName}
-														textColor={tileLabelColor}
-													/>
+													<PosTileTextOverlay label={displayTileLabel} name={serviceName} textColor={tileLabelColor} />
 												) : null}
 											</View>
 

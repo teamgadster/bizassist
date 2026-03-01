@@ -1210,11 +1210,7 @@ export default function InventoryProductCreateScreen({
 											</View>
 										) : null}
 										{shouldShowTileTextOverlay ? (
-											<PosTileTextOverlay
-												label={displayTileLabel}
-												name={itemName}
-												textColor={tileLabelColor}
-											/>
+											<PosTileTextOverlay label={displayTileLabel} name={itemName} textColor={tileLabelColor} />
 										) : null}
 									</View>
 

@@ -130,14 +130,14 @@ export default function ProductPhotoScreen({ routeScope = "inventory" }: { route
 		if (!lockNav()) return;
 		setErrorMessage(null);
 		try {
-				const permissionState = await requestCameraAccess();
-				if (permissionState !== "granted") {
-					if (permissionState === "blocked") {
-						setErrorMessage("Camera access is blocked. Open Settings to allow camera access, or use Photo Library.");
-						return;
-					}
+			const permissionState = await requestCameraAccess();
+			if (permissionState !== "granted") {
+				if (permissionState === "blocked") {
+					setErrorMessage("Camera access is blocked. Open Settings to allow camera access, or use Photo Library.");
+					return;
+				}
 
-					setErrorMessage("Camera permission is required. Use Photo Library if you prefer.");
+				setErrorMessage("Camera permission is required. Use Photo Library if you prefer.");
 				return;
 			}
 
@@ -267,49 +267,49 @@ export default function ProductPhotoScreen({ routeScope = "inventory" }: { route
 						{previewNode}
 					</View>
 
-						<View style={styles.actions}>
-							<View style={styles.primaryActions}>
-								<BAICTAPillButton
-									intent='primary'
-									variant='outline'
-									onPress={pickFromLibrary}
-									disabled={isUiDisabled}
-									style={styles.actionButton}
-								>
-									Photo Library
-								</BAICTAPillButton>
-								<BAICTAPillButton
-									intent='primary'
-									variant='solid'
-									onPress={takePhoto}
-									disabled={isUiDisabled}
-									style={styles.actionButton}
-								>
-									Take a Photo
-								</BAICTAPillButton>
-							</View>
-
-							<View style={styles.secondaryActions}>
-								<BAICTAPillButton
-									intent='neutral'
-									variant='outline'
-									onPress={onCancel}
-									disabled={isUiDisabled}
-									style={styles.secondaryButton}
-								>
-									Cancel
-								</BAICTAPillButton>
-								<BAICTAPillButton
-									intent='danger'
-									variant='outline'
-									onPress={() => setConfirmRemoveOpen(true)}
-									disabled={isUiDisabled || !hasImage}
-									style={styles.secondaryButton}
-								>
-									Remove Photo
-								</BAICTAPillButton>
-							</View>
+					<View style={styles.actions}>
+						<View style={styles.primaryActions}>
+							<BAICTAPillButton
+								intent='primary'
+								variant='outline'
+								onPress={pickFromLibrary}
+								disabled={isUiDisabled}
+								style={styles.actionButton}
+							>
+								Photo Library
+							</BAICTAPillButton>
+							<BAICTAPillButton
+								intent='primary'
+								variant='solid'
+								onPress={takePhoto}
+								disabled={isUiDisabled}
+								style={styles.actionButton}
+							>
+								Take a Photo
+							</BAICTAPillButton>
 						</View>
+
+						<View style={styles.secondaryActions}>
+							<BAICTAPillButton
+								intent='neutral'
+								variant='outline'
+								onPress={onCancel}
+								disabled={isUiDisabled}
+								style={styles.secondaryButton}
+							>
+								Cancel
+							</BAICTAPillButton>
+							<BAICTAPillButton
+								intent='danger'
+								variant='outline'
+								onPress={() => setConfirmRemoveOpen(true)}
+								disabled={isUiDisabled || !hasImage}
+								style={styles.secondaryButton}
+							>
+								Remove Photo
+							</BAICTAPillButton>
+						</View>
+					</View>
 				</BAISurface>
 			</BAIScreen>
 

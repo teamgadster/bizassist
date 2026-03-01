@@ -139,7 +139,7 @@ export default function InventoryScanScreen() {
 				params: { q: value },
 			});
 		},
-		[returnDraftId, returnTo, router, setLocked, unlockSafetyTimer]
+		[returnDraftId, returnTo, router, setLocked, unlockSafetyTimer],
 	);
 
 	if (!permission) {
@@ -152,7 +152,7 @@ export default function InventoryScanScreen() {
 					</BAIText>
 
 					<View style={styles.actions}>
-						<BAIButton mode='outlined' onPress={onCancel} shape="pill" widthPreset='standard' intent='neutral'>
+						<BAIButton mode='outlined' onPress={onCancel} shape='pill' widthPreset='standard' intent='neutral'>
 							Cancel
 						</BAIButton>
 					</View>
@@ -180,17 +180,11 @@ export default function InventoryScanScreen() {
 					<View style={styles.actions}>
 						<BAICTAButton onPress={onRequestCameraPermission}>Allow Camera</BAICTAButton>
 						{isPermissionBlocked ? (
-							<BAIButton
-								mode='outlined'
-								onPress={onOpenSettings}
-								shape='pill'
-								widthPreset='standard'
-								intent='primary'
-							>
+							<BAIButton mode='outlined' onPress={onOpenSettings} shape='pill' widthPreset='standard' intent='primary'>
 								Open Settings
 							</BAIButton>
 						) : null}
-						<BAIButton mode='outlined' onPress={onCancel} shape="pill" widthPreset='standard' intent='neutral'>
+						<BAIButton mode='outlined' onPress={onCancel} shape='pill' widthPreset='standard' intent='neutral'>
 							Cancel
 						</BAIButton>
 					</View>
@@ -243,8 +237,6 @@ export default function InventoryScanScreen() {
 								<View style={styles.cornerBR} />
 							</View>
 						</View>
-
-						
 					</View>
 				</View>
 			</View>
