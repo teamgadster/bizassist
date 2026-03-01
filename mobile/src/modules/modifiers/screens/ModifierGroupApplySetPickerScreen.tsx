@@ -193,8 +193,7 @@ export function ModifierGroupApplySetPickerScreen({ mode }: Props) {
 	const tabBarHeight = useBottomTabBarHeight();
 	const params = useLocalSearchParams<{ draftId?: string }>();
 	const draftId = String(params.draftId ?? "").trim();
-	const backRoute =
-		mode === "settings" ? "/(app)/(tabs)/settings/modifiers/create" : "/(app)/(tabs)/inventory/modifiers/create";
+	const backRoute = "/(app)/(tabs)/inventory/modifiers/create";
 
 	const [selectedIds, setSelectedIds] = useState<string[]>([]);
 

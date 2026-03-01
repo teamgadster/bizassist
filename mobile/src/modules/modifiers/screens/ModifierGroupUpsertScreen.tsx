@@ -442,7 +442,7 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 	const deleteIconRotation = useRef(new Animated.Value(0)).current;
 	const optionMainInsetRight = useRef(new Animated.Value(0)).current;
 
-	const backRoute = mode === "settings" ? "/(app)/(tabs)/settings/modifiers" : "/(app)/(tabs)/inventory/modifiers";
+	const backRoute = "/(app)/(tabs)/inventory/modifiers";
 	const outline = theme.colors.outlineVariant ?? theme.colors.outline;
 	const surfaceInteractive = useMemo(
 		() => ({
@@ -663,8 +663,7 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 		[applySetCount, countryCode],
 	);
 	const rulesSummary = `Min ${minSelected || "0"} · Max ${maxSelected || "1"}`;
-	const applySetRoute =
-		mode === "settings" ? "/(app)/(tabs)/settings/modifiers/apply-set" : "/(app)/(tabs)/inventory/modifiers/apply-set";
+	const applySetRoute = "/(app)/(tabs)/inventory/modifiers/apply-set";
 
 	const onPressApplySet = useCallback(() => {
 		router.push({

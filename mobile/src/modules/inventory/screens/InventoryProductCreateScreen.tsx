@@ -898,7 +898,7 @@ export default function InventoryProductCreateScreen({
 		if (!lockNav()) return;
 
 		router.replace({
-			pathname: toScopedRoute(MODIFIER_PICKER_ROUTE) as any,
+			pathname: MODIFIER_PICKER_ROUTE as any,
 			params: {
 				[MODIFIER_RETURN_TO_KEY]: thisRoute,
 				...buildModifierSelectionParams({
@@ -908,7 +908,7 @@ export default function InventoryProductCreateScreen({
 				}),
 			} as any,
 		});
-	}, [draft.modifierGroupIds, draftId, isUiDisabled, lockNav, router, thisRoute, toScopedRoute]);
+	}, [draft.modifierGroupIds, draftId, isUiDisabled, lockNav, router, thisRoute]);
 
 	const openAttributePicker = useCallback(() => {
 		if (isUiDisabled) return;
@@ -1301,13 +1301,15 @@ export default function InventoryProductCreateScreen({
 								style={{ marginTop: 10 }}
 							/>
 
-							<BAIPressableRow
-								label='Modifiers'
-								value={draft.modifierGroupIds.length > 0 ? `${draft.modifierGroupIds.length} selected` : "None"}
-								onPress={openModifierPicker}
-								disabled={isUiDisabled}
-								style={{ marginTop: 10 }}
-							/>
+							{routeScope === "inventory" ? (
+								<BAIPressableRow
+									label='Modifiers'
+									value={draft.modifierGroupIds.length > 0 ? `${draft.modifierGroupIds.length} selected` : "None"}
+									onPress={openModifierPicker}
+									disabled={isUiDisabled}
+									style={{ marginTop: 10 }}
+								/>
+							) : null}
 
 							<BAIPressableRow
 								label='Attributes'

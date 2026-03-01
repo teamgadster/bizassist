@@ -98,61 +98,8 @@ export default function SettingsItemsScreen() {
 	const onSurfaceVariant = theme.colors.onSurfaceVariant ?? theme.colors.onSurface;
 	const iconTint = onSurfaceVariant;
 
-	const goToInventoryItems = useCallback(() => {
-		router.push({
-			pathname: "/(app)/(tabs)/settings/items-services" as any,
-			params: { type: "ITEMS" } as any,
-		});
-	}, [router]);
-
-	const goToInventoryServices = useCallback(() => {
-		router.push({
-			pathname: "/(app)/(tabs)/settings/items-services" as any,
-			params: { type: "SERVICES" } as any,
-		});
-	}, [router]);
-
 	const rows: ItemSettingsRow[] = useMemo(
 		() => [
-			{
-				key: "allItems",
-				title: "All Items",
-				subtitle: "Browse and manage all item products",
-				icon: "package-variant-closed",
-				iconSize: 21,
-				onPress: goToInventoryItems,
-			},
-			{
-				key: "allServices",
-				title: "All Services",
-				subtitle: "Browse and manage all service products",
-				iconFamily: "ion",
-				icon: "briefcase-outline",
-				onPress: goToInventoryServices,
-			},
-			{
-				key: "categories",
-				title: "Categories",
-				subtitle: "Organize items and services",
-				iconFamily: "ion",
-				icon: "layers-outline",
-				onPress: () => router.push("/(app)/(tabs)/settings/categories" as any),
-			},
-			{
-				key: "discounts",
-				title: "Discounts",
-				subtitle: "Configure discount rules",
-				iconFamily: "ion",
-				icon: "pricetag-outline",
-				onPress: () => router.push("/(app)/(tabs)/settings/discounts" as any),
-			},
-			{
-				key: "modifiers",
-				title: "Modifiers",
-				subtitle: "Set default item modifiers",
-				icon: "view-grid-outline",
-				onPress: () => router.push("/(app)/(tabs)/settings/modifiers" as any),
-			},
 			{
 				key: "units",
 				title: "Units",
@@ -161,7 +108,7 @@ export default function SettingsItemsScreen() {
 				onPress: () => router.push("/(app)/(tabs)/settings/units" as any),
 			},
 		],
-		[goToInventoryItems, goToInventoryServices, router],
+		[router],
 	);
 
 	return (

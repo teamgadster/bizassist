@@ -50,7 +50,7 @@ export function ModifierGroupDetailScreen({ mode }: { mode: "settings" | "invent
 	const { countryCode } = useActiveBusinessMeta();
 	const { withBusy, busy } = useAppBusy();
 	const { showSuccess } = useAppToast();
-	const baseRoute = mode === "settings" ? "/(app)/(tabs)/settings/modifiers" : "/(app)/(tabs)/inventory/modifiers";
+	const baseRoute = "/(app)/(tabs)/inventory/modifiers";
 	const archivedListRoute = `${baseRoute}?filter=archived`;
 	const [sharedAvailabilityOpen, setSharedAvailabilityOpen] = useState(false);
 	const [confirmRestoreOpen, setConfirmRestoreOpen] = useState(false);

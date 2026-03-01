@@ -13,7 +13,6 @@ import { BAISearchBar } from "@/components/ui/BAISearchBar";
 import { BAISurface } from "@/components/ui/BAISurface";
 import { BAIText } from "@/components/ui/BAIText";
 import { useAppBusy } from "@/hooks/useAppBusy";
-import { mapInventoryRouteToScope, type InventoryRouteScope } from "@/modules/inventory/navigation.scope";
 import { modifiersApi } from "@/modules/modifiers/modifiers.api";
 import type { ModifierGroup } from "@/modules/modifiers/modifiers.types";
 import {
@@ -30,24 +29,18 @@ import { sanitizeSearchInput } from "@/shared/validation/sanitize";
 
 const modifierPickerKey = ["modifiers", "groups", "attach-picker-screen"] as const;
 const INVENTORY_MODIFIER_CREATE_ROUTE = "/(app)/(tabs)/inventory/modifiers/create" as const;
-const SETTINGS_MODIFIER_CREATE_ROUTE = "/(app)/(tabs)/settings/modifiers/create" as const;
 
-export function ModifierGroupAttachPickerScreen({ routeScope = "inventory" }: { routeScope?: InventoryRouteScope }) {
+export function ModifierGroupAttachPickerScreen() {
 	const router = useRouter();
 	const theme = useTheme();
 	const params = useLocalSearchParams<ModifierPickerInboundParams>();
 	const { busy } = useAppBusy();
-
-	const toScopedRoute = useCallback((route: string) => mapInventoryRouteToScope(route, routeScope), [routeScope]);
-	const pickerRoute = useMemo(() => toScopedRoute(MODIFIER_PICKER_ROUTE), [toScopedRoute]);
-	const createRoute = useMemo(
-		() => (routeScope === "settings-items-services" ? SETTINGS_MODIFIER_CREATE_ROUTE : INVENTORY_MODIFIER_CREATE_ROUTE),
-		[routeScope],
-	);
+	const pickerRoute = MODIFIER_PICKER_ROUTE;
+	const createRoute = INVENTORY_MODIFIER_CREATE_ROUTE;
 
 	const returnTo = useMemo(
-		() => normalizeReturnTo(params[RETURN_TO_KEY]) ?? toScopedRoute("/(app)/(tabs)/inventory/products/create"),
-		[params, toScopedRoute],
+		() => normalizeReturnTo(params[RETURN_TO_KEY]) ?? "/(app)/(tabs)/inventory/products/create",
+		[params],
 	);
 
 	const parsedSelection = useMemo(() => parseModifierSelectionParams(params), [params]);

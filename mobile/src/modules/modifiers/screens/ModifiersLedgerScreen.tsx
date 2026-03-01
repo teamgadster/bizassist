@@ -5,13 +5,14 @@ import { useTheme } from "react-native-paper";
 import { useQuery } from "@tanstack/react-query";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
-import { BAIScreen } from "@/components/ui/BAIScreen";
-import { BAISurface } from "@/components/ui/BAISurface";
-import { BAIText } from "@/components/ui/BAIText";
-import { BAIRetryButton } from "@/components/ui/BAIRetryButton";
 import { BAIHeader } from "@/components/ui/BAIHeader";
 import { BAIGroupTabs, type BAIGroupTab } from "@/components/ui/BAIGroupTabs";
+import { BAIRetryButton } from "@/components/ui/BAIRetryButton";
+import { BAIScreen } from "@/components/ui/BAIScreen";
 import { BAISearchBar } from "@/components/ui/BAISearchBar";
+import { BAISurface } from "@/components/ui/BAISurface";
+import { BAIText } from "@/components/ui/BAIText";
+import { useResponsiveLayout } from "@/lib/layout/useResponsiveLayout";
 import { formatCompactNumber } from "@/lib/locale/businessLocale";
 import { useActiveBusinessMeta } from "@/modules/business/useActiveBusinessMeta";
 import { modifiersApi } from "@/modules/modifiers/modifiers.api";
@@ -19,7 +20,10 @@ import type { ModifierGroup } from "@/modules/modifiers/modifiers.types";
 import { FIELD_LIMITS } from "@/shared/fieldLimits";
 import { sanitizeSearchInput } from "@/shared/validation/sanitize";
 
-const modifierGroupsKey = ["modifiers", "groups", "settings"] as const;
+const modifierGroupsKey = ["modifiers", "groups", "inventory"] as const;
+const INVENTORY_MODIFIERS_ROUTE = "/(app)/(tabs)/inventory/modifiers" as const;
+const INVENTORY_ROOT_ROUTE = "/(app)/(tabs)/inventory" as const;
+
 type ModifierFilter = "active" | "archived";
 
 function resolveModifierFilter(raw: unknown): ModifierFilter {
@@ -46,6 +50,7 @@ function Row({
 	const rowNameColor = item.isArchived
 		? (theme.colors.onSurfaceVariant ?? theme.colors.onSurface)
 		: theme.colors.onSurface;
+
 	return (
 		<BAISurface
 			style={[
@@ -97,21 +102,14 @@ function Row({
 	);
 }
 
-export function ModifiersLedgerScreen({
-	layout,
-	mode = "settings",
-}: {
-	layout: "phone" | "tablet";
-	mode?: "settings" | "inventory";
-}) {
+export function ModifiersLedgerScreen() {
 	const router = useRouter();
 	const theme = useTheme();
+	const { isTablet } = useResponsiveLayout();
 	const params = useLocalSearchParams<{ filter?: string }>();
 	const { countryCode } = useActiveBusinessMeta();
 	const [search, setSearch] = useState("");
 	const [filter, setFilter] = useState<ModifierFilter>(() => resolveModifierFilter(params.filter));
-	const baseRoute = mode === "settings" ? "/(app)/(tabs)/settings/modifiers" : "/(app)/(tabs)/inventory/modifiers";
-	const backRoute = mode === "settings" ? "/(app)/(tabs)/settings" : "/(app)/(tabs)/inventory";
 
 	useEffect(() => {
 		setFilter(resolveModifierFilter(params.filter));
@@ -125,11 +123,11 @@ export function ModifiersLedgerScreen({
 
 	const onOpen = useCallback(
 		(item: ModifierGroup) => {
-			const detailRoute = `${baseRoute}/${encodeURIComponent(item.id)}`;
-			const returnTo = `${baseRoute}?filter=${filter}`;
+			const detailRoute = `${INVENTORY_MODIFIERS_ROUTE}/${encodeURIComponent(item.id)}`;
+			const returnTo = `${INVENTORY_MODIFIERS_ROUTE}?filter=${filter}`;
 			router.push(`${detailRoute}?returnTo=${encodeURIComponent(returnTo)}` as any);
 		},
-		[baseRoute, filter, router],
+		[filter, router],
 	);
 
 	const searchedItems = useMemo(() => {
@@ -156,12 +154,12 @@ export function ModifiersLedgerScreen({
 	}, []);
 
 	const onCancel = useCallback(() => {
-		router.replace(backRoute as any);
-	}, [backRoute, router]);
+		router.replace(INVENTORY_ROOT_ROUTE as any);
+	}, [router]);
 
 	const onCreate = useCallback(() => {
-		router.push(`${baseRoute}/create` as any);
-	}, [baseRoute, router]);
+		router.push(`${INVENTORY_MODIFIERS_ROUTE}/create` as any);
+	}, [router]);
 
 	const hasSearch = search.trim().length > 0;
 	const borderColor = theme.colors.outlineVariant ?? theme.colors.outline;
@@ -183,7 +181,7 @@ export function ModifiersLedgerScreen({
 				/>
 				<TouchableWithoutFeedback onPress={dismissKeyboard} accessible={false}>
 					<View style={styles.wrap}>
-						<View style={[styles.content, layout === "tablet" ? styles.tablet : null]}>
+						<View style={[styles.content, isTablet ? styles.tablet : null]}>
 							<BAISurface style={[styles.card, { borderColor }]} padded bordered>
 								<View style={styles.controls}>
 									<BAISearchBar
@@ -253,10 +251,6 @@ export function ModifiersLedgerScreen({
 			</BAIScreen>
 		</>
 	);
-}
-
-export default function ModifiersLedgerRoute() {
-	return <ModifiersLedgerScreen layout='phone' mode='settings' />;
 }
 
 const styles = StyleSheet.create({

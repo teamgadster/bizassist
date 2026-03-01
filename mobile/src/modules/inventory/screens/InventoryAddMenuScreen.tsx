@@ -60,6 +60,8 @@ export default function InventoryAddMenu({ routeScope = "inventory" }: { routeSc
 				key: "physical",
 				label: "Items",
 				subtitle: "Create a stock-tracked item.",
+				icon: "package-variant-closed",
+				iconSize: 21,
 				onPress: () => safePush(toScopedRoute("/(app)/(tabs)/inventory/products/create")),
 				enabled: true,
 			},
@@ -67,6 +69,8 @@ export default function InventoryAddMenu({ routeScope = "inventory" }: { routeSc
 				key: "service",
 				label: "Services",
 				subtitle: "Create and manage sellable services.",
+				iconFamily: "ion",
+				icon: "briefcase-outline",
 				onPress: () => safePush(toScopedRoute("/(app)/(tabs)/inventory/services/create")),
 				enabled: true,
 			},
@@ -74,6 +78,8 @@ export default function InventoryAddMenu({ routeScope = "inventory" }: { routeSc
 				key: "discount",
 				label: "Discounts",
 				subtitle: "Manage discounts for POS pricing.",
+				iconFamily: "ion",
+				icon: "pricetag-outline",
 				onPress: () => safePush(toScopedRoute("/(app)/(tabs)/inventory/discounts/discount.ledger")),
 				enabled: true,
 			},
@@ -81,18 +87,34 @@ export default function InventoryAddMenu({ routeScope = "inventory" }: { routeSc
 				key: "category",
 				label: "Categories",
 				subtitle: "Select from category list.",
+				iconFamily: "ion",
+				icon: "layers-outline",
 				onPress: () => safePush(toScopedRoute("/(app)/(tabs)/inventory/categories/category.ledger")),
 				enabled: true,
 			},
+			...(routeScope === "inventory"
+				? ([
+						{
+							key: "modifiers",
+							label: "Modifiers",
+							subtitle: "Create and manage modifier sets.",
+							icon: "view-grid-outline",
+							onPress: () => safePush("/(app)/(tabs)/inventory/modifiers"),
+							enabled: true,
+						},
+					] satisfies AddMenuListItem[])
+				: []),
 			{
 				key: "attributes",
 				label: "Attributes",
 				subtitle: "Create and manage descriptive attributes.",
+				iconFamily: "ion",
+				icon: "options-outline",
 				onPress: () => safePush(toScopedRoute("/(app)/(tabs)/inventory/attributes")),
 				enabled: true,
 			},
 		],
-		[safePush, toScopedRoute],
+		[routeScope, safePush, toScopedRoute],
 	);
 
 	const dividerColor = theme.colors.outlineVariant ?? theme.colors.outline;

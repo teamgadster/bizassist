@@ -1,7 +1,7 @@
 // BizAssist_mobile path: src/components/system/AddMenuList.tsx
 import React from "react";
 import { Pressable, StyleSheet, View } from "react-native";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTheme } from "react-native-paper";
 
 import { BAIText, type BAITextVariant } from "@/components/ui/BAIText";
@@ -10,6 +10,9 @@ export type AddMenuListItem = {
 	key: string;
 	label: string;
 	subtitle: string;
+	iconFamily?: "material" | "ion";
+	icon?: keyof typeof MaterialCommunityIcons.glyphMap | keyof typeof Ionicons.glyphMap;
+	iconSize?: number;
 	onPress?: () => void;
 	enabled?: boolean;
 };
@@ -28,6 +31,8 @@ export function AddMenuList({ items, disabled, titleVariant = "subtitle" }: AddM
 	const labelColor = theme.colors.onSurface;
 	const subtitleColor = theme.colors.onSurfaceVariant;
 	const chevronColor = theme.colors.onSurfaceVariant;
+	const iconBorderColor = borderColor;
+	const iconTint = chevronColor;
 
 	return (
 		<View style={styles.list}>
@@ -49,14 +54,34 @@ export function AddMenuList({ items, disabled, titleVariant = "subtitle" }: AddM
 							isDisabled && styles.disabled,
 						]}
 					>
-						<View style={styles.content}>
-							<BAIText variant={titleVariant} style={{ color: labelColor }}>
-								{item.label}
-							</BAIText>
+						<View style={styles.rowLeft}>
+							{item.icon ? (
+								<View style={[styles.iconCircle, { borderColor: iconBorderColor }]}>
+									{item.iconFamily === "ion" ? (
+										<Ionicons
+											name={item.icon as keyof typeof Ionicons.glyphMap}
+											size={item.iconSize ?? 20}
+											color={iconTint}
+										/>
+									) : (
+										<MaterialCommunityIcons
+											name={item.icon as keyof typeof MaterialCommunityIcons.glyphMap}
+											size={item.iconSize ?? 20}
+											color={iconTint}
+										/>
+									)}
+								</View>
+							) : null}
 
-							<BAIText variant='caption' style={[styles.subtitle, { color: subtitleColor }]}>
-								{item.subtitle}
-							</BAIText>
+							<View style={styles.content}>
+								<BAIText variant={titleVariant} style={{ color: labelColor }}>
+									{item.label}
+								</BAIText>
+
+								<BAIText variant='caption' style={[styles.subtitle, { color: subtitleColor }]}>
+									{item.subtitle}
+								</BAIText>
+							</View>
 						</View>
 
 						<MaterialCommunityIcons name='chevron-right' size={30} color={chevronColor} />
@@ -74,12 +99,28 @@ const styles = StyleSheet.create({
 	row: {
 		flexDirection: "row",
 		alignItems: "center",
+		justifyContent: "space-between",
 		paddingHorizontal: 16,
 		paddingVertical: 14,
 
 		// ✅ Per-row border (instead of dividers)
 		borderWidth: 1,
 		borderRadius: 16,
+	},
+	rowLeft: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 12,
+		flex: 1,
+		paddingRight: 10,
+	},
+	iconCircle: {
+		width: 38,
+		height: 38,
+		borderRadius: 19,
+		alignItems: "center",
+		justifyContent: "center",
+		borderWidth: 1,
 	},
 	content: {
 		flex: 1,

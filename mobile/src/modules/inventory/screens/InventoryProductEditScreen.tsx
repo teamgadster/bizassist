@@ -1023,11 +1023,13 @@ export default function InventoryProductEditScreen({ routeScope = "inventory" }:
 											disabled={isUiDisabled || isArchived}
 										/>
 
-										<ModifierGroupSelector
-											selectedIds={selectedModifierGroupIds}
-											onChange={setSelectedModifierGroupIds}
-											disabled={isUiDisabled || isArchived}
-										/>
+										{routeScope === "inventory" ? (
+											<ModifierGroupSelector
+												selectedIds={selectedModifierGroupIds}
+												onChange={setSelectedModifierGroupIds}
+												disabled={isUiDisabled || isArchived}
+											/>
+										) : null}
 
 										<BAIPressableRow
 											label='Attributes'

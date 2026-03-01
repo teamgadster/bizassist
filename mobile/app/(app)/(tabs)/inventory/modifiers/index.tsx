@@ -1,5 +1,5 @@
-import { ModifiersLedgerScreen } from "../../settings/modifiers/modifiers.ledger";
+import { ModifiersLedgerScreen } from "@/modules/modifiers/screens/ModifiersLedgerScreen";
 
 export default function InventoryModifiersIndexScreen() {
-	return <ModifiersLedgerScreen layout='phone' mode='inventory' />;
+	return <ModifiersLedgerScreen />;
 }

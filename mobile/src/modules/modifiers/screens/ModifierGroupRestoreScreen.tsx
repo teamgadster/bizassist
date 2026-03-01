@@ -23,7 +23,7 @@ export function ModifierGroupRestoreScreen({ mode }: { mode: "settings" | "inven
 	const groupId = String(params.id ?? "").trim();
 	const exitReturnTo = String(params.returnTo ?? "").trim();
 	const { withBusy } = useAppBusy();
-	const baseRoute = mode === "settings" ? "/(app)/(tabs)/settings/modifiers" : "/(app)/(tabs)/inventory/modifiers";
+	const baseRoute = "/(app)/(tabs)/inventory/modifiers";
 	const detailRoute = `${baseRoute}/${encodeURIComponent(groupId)}`;
 	const exitFallbackRoute = groupId ? detailRoute : baseRoute;
 
