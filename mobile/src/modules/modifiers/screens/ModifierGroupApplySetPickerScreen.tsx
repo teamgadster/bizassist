@@ -34,7 +34,9 @@ type RowItemProps = {
 };
 
 function normalizePerPieceAbbreviation(token: string, quantityValue: unknown): string {
-	const normalized = String(token ?? "").trim().toLowerCase();
+	const normalized = String(token ?? "")
+		.trim()
+		.toLowerCase();
 	if (!normalized) return "";
 
 	if (normalized === "ea" || normalized === "each" || normalized === "pc" || normalized === "pcs") {
@@ -74,9 +76,12 @@ function getItemStockWithUnitAbbreviationLabel(
 	const unitName = String((item as any)?.unitName ?? (item as any)?.unit?.name ?? "").trim();
 	const unitId = String((item as any)?.unitId ?? "").trim();
 
-	const fromUnitLookupById = normalizePerPieceAbbreviation(unitId ? abbreviationByUnitId.get(unitId) ?? "" : "", quantityValue);
+	const fromUnitLookupById = normalizePerPieceAbbreviation(
+		unitId ? (abbreviationByUnitId.get(unitId) ?? "") : "",
+		quantityValue,
+	);
 	const fromUnitLookupByName = normalizePerPieceAbbreviation(
-		unitName ? abbreviationByUnitName.get(unitName.toLowerCase()) ?? "" : "",
+		unitName ? (abbreviationByUnitName.get(unitName.toLowerCase()) ?? "") : "",
 		quantityValue,
 	);
 	const fromProductAbbreviation = normalizePerPieceAbbreviation(abbreviation, quantityValue);
@@ -137,22 +142,22 @@ function ProductRow({ item, selected, onToggle, abbreviationByUnitId, abbreviati
 				styles.row,
 				{ borderBottomColor: borderColor, backgroundColor: pressed ? theme.colors.surfaceVariant : "transparent" },
 			]}
-			>
-				<View style={styles.rowLeft}>
-					<View style={[styles.thumb, { borderColor, backgroundColor: theme.colors.surfaceVariant }]}>
-						<BAIText variant='body' style={{ color: onSurfaceVariant }}>
-							{initials}
-						</BAIText>
-					</View>
-					<View style={styles.nameWrap}>
-						<BAIText variant='subtitle' numberOfLines={1}>
-							{label}
-						</BAIText>
-						<BAIText variant='caption' style={{ color: onSurfaceVariant }} numberOfLines={1}>
-							{subtitle}
-						</BAIText>
-					</View>
+		>
+			<View style={styles.rowLeft}>
+				<View style={[styles.thumb, { borderColor, backgroundColor: theme.colors.surfaceVariant }]}>
+					<BAIText variant='body' style={{ color: onSurfaceVariant }}>
+						{initials}
+					</BAIText>
 				</View>
+				<View style={styles.nameWrap}>
+					<BAIText variant='subtitle' numberOfLines={1}>
+						{label}
+					</BAIText>
+					<BAIText variant='caption' style={{ color: onSurfaceVariant }} numberOfLines={1}>
+						{subtitle}
+					</BAIText>
+				</View>
+			</View>
 
 			<View style={styles.rowRight}>
 				{rightMeta ? (
@@ -240,7 +245,9 @@ export function ModifierGroupApplySetPickerScreen({ mode }: Props) {
 	const abbreviationByUnitName = useMemo(() => {
 		const map = new Map<string, string>();
 		for (const unit of unitsQuery.data ?? []) {
-			const name = String(unit?.name ?? "").trim().toLowerCase();
+			const name = String(unit?.name ?? "")
+				.trim()
+				.toLowerCase();
 			const abbr = String(unit?.abbreviation ?? "").trim();
 			if (name && abbr) map.set(name, abbr);
 		}
