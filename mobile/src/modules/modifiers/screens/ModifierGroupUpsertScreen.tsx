@@ -31,6 +31,12 @@ import { useActiveBusinessMeta } from "@/modules/business/useActiveBusinessMeta"
 import { runGovernedProcessExit } from "@/modules/inventory/navigation.governance";
 import { useProcessExitGuard } from "@/modules/navigation/useProcessExitGuard";
 import {
+	buildModifierSelectionParams,
+	DRAFT_ID_KEY as PICKER_DRAFT_ID_KEY,
+	parseModifierSelectionParams,
+	type ModifierPickerInboundParams,
+} from "@/modules/modifiers/modifierPicker.contract";
+import {
 	buildModifierGroupDraftId,
 	clearModifierGroupDraft,
 	createModifierGroupDraft,
@@ -389,9 +395,14 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 	const tabBarHeight = useBottomTabBarHeight();
 	const theme = useTheme();
 	const { currencyCode, countryCode } = useActiveBusinessMeta();
-	const params = useLocalSearchParams<{ id?: string; returnTo?: string }>();
+	const params = useLocalSearchParams<{ id?: string; returnTo?: string } & ModifierPickerInboundParams>();
 	const groupId = String(params.id ?? "").trim();
 	const exitReturnTo = String(params.returnTo ?? "").trim();
+	const returnSelection = useMemo(() => parseModifierSelectionParams(params), [params]);
+	const returnDraftId = useMemo(
+		() => returnSelection.draftId || String(params[PICKER_DRAFT_ID_KEY] ?? "").trim(),
+		[params, returnSelection.draftId],
+	);
 	const normalizedGroupId = intent === "edit" ? groupId : "";
 	const draftId = useMemo(
 		() => buildModifierGroupDraftId(mode, intent, normalizedGroupId),
@@ -1104,8 +1115,22 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 					});
 				}
 
+				await queryClient.invalidateQueries({ queryKey: ["modifiers"] });
 				clearModifierGroupDraft(draftId);
-				router.replace(backRoute as any);
+
+				if (intent === "create" && exitReturnTo && targetGroupId) {
+					router.replace({
+						pathname: exitReturnTo as any,
+						params: buildModifierSelectionParams({
+							selectedModifierGroupIds: [...returnSelection.selectedModifierGroupIds, targetGroupId],
+							selectionSource: "created",
+							draftId: returnDraftId || undefined,
+						}),
+					} as any);
+					return;
+				}
+
+				router.replace((exitReturnTo || backRoute) as any);
 			} catch (e: any) {
 				setError(e?.response?.data?.error?.message ?? e?.response?.data?.message ?? "Could not save modifier set.");
 			}
@@ -1122,7 +1147,10 @@ export function ModifierGroupUpsertScreen({ mode, intent }: Props) {
 		minSelected,
 		name,
 		options,
+		queryClient,
 		router,
+		returnDraftId,
+		returnSelection.selectedModifierGroupIds,
 		selectionType,
 		withBusy,
 	]);

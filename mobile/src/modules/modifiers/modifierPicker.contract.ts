@@ -5,7 +5,7 @@ export const MODIFIER_SELECTION_SOURCE_KEY = "modifierSelectionSource" as const;
 export const RETURN_TO_KEY = "returnTo" as const;
 export const DRAFT_ID_KEY = "draftId" as const;
 
-export type ModifierSelectionSource = "existing" | "cleared";
+export type ModifierSelectionSource = "existing" | "cleared" | "created";
 
 export type ModifierSelectionReturnParams = {
 	[MODIFIER_SELECTED_IDS_KEY]?: string;
@@ -76,7 +76,9 @@ export function parseModifierSelectionParams(raw: {
 	const ids = normalizeIdsFromCsv(raw?.[MODIFIER_SELECTED_IDS_KEY]);
 	const sourceRaw = normalizeString(raw?.[MODIFIER_SELECTION_SOURCE_KEY]);
 	const selectionSource: ModifierSelectionSource | undefined =
-		sourceRaw === "existing" || sourceRaw === "cleared" ? (sourceRaw as ModifierSelectionSource) : undefined;
+		sourceRaw === "existing" || sourceRaw === "cleared" || sourceRaw === "created"
+			? (sourceRaw as ModifierSelectionSource)
+			: undefined;
 
 	return {
 		selectedModifierGroupIds: ids,

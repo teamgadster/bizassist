@@ -60,6 +60,9 @@ export default function CategoryPickerScreen({ routeScope = "inventory" }: { rou
 
 	const params = useLocalSearchParams<CategoryPickerInboundParams>();
 	const returnTo = useMemo(() => normalizeReturnTo(params[RETURN_TO_KEY]), [params]);
+	const isServiceFlow = useMemo(() => (returnTo ?? "").includes("/services/"), [returnTo]);
+	const pickerTitle = isServiceFlow ? "Service Categories" : "Item Categories";
+	const headerBackTitle = isServiceFlow ? "Create Service" : "Create Item";
 
 	const parsedSelection = useMemo(() => parseCategorySelectionParams(params), [params]);
 	const draftId = useMemo(
@@ -226,7 +229,8 @@ export default function CategoryPickerScreen({ routeScope = "inventory" }: { rou
 	// Header Navigation Governance:
 	// - Category picker is a screen => Back.
 	const headerOptions = useInventoryHeader("picker", {
-		headerBackTitle: "Create Item",
+		title: pickerTitle,
+		headerBackTitle,
 		disabled: isBusy,
 		onBack: guardedOnBack,
 	});
@@ -244,11 +248,6 @@ export default function CategoryPickerScreen({ routeScope = "inventory" }: { rou
 				<TouchableWithoutFeedback onPress={dismissKeyboard} accessible={false}>
 					<View style={[styles.screen, { backgroundColor: theme.colors.background, paddingBottom: screenBottomPad }]}>
 						<BAISurface style={styles.card} padded>
-							<BAIText variant='title'>Categories</BAIText>
-							<BAIText variant='caption' muted style={styles.subtitle}>
-								Select a category for this item.
-							</BAIText>
-
 							<View style={styles.actionRow}>
 								<BAIButton
 									variant='outline'
@@ -399,7 +398,6 @@ const styles = StyleSheet.create({
 	},
 
 	card: { flex: 1, gap: 10 },
-	subtitle: { marginTop: -6 },
 
 	actionRow: {
 		flexDirection: "row",

@@ -86,6 +86,8 @@ import {
 } from "@/modules/attributes/attributePicker.contract";
 import { attributesApi } from "@/modules/attributes/attributes.api";
 import { attributesKeys } from "@/modules/attributes/attributes.queryKeys";
+import { categoriesApi } from "@/modules/categories/categories.api";
+import { categoryKeys } from "@/modules/categories/categories.queryKeys";
 
 import {
 	CATEGORY_PICKER_ROUTE,
@@ -141,6 +143,11 @@ const UDQI_INT_MAX_DIGITS = 12;
 
 function safeString(v: unknown): string {
 	return typeof v === "string" ? v : String(v ?? "");
+}
+
+function buildFallbackPosLabel(name: string): string {
+	const compact = sanitizeLabelInput(name).replace(/\s+/g, "");
+	return compact.slice(0, 2).toUpperCase();
 }
 
 function toMoneyOrNull(raw: string): number | null {
@@ -410,6 +417,14 @@ export default function InventoryProductCreateScreen({
 	const { draftId, draft, patch, reset } = useProductCreateDraft(paramDraftId);
 	const createdProductIdRef = useRef<string | null>(null);
 
+	useEffect(() => {
+		const currentDraftId = safeString((params as any)?.[DRAFT_ID_KEY]).trim();
+		if (currentDraftId) return;
+		(router as any).setParams?.({
+			[DRAFT_ID_KEY]: draftId,
+		});
+	}, [draftId, params, router]);
+
 	// This screen is Create Item → PHYSICAL
 	const unitProductType = "PHYSICAL" as const;
 
@@ -421,12 +436,13 @@ export default function InventoryProductCreateScreen({
 	const tileColor = typeof draft.posTileColor === "string" ? draft.posTileColor : null;
 	const tileLabel = useMemo(() => sanitizeLabelInput(draft.posTileLabel ?? "").trim(), [draft.posTileLabel]);
 	const itemName = useMemo(() => (draft.name ?? "").trim(), [draft.name]);
-	const hasLabel = tileLabel.length > 0;
+	const displayTileLabel = useMemo(() => tileLabel || buildFallbackPosLabel(itemName), [itemName, tileLabel]);
+	const hasLabel = displayTileLabel.length > 0;
 	const hasItemName = itemName.length > 0;
 	const hasColor = !!tileColor;
 	const hasVisualTile = hasLocalImage || hasColor;
 	const shouldShowEmpty = !hasVisualTile;
-	const shouldShowTileTextOverlay = hasVisualTile && (hasLabel || hasItemName);
+	const shouldShowTileTextOverlay = hasLabel || hasItemName;
 	const tileLabelColor = "#FFFFFF";
 
 	const onEditPosTile = useCallback(() => {
@@ -477,6 +493,12 @@ export default function InventoryProductCreateScreen({
 	const unitsQuery = useQuery<Unit[]>({
 		queryKey: unitKeys.list({ includeArchived: false }),
 		queryFn: () => unitsApi.listUnits({ includeArchived: false }),
+		staleTime: 30_000,
+	});
+
+	const categoriesQuery = useQuery<{ items: { id: string; color?: string | null }[] }>({
+		queryKey: categoryKeys.list({ limit: 250 }),
+		queryFn: () => categoriesApi.list({ limit: 250 }),
 		staleTime: 30_000,
 	});
 
@@ -795,6 +817,14 @@ export default function InventoryProductCreateScreen({
 		draft.trackInventory,
 		effectiveUnitId,
 	]);
+
+	const selectedCategoryColor = useMemo(() => {
+		const selectedId = (draft.categoryId ?? "").trim();
+		if (!selectedId) return null;
+		const category = (categoriesQuery.data?.items ?? []).find((item) => item.id === selectedId);
+		const color = typeof category?.color === "string" ? category.color.trim() : "";
+		return color || null;
+	}, [categoriesQuery.data?.items, draft.categoryId]);
 
 	/* ---------------- navigation ---------------- */
 
@@ -1145,12 +1175,6 @@ export default function InventoryProductCreateScreen({
 					]}
 				>
 					<BAISurface style={[styles.card, { borderColor }]} padded={false}>
-						<View style={[styles.cardHeader, { borderBottomColor: borderColor }]}>
-							<BAIText variant='title'>Create Item</BAIText>
-							<BAIText variant='body' muted>
-								Add item details below.
-							</BAIText>
-						</View>
 						<ScrollView
 							style={styles.formScroll}
 							contentContainerStyle={styles.formContainer}
@@ -1186,7 +1210,11 @@ export default function InventoryProductCreateScreen({
 											</View>
 										) : null}
 										{shouldShowTileTextOverlay ? (
-											<PosTileTextOverlay label={tileLabel} name={itemName} textColor={tileLabelColor} />
+											<PosTileTextOverlay
+												label={displayTileLabel}
+												name={itemName}
+												textColor={tileLabelColor}
+											/>
 										) : null}
 									</View>
 
@@ -1270,6 +1298,8 @@ export default function InventoryProductCreateScreen({
 							<BAIPressableRow
 								label='Category'
 								value={draft.categoryName ? draft.categoryName : "None"}
+								showValueDot={Boolean(draft.categoryName?.trim())}
+								valueDotColor={selectedCategoryColor}
 								onPress={openCategoryPicker}
 								disabled={isUiDisabled}
 								style={{ marginTop: 10 }}
@@ -1469,12 +1499,6 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 0,
 		paddingTop: 10,
 		paddingBottom: 0,
-	},
-	cardHeader: {
-		paddingHorizontal: 12,
-		paddingBottom: 8,
-		marginBottom: 0,
-		borderBottomWidth: StyleSheet.hairlineWidth,
 	},
 	formScroll: {
 		flex: 1,

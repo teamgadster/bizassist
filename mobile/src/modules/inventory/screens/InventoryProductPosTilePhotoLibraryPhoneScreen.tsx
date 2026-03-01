@@ -6,7 +6,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AppState, FlatList, Pressable, StyleSheet, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useTheme, Modal, Portal } from "react-native-paper";
+import { useTheme } from "react-native-paper";
 import { useQuery } from "@tanstack/react-query";
 import * as MediaLibrary from "expo-media-library";
 import * as ImagePicker from "expo-image-picker";
@@ -21,9 +21,16 @@ import { BAIInlineHeaderScaffold } from "@/components/ui/BAIInlineHeaderScaffold
 import { BAIRetryButton } from "@/components/ui/BAIRetryButton";
 import { BAIActivityIndicator } from "@/components/system/BAIActivityIndicator";
 import { BAIPressableRow } from "@/components/ui/BAIPressableRow";
+import { InventoryPermissionModal } from "@/modules/inventory/components/InventoryPermissionModal";
 
 import { useAppBusy } from "@/hooks/useAppBusy";
 import { mapInventoryRouteToScope, type InventoryRouteScope } from "@/modules/inventory/navigation.scope";
+import {
+	openAppSettings,
+	requestCameraAccess,
+	requestMediaLibraryAccess,
+	requestPhotoLibraryAccess,
+} from "@/modules/inventory/inventory.permissions";
 import {
 	DRAFT_ID_KEY,
 	POS_TILE_CROP_ROUTE,
@@ -163,6 +170,13 @@ export default function PosTilePhotoLibraryPhone({ routeScope = "inventory" }: {
 
 	const [selectModalOpen, setSelectModalOpen] = useState(false);
 	const [selectModalMessage, setSelectModalMessage] = useState("Please select a photo to continue.");
+	const [selectModalAllowSettings, setSelectModalAllowSettings] = useState(false);
+
+	const showSelectModal = useCallback((message: string, allowSettings = false) => {
+		setSelectModalMessage(message);
+		setSelectModalAllowSettings(allowSettings);
+		setSelectModalOpen(true);
+	}, []);
 
 	const onBack = useCallback(() => {
 		if (isUiDisabled) return;
@@ -196,8 +210,30 @@ export default function PosTilePhotoLibraryPhone({ routeScope = "inventory" }: {
 
 	const onRequestPermission = useCallback(async () => {
 		if (isUiDisabled) return;
-		await requestPermission();
-	}, [isUiDisabled, requestPermission]);
+
+		const state = await requestMediaLibraryAccess(requestPermission);
+		if (state === "granted") return;
+
+		if (state === "blocked") {
+			showSelectModal("Photo access is blocked. Open Settings and allow Photos access for BizAssist.", true);
+			return;
+		}
+
+		showSelectModal("Photo library permission is required.");
+	}, [isUiDisabled, requestPermission, showSelectModal]);
+
+	const onOpenSettings = useCallback(async () => {
+		setSelectModalAllowSettings(false);
+		setSelectModalOpen(false);
+		const opened = await openAppSettings();
+		if (opened) return;
+		showSelectModal("Unable to open Settings right now. Please open Settings and allow Photos access for BizAssist.");
+	}, [showSelectModal]);
+
+	const onCloseSelectModal = useCallback(() => {
+		setSelectModalAllowSettings(false);
+		setSelectModalOpen(false);
+	}, []);
 
 	const onNext = useCallback(() => {
 		if (isUiDisabled) return;
@@ -263,10 +299,14 @@ export default function PosTilePhotoLibraryPhone({ routeScope = "inventory" }: {
 		if (isUiDisabled) return;
 		if (!lockNav()) return;
 		try {
-			const perm = await ImagePicker.requestCameraPermissionsAsync();
-			if (!perm.granted) {
-				setSelectModalMessage("Camera permission is required. You can select a photo from the library instead.");
-				setSelectModalOpen(true);
+			const permissionState = await requestCameraAccess();
+			if (permissionState !== "granted") {
+				if (permissionState === "blocked") {
+					showSelectModal("Camera access is blocked. Open Settings and allow Camera access for BizAssist.", true);
+					return;
+				}
+
+				showSelectModal("Camera permission is required. You can select a photo from the library instead.");
 				return;
 			}
 
@@ -300,8 +340,7 @@ export default function PosTilePhotoLibraryPhone({ routeScope = "inventory" }: {
 						},
 			});
 		} catch {
-			setSelectModalMessage("Camera is not available on this device. Use library photos instead.");
-			setSelectModalOpen(true);
+			showSelectModal("Camera is not available on this device. Use library photos instead.");
 		}
 	}, [
 		draftId,
@@ -314,6 +353,7 @@ export default function PosTilePhotoLibraryPhone({ routeScope = "inventory" }: {
 		router,
 		scopedCropRoute,
 		scopedPosTileRoute,
+		showSelectModal,
 		tileLabelParam,
 	]);
 
@@ -321,10 +361,14 @@ export default function PosTilePhotoLibraryPhone({ routeScope = "inventory" }: {
 		if (isUiDisabled) return;
 		if (!lockNav()) return;
 		try {
-			const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-			if (!perm.granted) {
-				setSelectModalMessage("Photo library permission is required.");
-				setSelectModalOpen(true);
+			const permissionState = await requestPhotoLibraryAccess();
+			if (permissionState !== "granted") {
+				if (permissionState === "blocked") {
+					showSelectModal("Photo access is blocked. Open Settings and allow Photos access for BizAssist.", true);
+					return;
+				}
+
+				showSelectModal("Photo library permission is required.");
 				return;
 			}
 
@@ -358,8 +402,7 @@ export default function PosTilePhotoLibraryPhone({ routeScope = "inventory" }: {
 						},
 			});
 		} catch {
-			setSelectModalMessage("Unable to open the photo library right now. Please try again.");
-			setSelectModalOpen(true);
+			showSelectModal("Unable to open the photo library right now. Please try again.");
 		}
 	}, [
 		draftId,
@@ -372,6 +415,7 @@ export default function PosTilePhotoLibraryPhone({ routeScope = "inventory" }: {
 		router,
 		scopedCropRoute,
 		scopedPosTileRoute,
+		showSelectModal,
 		tileLabelParam,
 	]);
 
@@ -519,6 +563,15 @@ export default function PosTilePhotoLibraryPhone({ routeScope = "inventory" }: {
 								>
 									Grant Access
 								</BAIButton>
+								<BAIButton
+									intent='primary'
+									variant='solid'
+									onPress={onPickFromGallery}
+									style={{ marginTop: 10 }}
+									disabled={isUiDisabled}
+								>
+									Choose Library
+								</BAIButton>
 							</View>
 						) : assetsQuery.isLoading ? (
 							<View style={styles.center}>
@@ -583,30 +636,14 @@ export default function PosTilePhotoLibraryPhone({ routeScope = "inventory" }: {
 				</View>
 			</BAIScreen>
 
-			<Portal>
-				<Modal
-					visible={selectModalOpen}
-					onDismiss={() => setSelectModalOpen(false)}
-					dismissable={false}
-					contentContainerStyle={styles.modalHost}
-				>
-					<BAISurface style={[styles.modalCard, { borderColor }]} padded>
-						<BAIText variant='title'>Select Photo</BAIText>
-						<BAIText variant='body' muted style={{ marginTop: 8 }}>
-							{selectModalMessage}
-						</BAIText>
-						<BAIButton
-							intent='primary'
-							variant='solid'
-							shape='pill'
-							onPress={() => setSelectModalOpen(false)}
-							style={{ marginTop: 14 }}
-						>
-							Close
-						</BAIButton>
-					</BAISurface>
-				</Modal>
-			</Portal>
+			<InventoryPermissionModal
+				visible={selectModalOpen}
+				message={selectModalMessage}
+				borderColor={borderColor}
+				onClose={onCloseSelectModal}
+				allowSettings={selectModalAllowSettings}
+				onOpenSettings={onOpenSettings}
+			/>
 		</BAIInlineHeaderScaffold>
 	);
 }
@@ -653,6 +690,4 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 		justifyContent: "center",
 	},
-	modalHost: { paddingHorizontal: 16 },
-	modalCard: { borderWidth: StyleSheet.hairlineWidth, borderRadius: 22, padding: 18 },
 });

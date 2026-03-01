@@ -233,7 +233,7 @@ export type BAIButtonIntent =
 	| "neutral"
 	| "teal";
 
-export type BAIButtonVariant = "solid" | "outline" | "soft" | "lightNeutral" | "ghost";
+export type BAIButtonVariant = "solid" | "outline" | "soft" | "subtle" | "ghost";
 
 export type BAIButtonColorConfig = {
 	background: string;
@@ -318,10 +318,10 @@ function buildIntentTheme(group: IntentGroup, onFillText: string): Record<BAIBut
 			border: group.softBorder,
 			text: group.dark,
 		},
-		lightNeutral: {
-			background: baiColors.neutral[300],
-			border: baiColors.neutral[400],
-			text: baiColors.neutral[900],
+		subtle: {
+			background: baiColors.neutral[100],
+			border: baiColors.neutral[100],
+			text: baiColors.neutral[800],
 		},
 		ghost: {
 			background: "transparent",

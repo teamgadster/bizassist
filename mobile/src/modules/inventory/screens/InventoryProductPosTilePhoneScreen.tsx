@@ -29,6 +29,7 @@ import {
 	mapInventoryRouteToScope,
 	type InventoryRouteScope,
 } from "@/modules/inventory/navigation.scope";
+import { requestCameraAccess } from "@/modules/inventory/inventory.permissions";
 import { useProcessExitGuard } from "@/modules/navigation/useProcessExitGuard";
 import { posTileLabelRegex } from "@/shared/validation/patterns";
 import { useProductCreateDraft } from "@/modules/inventory/drafts/useProductCreateDraft";
@@ -213,9 +214,14 @@ export default function PosTilePhoneScreen({ routeScope = "inventory" }: { route
 		setMediaError(null);
 
 		try {
-			const perm = await ImagePicker.requestCameraPermissionsAsync();
-			if (!perm.granted) {
-				setMediaError("Camera permission is required. You can use Photo Library instead.");
+				const permissionState = await requestCameraAccess();
+				if (permissionState !== "granted") {
+					if (permissionState === "blocked") {
+						setMediaError("Camera access is blocked. Open Settings to allow camera access, or use Photo Library.");
+						return;
+					}
+
+					setMediaError("Camera permission is required. You can use Photo Library instead.");
 				return;
 			}
 
@@ -251,17 +257,8 @@ export default function PosTilePhoneScreen({ routeScope = "inventory" }: { route
 	}, [isUiDisabled]);
 
 	const hasImage = !!tileImageUri;
-	const isColorTab = tileMode === "COLOR";
-	const secondaryActionIcon = isColorTab ? "close" : "trash-can-outline";
-	const secondaryActionLabel = isColorTab ? "Cancel" : "Remove photo";
-	const secondaryActionPress = isColorTab ? guardedOnExit : onRemoveImage;
-	const secondaryActionDisabled = isUiDisabled || (!isColorTab && !hasImage);
-	const secondaryActionBackgroundColor = isColorTab
-		? theme.colors.surfaceVariant ?? theme.colors.surface
-		: theme.colors.error;
-	const secondaryActionIconColor = isColorTab
-		? theme.colors.onSurfaceVariant ?? theme.colors.onSurface
-		: (theme.colors as any).onError ?? "#FFFFFF";
+	const removePhotoDisabled = isUiDisabled || !hasImage;
+	const removePhotoIconColor = (theme.colors as any).onError ?? "#FFFFFF";
 	const isTileLabelValid = useMemo(() => {
 		const trimmed = tileLabel.trim();
 		if (!trimmed) return true;
@@ -350,29 +347,42 @@ export default function PosTilePhoneScreen({ routeScope = "inventory" }: { route
 										</BAIButton>
 									</View>
 									<View style={styles.previewContainer}>
-										<View
-											style={[
-												styles.previewWrap,
-												{
-													borderColor: theme.colors.outlineVariant ?? theme.colors.outline,
-													backgroundColor: theme.colors.surfaceVariant ?? theme.colors.surface,
-												},
-											]}
-										>
-											{hasImage ? (
-												<Image source={{ uri: tileImageUri }} style={styles.previewImage} resizeMode='cover' />
-											) : (
-												<View style={styles.previewEmpty}>
-													<FontAwesome6
-														name='image'
-														size={52}
-														color={theme.colors.onSurfaceVariant ?? theme.colors.onSurface}
-													/>
-													<BAIText variant='caption' muted>
-														No Photo
-													</BAIText>
-												</View>
-											)}
+										<View style={styles.previewAnchor}>
+											<BAIIconButton
+												icon='trash-can-outline'
+												accessibilityLabel='Remove photo'
+												variant='filled'
+												size='lg'
+												iconColor={removePhotoIconColor}
+												onPress={onRemoveImage}
+												disabled={removePhotoDisabled}
+												style={[styles.previewDeleteButton, { backgroundColor: theme.colors.error }]}
+											/>
+
+											<View
+												style={[
+													styles.previewWrap,
+													{
+														borderColor: theme.colors.outlineVariant ?? theme.colors.outline,
+														backgroundColor: theme.colors.surfaceVariant ?? theme.colors.surface,
+													},
+												]}
+											>
+												{hasImage ? (
+													<Image source={{ uri: tileImageUri }} style={styles.previewImage} resizeMode='cover' />
+												) : (
+													<View style={styles.previewEmpty}>
+														<FontAwesome6
+															name='image'
+															size={52}
+															color={theme.colors.onSurfaceVariant ?? theme.colors.onSurface}
+														/>
+														<BAIText variant='caption' muted>
+															No Photo
+														</BAIText>
+													</View>
+												)}
+											</View>
 										</View>
 									</View>
 								</View>
@@ -390,16 +400,16 @@ export default function PosTilePhoneScreen({ routeScope = "inventory" }: { route
 							/>
 
 							<View style={[styles.actionBar, { borderColor: theme.colors.outlineVariant ?? theme.colors.outline }]}>
-								<BAIIconButton
-									icon={secondaryActionIcon}
-									accessibilityLabel={secondaryActionLabel}
-									variant='filled'
-									size='lg'
-									iconColor={secondaryActionIconColor}
-									onPress={secondaryActionPress}
-									disabled={secondaryActionDisabled}
-									style={{ backgroundColor: secondaryActionBackgroundColor }}
-								/>
+								<BAIButton
+									intent='neutral'
+									variant='outline'
+									widthPreset='standard'
+									onPress={guardedOnExit}
+									disabled={isUiDisabled}
+									style={{ flex: 1 }}
+								>
+									Cancel
+								</BAIButton>
 
 								<BAIButton
 									intent='primary'
@@ -437,17 +447,32 @@ const styles = StyleSheet.create({
 		paddingVertical: 10,
 		paddingHorizontal: 0,
 		flexDirection: "row",
+		alignItems: "center",
 		gap: 10,
 	},
 	previewContainer: {
 		alignItems: "center",
 		marginTop: 12,
 	},
+	previewAnchor: {
+		position: "relative",
+		width: "62%",
+		alignSelf: "center",
+	},
+	previewDeleteButton: {
+		position: "absolute",
+		right: -70,
+		top: 0,
+		width: 52,
+		height: 52,
+		borderRadius: 26,
+		zIndex: 2,
+	},
 	previewWrap: {
 		borderWidth: 1,
 		borderRadius: 18,
 		overflow: "hidden",
-		width: "62%",
+		width: "100%",
 		aspectRatio: 1,
 		alignSelf: "center",
 	},

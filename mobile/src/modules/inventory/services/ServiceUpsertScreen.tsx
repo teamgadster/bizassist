@@ -148,6 +148,11 @@ function sanitizeServiceNameDraftInput(raw: string): string {
 	return capText(sanitizeProductNameDraftInput(raw), FIELD_LIMITS.productName);
 }
 
+function buildFallbackPosLabel(name: string): string {
+	const compact = sanitizeLabelInput(name).replace(/\s+/g, "");
+	return compact.slice(0, 2).toUpperCase();
+}
+
 function sanitizeServicePriceInput(raw: string): string {
 	return sanitizeMoneyInput(raw);
 }
@@ -293,6 +298,13 @@ export function ServiceUpsertScreen(props: {
 		return fromDuration;
 	}, [params]);
 	const hasRouteDraftIdParam = routeDraftIdParam.length > 0;
+
+	useEffect(() => {
+		if (routeDraftIdParam) return;
+		(router as any).setParams?.({
+			[CATEGORY_DRAFT_ID_KEY]: draftId,
+		});
+	}, [draftId, routeDraftIdParam, router]);
 
 	const { draft: mediaDraft, patch: patchMediaDraft, reset: resetMediaDraft } = useProductCreateDraft(draftId);
 	const { draft, patch: setDraft, reset: resetServiceDraft } = useServiceCreateDraft(draftId);
@@ -604,12 +616,13 @@ export function ServiceUpsertScreen(props: {
 	const previewHasImage = tileMode === "IMAGE" && !!previewImageUri;
 	const tileLabel = useMemo(() => sanitizeLabelInput(mediaDraft.posTileLabel ?? "").trim(), [mediaDraft.posTileLabel]);
 	const serviceName = useMemo(() => sanitizeServiceNameInput(draft.name).trim(), [draft.name]);
-	const hasTileLabel = tileLabel.length > 0;
+	const displayTileLabel = useMemo(() => tileLabel || buildFallbackPosLabel(serviceName), [serviceName, tileLabel]);
+	const hasTileLabel = displayTileLabel.length > 0;
 	const hasServiceName = serviceName.length > 0;
 	const hasColor = tileMode === "COLOR" && !!selectedTileColor;
 	const hasVisualTile = previewHasImage || hasColor;
 	const shouldShowEmpty = !hasVisualTile;
-	const shouldShowTileTextOverlay = hasVisualTile && (hasTileLabel || hasServiceName);
+	const shouldShowTileTextOverlay = hasTileLabel || hasServiceName;
 	const tileLabelColor = "#FFFFFF";
 
 	const validation = useMemo(() => evaluateServiceDraftValidity(draft), [draft]);
@@ -921,12 +934,6 @@ export function ServiceUpsertScreen(props: {
 							]}
 						>
 							<BAISurface style={[styles.card, { borderColor }]} padded={false}>
-								<View style={[styles.cardHeader, { borderBottomColor: borderColor }]}>
-									<BAIText variant='title'>{headerTitle}</BAIText>
-									<BAIText variant='body' muted>
-										{mode === "create" ? "Add service details below." : "Update service details below."}
-									</BAIText>
-								</View>
 								<ScrollView
 									style={styles.formScroll}
 									contentContainerStyle={styles.formContainer}
@@ -974,7 +981,11 @@ export function ServiceUpsertScreen(props: {
 													</View>
 												) : null}
 												{shouldShowTileTextOverlay ? (
-													<PosTileTextOverlay label={tileLabel} name={serviceName} textColor={tileLabelColor} />
+													<PosTileTextOverlay
+														label={displayTileLabel}
+														name={serviceName}
+														textColor={tileLabelColor}
+													/>
 												) : null}
 											</View>
 
@@ -1209,12 +1220,6 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 0,
 		paddingTop: 12,
 		paddingBottom: 12,
-	},
-	cardHeader: {
-		paddingHorizontal: 14,
-		paddingBottom: 10,
-		marginBottom: 0,
-		borderBottomWidth: StyleSheet.hairlineWidth,
 	},
 	formScroll: {
 		flex: 1,

@@ -19,6 +19,7 @@ import { ConfirmActionModal } from "@/components/settings/ConfirmActionModal";
 import { useAppBusy } from "@/hooks/useAppBusy";
 import { useInventoryHeader } from "@/modules/inventory/useInventoryHeader";
 import { runGovernedBack } from "@/modules/inventory/navigation.governance";
+import { requestCameraAccess } from "@/modules/inventory/inventory.permissions";
 import {
 	inventoryScopeRoot,
 	mapInventoryRouteToScope,
@@ -119,9 +120,14 @@ export default function InventoryServicePhotoScreen({
 		if (!lockNav()) return;
 		setErrorMessage(null);
 		try {
-			const perm = await ImagePicker.requestCameraPermissionsAsync();
-			if (!perm.granted) {
-				setErrorMessage("Camera permission is required. Use Photo Library if you prefer.");
+				const permissionState = await requestCameraAccess();
+				if (permissionState !== "granted") {
+					if (permissionState === "blocked") {
+						setErrorMessage("Camera access is blocked. Open Settings to allow camera access, or use Photo Library.");
+						return;
+					}
+
+					setErrorMessage("Camera permission is required. Use Photo Library if you prefer.");
 				return;
 			}
 

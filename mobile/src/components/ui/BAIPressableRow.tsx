@@ -10,13 +10,24 @@ import { BAIText } from "@/components/ui/BAIText";
 type Props = {
 	label: string;
 	value?: string;
+	valueDotColor?: string | null;
+	showValueDot?: boolean;
 	placeholder?: string;
 	onPress: () => void;
 	disabled?: boolean;
 	style?: StyleProp<ViewStyle>;
 };
 
-export function BAIPressableRow({ label, value, placeholder = "Hide or restore categories", onPress, disabled = false, style }: Props) {
+export function BAIPressableRow({
+	label,
+	value,
+	valueDotColor,
+	showValueDot = false,
+	placeholder = "Hide or restore categories",
+	onPress,
+	disabled = false,
+	style,
+}: Props) {
 	const theme = useTheme();
 
 	const borderColor = theme.colors.outlineVariant ?? theme.colors.outline;
@@ -34,6 +45,7 @@ export function BAIPressableRow({ label, value, placeholder = "Hide or restore c
 	const chevronColor = theme.colors.onSurfaceVariant ?? theme.colors.onSurface;
 
 	const displayValue = (value ?? "").trim();
+	const dotStroke = theme.colors.outlineVariant ?? theme.colors.outline;
 
 	const containerStyle = useMemo(
 		() => [
@@ -59,16 +71,26 @@ export function BAIPressableRow({ label, value, placeholder = "Hide or restore c
 					{label}
 				</BAIText>
 
-				<BAIText
-					variant='subtitle'
-					numberOfLines={1}
-					style={{
-						color: displayValue ? valueColor : placeholderColor,
-						fontWeight: "500",
-					}}
-				>
-					{displayValue || placeholder}
-				</BAIText>
+				<View style={styles.valueRow}>
+					{displayValue && showValueDot ? (
+						<View
+							style={[
+								styles.valueDot,
+								{ borderColor: dotStroke, backgroundColor: valueDotColor ? valueDotColor : "transparent" },
+							]}
+						/>
+					) : null}
+					<BAIText
+						variant='subtitle'
+						numberOfLines={1}
+						style={{
+							color: displayValue ? valueColor : placeholderColor,
+							fontWeight: "500",
+						}}
+					>
+						{displayValue || placeholder}
+					</BAIText>
+				</View>
 			</View>
 
 			{/* Governance: standardized disclosure chevron */}
@@ -93,5 +115,17 @@ const styles = StyleSheet.create({
 		flex: 1,
 		minWidth: 0,
 		gap: 2,
+	},
+	valueRow: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 8,
+		minWidth: 0,
+	},
+	valueDot: {
+		width: 12,
+		height: 12,
+		borderRadius: 9,
+		borderWidth: 1,
 	},
 });

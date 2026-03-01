@@ -19,8 +19,7 @@ import type { ModifierGroup } from "@/modules/modifiers/modifiers.types";
 import {
 	buildModifierSelectionParams,
 	DRAFT_ID_KEY,
-	MODIFIER_SELECTED_IDS_KEY,
-	MODIFIER_SELECTION_SOURCE_KEY,
+	MODIFIER_PICKER_ROUTE,
 	normalizeReturnTo,
 	parseModifierSelectionParams,
 	RETURN_TO_KEY,
@@ -30,6 +29,8 @@ import { FIELD_LIMITS } from "@/shared/fieldLimits";
 import { sanitizeSearchInput } from "@/shared/validation/sanitize";
 
 const modifierPickerKey = ["modifiers", "groups", "attach-picker-screen"] as const;
+const INVENTORY_MODIFIER_CREATE_ROUTE = "/(app)/(tabs)/inventory/modifiers/create" as const;
+const SETTINGS_MODIFIER_CREATE_ROUTE = "/(app)/(tabs)/settings/modifiers/create" as const;
 
 export function ModifierGroupAttachPickerScreen({ routeScope = "inventory" }: { routeScope?: InventoryRouteScope }) {
 	const router = useRouter();
@@ -38,6 +39,11 @@ export function ModifierGroupAttachPickerScreen({ routeScope = "inventory" }: { 
 	const { busy } = useAppBusy();
 
 	const toScopedRoute = useCallback((route: string) => mapInventoryRouteToScope(route, routeScope), [routeScope]);
+	const pickerRoute = useMemo(() => toScopedRoute(MODIFIER_PICKER_ROUTE), [toScopedRoute]);
+	const createRoute = useMemo(
+		() => (routeScope === "settings-items-services" ? SETTINGS_MODIFIER_CREATE_ROUTE : INVENTORY_MODIFIER_CREATE_ROUTE),
+		[routeScope],
+	);
 
 	const returnTo = useMemo(
 		() => normalizeReturnTo(params[RETURN_TO_KEY]) ?? toScopedRoute("/(app)/(tabs)/inventory/products/create"),
@@ -135,6 +141,22 @@ export function ModifierGroupAttachPickerScreen({ routeScope = "inventory" }: { 
 		setSelectedIds(items.map((item) => item.id));
 	}, [isUiDisabled, items]);
 
+	const onCreate = useCallback(() => {
+		dismissKeyboard();
+		if (!lockNav()) return;
+		router.push({
+			pathname: createRoute as any,
+			params: {
+				[RETURN_TO_KEY]: pickerRoute,
+				...buildModifierSelectionParams({
+					selectedModifierGroupIds: selectedIds,
+					selectionSource: selectedIds.length > 0 ? "existing" : "cleared",
+					draftId: draftId || undefined,
+				}),
+			},
+		} as any);
+	}, [createRoute, dismissKeyboard, draftId, lockNav, pickerRoute, router, selectedIds]);
+
 	const toggle = useCallback(
 		(id: string) => {
 			if (isUiDisabled) return;
@@ -214,6 +236,16 @@ export function ModifierGroupAttachPickerScreen({ routeScope = "inventory" }: { 
 										style={styles.actionButton}
 									>
 										Apply All
+									</BAIButton>
+									<BAIButton
+										mode='outlined'
+										variant='outline'
+										onPress={onCreate}
+										disabled={isUiDisabled}
+										shape='pill'
+										style={styles.actionButton}
+									>
+										Create
 									</BAIButton>
 								</View>
 

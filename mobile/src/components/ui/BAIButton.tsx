@@ -40,7 +40,7 @@ type PaperButtonMode = React.ComponentProps<typeof Button>["mode"];
 const MODE_BY_VARIANT: Record<BAIButtonVariant, PaperButtonMode> = {
 	solid: "contained",
 	soft: "contained-tonal",
-	lightNeutral: "contained-tonal",
+	subtle: "contained-tonal",
 	outline: "outlined",
 	ghost: "text",
 };
@@ -92,6 +92,7 @@ function resolveIntent(intent?: BAIButtonIntent | null): BAIButtonIntent {
 
 function resolveVariant(intent: BAIButtonIntent, variant?: BAIButtonVariant | null): BAIButtonVariant {
 	if (!variant) return "solid";
+	if ((variant as string) === "lightNeutral") return "subtle";
 	return variant in baiButtonThemeByMode.light[intent] ? (variant as BAIButtonVariant) : "solid";
 }
 

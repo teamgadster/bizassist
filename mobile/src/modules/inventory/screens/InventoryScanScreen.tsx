@@ -10,6 +10,11 @@ import { BAISurface } from "@/components/ui/BAISurface";
 import { BAIText } from "@/components/ui/BAIText";
 import { BAIButton } from "@/components/ui/BAIButton";
 import { BAICTAButton } from "@/components/ui/BAICTAButton";
+import {
+	openAppSettings,
+	requestCameraAccessWith,
+	type PermissionFlowState,
+} from "@/modules/inventory/inventory.permissions";
 
 /**
  * Canonical: Inventory search consumes query param "q"
@@ -36,6 +41,7 @@ export default function InventoryScanScreen() {
 	}, [params.draftId]);
 
 	const [permission, requestPermission] = useCameraPermissions();
+	const [permissionHint, setPermissionHint] = useState<string>("");
 
 	const lockRef = useRef(false);
 	const [lockedUI, setLockedUI] = useState(false);
@@ -56,8 +62,29 @@ export default function InventoryScanScreen() {
 
 	useEffect(() => {
 		if (!permission) return;
-		if (!permission.granted) requestPermission().catch(() => {});
+		if (!permission.granted && permission.canAskAgain !== false) requestPermission().catch(() => {});
 	}, [permission, requestPermission]);
+
+	const onRequestCameraPermission = useCallback(async () => {
+		const state: PermissionFlowState = await requestCameraAccessWith(requestPermission);
+		if (state === "granted") {
+			setPermissionHint("");
+			return;
+		}
+
+		if (state === "blocked") {
+			setPermissionHint("Camera access is blocked. Open Settings to allow camera access for BizAssist.");
+			return;
+		}
+
+		setPermissionHint("Camera permission is required to scan barcodes.");
+	}, [requestPermission]);
+
+	const onOpenSettings = useCallback(async () => {
+		const opened = await openAppSettings();
+		if (opened) return;
+		setPermissionHint("Unable to open Settings right now. Please open Settings and allow camera access for BizAssist.");
+	}, []);
 
 	useEffect(() => {
 		const onAppStateChange = (state: AppStateStatus) => {
@@ -135,16 +162,34 @@ export default function InventoryScanScreen() {
 	}
 
 	if (!permission.granted) {
+		const isPermissionBlocked = permission.canAskAgain === false;
+		const permissionMessage =
+			permissionHint ||
+			(isPermissionBlocked
+				? "Camera access is blocked. Open Settings to allow camera access for scanning."
+				: "Enable camera access to scan barcodes.");
+
 		return (
 			<BAIScreen padded={false} safeTop={false} safeBottom={false} contentContainerStyle={styles.center}>
 				<BAISurface style={styles.card}>
 					<BAIText variant='subtitle'>Camera permission required</BAIText>
 					<BAIText variant='body' muted>
-						Enable camera access to scan barcodes.
+						{permissionMessage}
 					</BAIText>
 
 					<View style={styles.actions}>
-						<BAICTAButton onPress={() => requestPermission()}>Allow Camera</BAICTAButton>
+						<BAICTAButton onPress={onRequestCameraPermission}>Allow Camera</BAICTAButton>
+						{isPermissionBlocked ? (
+							<BAIButton
+								mode='outlined'
+								onPress={onOpenSettings}
+								shape='pill'
+								widthPreset='standard'
+								intent='primary'
+							>
+								Open Settings
+							</BAIButton>
+						) : null}
 						<BAIButton mode='outlined' onPress={onCancel} shape="pill" widthPreset='standard' intent='neutral'>
 							Cancel
 						</BAIButton>
