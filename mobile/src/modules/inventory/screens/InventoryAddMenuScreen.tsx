@@ -84,6 +84,13 @@ export default function InventoryAddMenu({ routeScope = "inventory" }: { routeSc
 				onPress: () => safePush(toScopedRoute("/(app)/(tabs)/inventory/categories/category.ledger")),
 				enabled: true,
 			},
+			{
+				key: "attributes",
+				label: "Attributes",
+				subtitle: "Create and manage descriptive attributes.",
+				onPress: () => safePush(toScopedRoute("/(app)/(tabs)/inventory/attributes")),
+				enabled: true,
+			},
 		],
 		[safePush, toScopedRoute],
 	);

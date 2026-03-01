@@ -1,6 +1,7 @@
 // path: src/modules/pos/pos.api.ts
 import apiClient from "@/lib/api/httpClient";
 import { CheckoutInput, CheckoutResult } from "./pos.types";
+import type { ProductAttributeAssignment } from "@/modules/attributes/attributes.types";
 
 export type ProductModifierOption = {
 	id: string;
@@ -33,5 +34,12 @@ export const posApi = {
 	async checkout(input: CheckoutInput) {
 		const res = await apiClient.post<{ success: true; data: CheckoutResult }>("/pos/checkout", input);
 		return res.data.data;
+	},
+
+	async getProductAttributes(productId: string): Promise<ProductAttributeAssignment[]> {
+		const res = await apiClient.get<{ success: true; data: { items: ProductAttributeAssignment[] } }>(
+			`/catalog/products/${encodeURIComponent(productId)}/attributes`,
+		);
+		return res.data.data.items ?? [];
 	},
 };

@@ -477,7 +477,7 @@ export default function PosTilePhotoLibraryPhone({ routeScope = "inventory" }: {
 						<View style={styles.secondaryActions}>
 							<BAIButton
 								intent='primary'
-								variant='outline'
+								variant='solid'
 								shape='pill'
 								size='sm'
 								widthPreset='standard'
@@ -491,7 +491,7 @@ export default function PosTilePhotoLibraryPhone({ routeScope = "inventory" }: {
 							</BAIButton>
 							<BAIButton
 								intent='primary'
-								variant='outline'
+								variant='solid'
 								shape='pill'
 								size='sm'
 								widthPreset='standard'
@@ -514,21 +514,10 @@ export default function PosTilePhotoLibraryPhone({ routeScope = "inventory" }: {
 								<BAIButton
 									intent='primary'
 									variant='solid'
-									shape='pill'
 									onPress={onRequestPermission}
 									style={{ marginTop: 12 }}
 								>
 									Grant Access
-								</BAIButton>
-								<BAIButton
-									intent='primary'
-									variant='outline'
-									shape='pill'
-									onPress={onPickFromGallery}
-									style={{ marginTop: 10 }}
-									disabled={isUiDisabled}
-								>
-									Choose Library
 								</BAIButton>
 							</View>
 						) : assetsQuery.isLoading ? (

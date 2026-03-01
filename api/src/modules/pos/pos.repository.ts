@@ -135,6 +135,12 @@ export type CreateCheckoutTxInput = {
 		unitPriceMinor: bigint;
 		lineTotalMinor: bigint;
 		selectedModifierOptionIds: string[];
+		selectedAttributes: Array<{
+			attributeId: string;
+			optionId: string;
+			attributeNameSnapshot: string;
+			optionNameSnapshot: string;
+		}>;
 		totalModifiersDeltaMinor: bigint;
 		modifiers: Array<{
 			modifierOptionId: string;
@@ -194,6 +200,7 @@ export async function createCheckoutTransaction(deps: PosRepoDeps, input: Create
 						unitPrice: new Prisma.Decimal(minorUnitsToDecimalString(li.unitPriceMinor)),
 						lineTotal: new Prisma.Decimal(minorUnitsToDecimalString(li.lineTotalMinor)),
 						selectedModifierOptionIds: li.selectedModifierOptionIds,
+						selectedAttributes: li.selectedAttributes,
 						totalModifiersDeltaMinor: li.totalModifiersDeltaMinor,
 						modifiers: {
 							create: li.modifiers.map((modifier) => ({

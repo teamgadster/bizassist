@@ -10,6 +10,7 @@ import {
 	zSanitizedString,
 } from "@/shared/validators/zod.shared";
 import { FIELD_LIMITS } from "@/shared/fieldLimits.server";
+import { checkoutSelectedAttributeSchema } from "@/modules/attributes/attributes.validators";
 
 const minorUnitsString = zSanitizedString(
 	trimmedStringBase()
@@ -53,6 +54,7 @@ const cartItemSchema = z
 		unitPrice: legacyUnitPriceDecimal.optional(),
 		selectedModifierOptionIds: z.array(uuidSchema).max(250, "Too many selected modifiers.").optional(),
 		totalModifiersDeltaMinor: minorUnitsString.optional(),
+		selectedAttributes: z.array(checkoutSelectedAttributeSchema).max(250).optional(),
 	})
 	.superRefine((val, ctx) => {
 		if (!val.unitPriceMinor && !val.unitPrice) {

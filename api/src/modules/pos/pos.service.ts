@@ -24,6 +24,7 @@ import {
 import { applyPercentMinor, basisPointsToPercentString, percentStringToBasisPoints } from "@/shared/money/percentMath";
 import { normalizeDecimalString } from "@/shared/quantity/quantityDecimal";
 import { ModifiersService } from "@/modules/modifiers/modifiers.service";
+import { AttributesService } from "@/modules/attributes/attributes.service";
 
 import type { CheckoutInput, CheckoutResult } from "./pos.types";
 import {
@@ -50,12 +51,19 @@ type CartComputed = {
 	quantityLegacyInt: number;
 	unitPriceMinor: bigint;
 	selectedModifierOptionIds: string[];
+	selectedAttributes: Array<{
+		attributeId: string;
+		optionId: string;
+		attributeNameSnapshot: string;
+		optionNameSnapshot: string;
+	}>;
 	totalModifiersDeltaMinor: bigint;
 	modifierRows: Array<{ modifierOptionId: string; optionName: string; priceDeltaMinor: bigint }>;
 	lineTotalMinor: bigint;
 };
 
 const modifiersService = new ModifiersService(prisma);
+const attributesService = new AttributesService(prisma);
 
 function movementIdempotencyKey(baseKey: string, productId: string): string {
 	return crypto.createHash("sha256").update(`${baseKey}:${productId}`).digest("hex");
@@ -136,6 +144,11 @@ export async function checkout(args: CheckoutArgs): Promise<CheckoutResult> {
 		const selectedModifierOptionIds = Array.isArray(item.selectedModifierOptionIds)
 			? item.selectedModifierOptionIds.map((v) => String(v)).filter(Boolean)
 			: [];
+		const selectedAttributes = await attributesService.validateSelectionsForCheckout(
+			businessId,
+			item.productId,
+			item.selectedAttributes,
+		);
 		const selectionValidation = await modifiersService.validateSelectionsForCheckout(
 			businessId,
 			item.productId,
@@ -159,6 +172,7 @@ export async function checkout(args: CheckoutArgs): Promise<CheckoutResult> {
 			quantityLegacyInt: qty.legacyInt,
 			unitPriceMinor,
 			selectedModifierOptionIds,
+			selectedAttributes,
 			totalModifiersDeltaMinor: expectedDeltaMinor,
 			modifierRows: selectionValidation.selectedOptionRows.map((m) => ({
 				modifierOptionId: m.id,
@@ -315,6 +329,7 @@ export async function checkout(args: CheckoutArgs): Promise<CheckoutResult> {
 				unitPriceMinor: li.unitPriceMinor,
 				lineTotalMinor: li.lineTotalMinor,
 				selectedModifierOptionIds: li.selectedModifierOptionIds,
+				selectedAttributes: li.selectedAttributes,
 				totalModifiersDeltaMinor: li.totalModifiersDeltaMinor,
 				modifiers: li.modifierRows,
 			})),
@@ -367,6 +382,7 @@ function shapeCheckoutResult(sale: any): CheckoutResult {
 					unitPriceMinor: formatBigIntToMinorUnitsString(unitPriceMinor),
 					lineTotalMinor: formatBigIntToMinorUnitsString(lineTotalMinor),
 					selectedModifierOptionIds: Array.isArray(li.selectedModifierOptionIds) ? li.selectedModifierOptionIds : [],
+					selectedAttributes: Array.isArray(li.selectedAttributes) ? li.selectedAttributes : [],
 					totalModifiersDeltaMinor: formatBigIntToMinorUnitsString(BigInt(li.totalModifiersDeltaMinor ?? 0)),
 					unitPrice: minorUnitsToDecimalString(unitPriceMinor),
 					lineTotal: minorUnitsToDecimalString(lineTotalMinor),

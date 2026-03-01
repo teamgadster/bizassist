@@ -19,6 +19,7 @@ import { taxesRoutes } from "@/modules/taxes/taxes.routes";
 import { mediaRoutes } from "@/modules/media/media.routes";
 import unitsRoutes from "@/modules/units/units.routes";
 import { modifiersRoutes } from "@/modules/modifiers/modifiers.routes";
+import { attributesRoutes } from "@/modules/attributes/attributes.routes";
 
 export const apiRouter = Router();
 
@@ -59,3 +60,4 @@ apiRouter.use("/taxes", taxesRoutes);
 apiRouter.use("/units", unitsRoutes);
 apiRouter.use("/modifiers", modifiersRoutes);
 apiRouter.use("/catalog/modifiers", modifiersRoutes);
+apiRouter.use("/attributes", attributesRoutes);

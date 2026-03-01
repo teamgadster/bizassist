@@ -77,6 +77,15 @@ import {
 	parseModifierSelectionParams,
 	RETURN_TO_KEY as MODIFIER_RETURN_TO_KEY,
 } from "@/modules/modifiers/modifierPicker.contract";
+import {
+	ATTRIBUTE_PICKER_ROUTE,
+	ATTRIBUTE_SELECTIONS_KEY,
+	buildAttributeSelectionParams,
+	decodeAttributeSelections,
+	RETURN_TO_KEY as ATTRIBUTE_RETURN_TO_KEY,
+} from "@/modules/attributes/attributePicker.contract";
+import { attributesApi } from "@/modules/attributes/attributes.api";
+import { attributesKeys } from "@/modules/attributes/attributes.queryKeys";
 
 import {
 	CATEGORY_PICKER_ROUTE,
@@ -480,6 +489,10 @@ export default function InventoryProductCreateScreen({
 
 	const categorySelection = useMemo(() => parseCategorySelectionParams(params as any), [params]);
 	const modifierSelection = useMemo(() => parseModifierSelectionParams(params as any), [params]);
+	const attributeSelection = useMemo(
+		() => decodeAttributeSelections((params as any)?.[ATTRIBUTE_SELECTIONS_KEY]),
+		[params],
+	);
 
 	useEffect(() => {
 		if (!categorySelection.hasSelectionKey) return;
@@ -508,6 +521,17 @@ export default function InventoryProductCreateScreen({
 		});
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [modifierSelection.hasSelectionKey, modifierSelection.selectedModifierGroupIds.join("|")]);
+
+	useEffect(() => {
+		if ((params as any)?.[ATTRIBUTE_SELECTIONS_KEY] === undefined) return;
+
+		patch({ attributeSelections: attributeSelection });
+
+		(router as any).setParams?.({
+			[ATTRIBUTE_SELECTIONS_KEY]: undefined,
+		});
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [attributeSelection.map((entry) => `${entry.attributeId}:${entry.isRequired ? 1 : 0}`).join("|")]);
 
 	/* ---------------- return params: unit (hardened) ---------------- */
 
@@ -745,6 +769,7 @@ export default function InventoryProductCreateScreen({
 		if (hasValue(draft.reorderPointText)) return true;
 		if (hasValue(draft.categoryId) || hasValue(draft.categoryName)) return true;
 		if ((draft.modifierGroupIds?.length ?? 0) > 0) return true;
+		if ((draft.attributeSelections?.length ?? 0) > 0) return true;
 		if (hasValue(draft.imageLocalUri)) return true;
 
 		if (!draft.trackInventory) return true;
@@ -761,6 +786,7 @@ export default function InventoryProductCreateScreen({
 		draft.description,
 		draft.imageLocalUri,
 		draft.modifierGroupIds,
+		draft.attributeSelections,
 		draft.initialOnHandText,
 		draft.name,
 		draft.priceText,
@@ -853,6 +879,22 @@ export default function InventoryProductCreateScreen({
 			} as any,
 		});
 	}, [draft.modifierGroupIds, draftId, isUiDisabled, lockNav, router, thisRoute, toScopedRoute]);
+
+	const openAttributePicker = useCallback(() => {
+		if (isUiDisabled) return;
+		if (!lockNav()) return;
+
+		router.replace({
+			pathname: toScopedRoute(ATTRIBUTE_PICKER_ROUTE) as any,
+			params: {
+				[ATTRIBUTE_RETURN_TO_KEY]: thisRoute,
+				...buildAttributeSelectionParams({
+					selectedAttributes: draft.attributeSelections ?? [],
+					draftId,
+				}),
+			} as any,
+		});
+	}, [draft.attributeSelections, draftId, isUiDisabled, lockNav, router, thisRoute, toScopedRoute]);
 
 	/* ---------------- save ---------------- */
 
@@ -950,8 +992,15 @@ export default function InventoryProductCreateScreen({
 					if (!createdId) {
 						const created = await inventoryApi.createProduct(apiPayload as any);
 						createdId = created.id;
+						await attributesApi.replaceProductAttributes(createdId, {
+							attributes: (draft.attributeSelections ?? []).map((entry) => ({
+								attributeId: entry.attributeId,
+								isRequired: entry.isRequired,
+							})),
+						});
 						createdProductIdRef.current = createdId;
 						invalidateInventoryAfterMutation(queryClient, { productId: createdId });
+						await queryClient.invalidateQueries({ queryKey: attributesKeys.all });
 					}
 
 					const detailRoute = toScopedRoute(`/(app)/(tabs)/inventory/products/${encodeURIComponent(createdId)}`);
@@ -1230,6 +1279,14 @@ export default function InventoryProductCreateScreen({
 								label='Modifiers'
 								value={draft.modifierGroupIds.length > 0 ? `${draft.modifierGroupIds.length} selected` : "None"}
 								onPress={openModifierPicker}
+								disabled={isUiDisabled}
+								style={{ marginTop: 10 }}
+							/>
+
+							<BAIPressableRow
+								label='Attributes'
+								value={(draft.attributeSelections?.length ?? 0) > 0 ? `${draft.attributeSelections.length} selected` : "None"}
+								onPress={openAttributePicker}
 								disabled={isUiDisabled}
 								style={{ marginTop: 10 }}
 							/>

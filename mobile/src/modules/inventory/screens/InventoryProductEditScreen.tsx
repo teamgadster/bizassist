@@ -24,6 +24,7 @@ import { BAISwitchRow } from "@/components/ui/BAISwitchRow";
 import { BAIText } from "@/components/ui/BAIText";
 import { BAITextInput } from "@/components/ui/BAITextInput";
 import { BAITextarea } from "@/components/ui/BAITextarea";
+import { BAIPressableRow } from "@/components/ui/BAIPressableRow";
 
 import { useAppBusy } from "@/hooks/useAppBusy";
 import { useActiveBusinessMeta } from "@/modules/business/useActiveBusinessMeta";
@@ -51,6 +52,15 @@ import { useInventoryHeader } from "@/modules/inventory/useInventoryHeader";
 import { uploadProductImage } from "@/modules/media/media.upload";
 import { toMediaDomainError } from "@/modules/media/media.errors";
 import { ModifierGroupSelector } from "@/modules/modifiers/components/ModifierGroupSelector";
+import {
+	ATTRIBUTE_PICKER_ROUTE,
+	ATTRIBUTE_SELECTIONS_KEY,
+	buildAttributeSelectionParams,
+	decodeAttributeSelections,
+	RETURN_TO_KEY as ATTRIBUTE_RETURN_TO_KEY,
+} from "@/modules/attributes/attributePicker.contract";
+import { attributesApi } from "@/modules/attributes/attributes.api";
+import { attributesKeys } from "@/modules/attributes/attributes.queryKeys";
 import { FIELD_LIMITS } from "@/shared/fieldLimits";
 import { GTIN_MAX_LENGTH, sanitizeGtinInput, validateGtinValue } from "@/shared/validation/gtin";
 import {
@@ -283,6 +293,12 @@ export default function InventoryProductEditScreen({ routeScope = "inventory" }:
 	const [trackInventory, setTrackInventory] = useState(true);
 	const [reorderPointText, setReorderPointText] = useState("");
 	const [selectedModifierGroupIds, setSelectedModifierGroupIds] = useState<string[]>([]);
+	const [selectedAttributeSelections, setSelectedAttributeSelections] = useState<
+		Array<{ attributeId: string; isRequired?: boolean }>
+	>([]);
+	const [baselineAttributeSelections, setBaselineAttributeSelections] = useState<
+		Array<{ attributeId: string; isRequired?: boolean }>
+	>([]);
 
 	const [error, setError] = useState<string | null>(null);
 	const [isSubmitting, setIsSubmitting] = useState(false);
@@ -373,6 +389,7 @@ export default function InventoryProductEditScreen({ routeScope = "inventory" }:
 			tileColor: baselineTileSnapshot.tileColor,
 			tileLabel: baselineTileSnapshot.tileLabel,
 			modifierGroupIds: baselineModifierGroupIds,
+			attributeSelections: baselineAttributeSelections,
 		};
 	}, [
 		baselineTileSnapshot.tileColor,
@@ -380,6 +397,7 @@ export default function InventoryProductEditScreen({ routeScope = "inventory" }:
 		baselineTileSnapshot.tileMode,
 		precisionScale,
 		product,
+		baselineAttributeSelections,
 	]);
 	const isMediaDraftPristine = useMemo(() => {
 		const draftImage = String(mediaDraft.imageLocalUri ?? "").trim();
@@ -406,6 +424,7 @@ export default function InventoryProductEditScreen({ routeScope = "inventory" }:
 		setTrackInventory(baseline.trackInventory);
 		setReorderPointText(baseline.reorderPoint);
 		setSelectedModifierGroupIds(baseline.modifierGroupIds);
+		setSelectedAttributeSelections(baseline.attributeSelections);
 		setError(null);
 		const shouldSeedMediaFromBaseline = !hasRouteDraftIdParam || isMediaDraftPristine;
 		if (!shouldSeedMediaFromBaseline) return;
@@ -426,6 +445,30 @@ export default function InventoryProductEditScreen({ routeScope = "inventory" }:
 		patchMediaDraft,
 		product,
 	]);
+
+	useEffect(() => {
+		if (!productId) return;
+		attributesApi
+			.getProductAttributes(productId)
+			.then((items) => {
+				const next = (items ?? []).map((entry) => ({ attributeId: entry.attributeId, isRequired: entry.isRequired }));
+				setBaselineAttributeSelections(next);
+				setSelectedAttributeSelections(next);
+			})
+			.catch(() => undefined);
+	}, [productId]);
+
+	const attributeSelectionFromParams = useMemo(
+		() => decodeAttributeSelections((params as any)?.[ATTRIBUTE_SELECTIONS_KEY]),
+		[params],
+	);
+
+	useEffect(() => {
+		if ((params as any)?.[ATTRIBUTE_SELECTIONS_KEY] === undefined) return;
+		setSelectedAttributeSelections(attributeSelectionFromParams);
+		(router as any).setParams?.({ [ATTRIBUTE_SELECTIONS_KEY]: undefined });
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [attributeSelectionFromParams.map((entry) => `${entry.attributeId}:${entry.isRequired ? 1 : 0}`).join("|")]);
 
 	useEffect(() => {
 		if (!product) return;
@@ -523,8 +566,10 @@ export default function InventoryProductEditScreen({ routeScope = "inventory" }:
 			tileColor: selectedTileColor,
 			tileLabel,
 			modifierGroupIds: selectedModifierGroupIds,
+			attributeSelections: selectedAttributeSelections,
 		};
 	}, [
+		selectedAttributeSelections,
 		selectedModifierGroupIds,
 		tileLabel,
 		tileMode,
@@ -553,6 +598,8 @@ export default function InventoryProductEditScreen({ routeScope = "inventory" }:
 			currentSnapshot.trackInventory !== baseline.trackInventory ||
 			currentSnapshot.reorderPoint !== baseline.reorderPoint ||
 			currentSnapshot.modifierGroupIds.join("|") !== baseline.modifierGroupIds.join("|") ||
+			currentSnapshot.attributeSelections.map((entry) => `${entry.attributeId}:${entry.isRequired ? 1 : 0}`).join("|") !==
+				baseline.attributeSelections.map((entry) => `${entry.attributeId}:${entry.isRequired ? 1 : 0}`).join("|") ||
 			currentSnapshot.tileMode !== baseline.tileMode ||
 			currentSnapshot.tileColor !== baseline.tileColor ||
 			currentSnapshot.tileLabel !== baseline.tileLabel ||
@@ -625,6 +672,21 @@ export default function InventoryProductEditScreen({ routeScope = "inventory" }:
 		});
 	}, [draftId, isArchived, isUiDisabled, lockNav, router, scanRoute, thisRoute]);
 
+	const openAttributePicker = useCallback(() => {
+		if (isUiDisabled || isArchived) return;
+		if (!lockNav()) return;
+		router.replace({
+			pathname: toScopedRoute(ATTRIBUTE_PICKER_ROUTE) as any,
+			params: {
+				[ATTRIBUTE_RETURN_TO_KEY]: thisRoute,
+				...buildAttributeSelectionParams({
+					selectedAttributes: selectedAttributeSelections,
+					draftId,
+				}),
+			} as any,
+		});
+	}, [draftId, isArchived, isUiDisabled, lockNav, router, selectedAttributeSelections, thisRoute, toScopedRoute]);
+
 	const onSave = useCallback(async () => {
 		if (!canSave || !productId || !product) return;
 		if (!lockNav()) return;
@@ -676,6 +738,15 @@ export default function InventoryProductEditScreen({ routeScope = "inventory" }:
 					posTileLabel: tileLabel.length > 0 ? tileLabel : null,
 				} as any);
 
+				await attributesApi.replaceProductAttributes(productId, {
+					attributes: currentSnapshot.attributeSelections.map((entry) => ({
+						attributeId: entry.attributeId,
+						isRequired: entry.isRequired,
+					})),
+				});
+				await qc.invalidateQueries({ queryKey: attributesKeys.all });
+				await qc.invalidateQueries({ queryKey: attributesKeys.product(productId) });
+
 				if (imageUriForUpload) {
 					try {
 						await uploadProductImage({
@@ -718,6 +789,7 @@ export default function InventoryProductEditScreen({ routeScope = "inventory" }:
 		currentSnapshot.cost,
 		currentSnapshot.description,
 		currentSnapshot.modifierGroupIds,
+		currentSnapshot.attributeSelections,
 		currentSnapshot.price,
 		currentSnapshot.sku,
 		currentSnapshot.trackInventory,
@@ -952,6 +1024,13 @@ export default function InventoryProductEditScreen({ routeScope = "inventory" }:
 										<ModifierGroupSelector
 											selectedIds={selectedModifierGroupIds}
 											onChange={setSelectedModifierGroupIds}
+											disabled={isUiDisabled || isArchived}
+										/>
+
+										<BAIPressableRow
+											label='Attributes'
+											value={selectedAttributeSelections.length > 0 ? `${selectedAttributeSelections.length} selected` : "None"}
+											onPress={openAttributePicker}
 											disabled={isUiDisabled || isArchived}
 										/>
 

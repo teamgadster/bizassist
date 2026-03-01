@@ -8,17 +8,18 @@
 // - Deterministic return via rootReturnTo param.
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Image, Keyboard, Pressable, StyleSheet, TouchableWithoutFeedback, View } from "react-native";
+import { Image, Keyboard, StyleSheet, TouchableWithoutFeedback, View } from "react-native";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useTheme } from "react-native-paper";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import * as ImagePicker from "expo-image-picker";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { FontAwesome6 } from "@expo/vector-icons";
 
 import { BAIScreen } from "@/components/ui/BAIScreen";
 import { BAISurface } from "@/components/ui/BAISurface";
 import { BAIText } from "@/components/ui/BAIText";
 import { BAIButton } from "@/components/ui/BAIButton";
+import { BAIIconButton } from "@/components/ui/BAIIconButton";
 import { BAIGroupTabs, type BAIGroupTab } from "@/components/ui/BAIGroupTabs";
 import { BAITextInput } from "@/components/ui/BAITextInput";
 
@@ -56,41 +57,6 @@ function safeString(v: unknown): string {
 	return typeof v === "string" ? v : String(v ?? "");
 }
 
-type ActionRowProps = {
-	icon: React.ComponentProps<typeof MaterialCommunityIcons>["name"];
-	label: string;
-	onPress: () => void;
-	disabled?: boolean;
-	danger?: boolean;
-};
-
-function ActionRow({ icon, label, onPress, disabled = false, danger = false }: ActionRowProps) {
-	const theme = useTheme();
-	const borderColor = theme.colors.outlineVariant ?? theme.colors.outline;
-	const fg = danger ? theme.colors.error : theme.colors.onSurface;
-	const muted = theme.colors.onSurfaceVariant ?? theme.colors.onSurface;
-
-	return (
-		<Pressable
-			onPress={onPress}
-			disabled={disabled}
-			style={({ pressed }) => [
-				styles.actionRow,
-				{ borderColor },
-				pressed && !disabled && { opacity: 0.85 },
-				disabled && { opacity: 0.45 },
-			]}
-		>
-			<View style={styles.actionRowLeft}>
-				<MaterialCommunityIcons name={icon} size={22} color={disabled ? muted : fg} />
-				<BAIText variant='body' style={{ color: disabled ? muted : fg, fontWeight: "600" }}>
-					{label}
-				</BAIText>
-			</View>
-		</Pressable>
-	);
-}
-
 export default function PosTilePhoneScreen({ routeScope = "inventory" }: { routeScope?: InventoryRouteScope }) {
 	const router = useRouter();
 	const theme = useTheme();
@@ -121,11 +87,15 @@ export default function PosTilePhoneScreen({ routeScope = "inventory" }: { route
 	}, []);
 
 	const isUiDisabled = isNavLocked;
+	const initialTileLabelRef = useRef(inboundTileLabel || draft.posTileLabel || "");
+	const initialTileModeRef = useRef<PosTileTab>("IMAGE");
+	const initialTileColorRef = useRef<string | null>(draft.posTileColor ?? null);
+	const initialTileImageUriRef = useRef((draft.imageLocalUri ?? "").trim());
 
-	const [tileLabel, setTileLabel] = useState(() => inboundTileLabel || draft.posTileLabel || "");
-	const [tileMode, setTileMode] = useState<PosTileTab>("IMAGE");
-	const [tileColor, setTileColor] = useState<string | null>(draft.posTileColor ?? null);
-	const [tileImageUri, setTileImageUri] = useState(() => (draft.imageLocalUri ?? "").trim());
+	const [tileLabel, setTileLabel] = useState(() => initialTileLabelRef.current);
+	const [tileMode, setTileMode] = useState<PosTileTab>(() => initialTileModeRef.current);
+	const [tileColor, setTileColor] = useState<string | null>(() => initialTileColorRef.current);
+	const [tileImageUri, setTileImageUri] = useState(() => initialTileImageUriRef.current);
 	const [mediaError, setMediaError] = useState<string | null>(null);
 	const tileLabelPlaceholder = useMemo(() => `Optional, Up to ${FIELD_LIMITS.posTileLabel} Characters`, []);
 
@@ -281,11 +251,35 @@ export default function PosTilePhoneScreen({ routeScope = "inventory" }: { route
 	}, [isUiDisabled]);
 
 	const hasImage = !!tileImageUri;
+	const isColorTab = tileMode === "COLOR";
+	const secondaryActionIcon = isColorTab ? "close" : "trash-can-outline";
+	const secondaryActionLabel = isColorTab ? "Cancel" : "Remove photo";
+	const secondaryActionPress = isColorTab ? guardedOnExit : onRemoveImage;
+	const secondaryActionDisabled = isUiDisabled || (!isColorTab && !hasImage);
+	const secondaryActionBackgroundColor = isColorTab
+		? theme.colors.surfaceVariant ?? theme.colors.surface
+		: theme.colors.error;
+	const secondaryActionIconColor = isColorTab
+		? theme.colors.onSurfaceVariant ?? theme.colors.onSurface
+		: (theme.colors as any).onError ?? "#FFFFFF";
 	const isTileLabelValid = useMemo(() => {
 		const trimmed = tileLabel.trim();
 		if (!trimmed) return true;
 		return posTileLabelRegex.test(trimmed);
 	}, [tileLabel]);
+	const hasChanges = useMemo(() => {
+		const currentLabel = tileLabel.trim();
+		const initialLabel = initialTileLabelRef.current.trim();
+		const currentImageUri = tileImageUri.trim();
+		const initialImageUri = initialTileImageUriRef.current;
+
+		return (
+			currentLabel !== initialLabel ||
+			tileMode !== initialTileModeRef.current ||
+			(tileColor ?? null) !== initialTileColorRef.current ||
+			currentImageUri !== initialImageUri
+		);
+	}, [tileColor, tileImageUri, tileLabel, tileMode]);
 
 	return (
 		<>
@@ -329,27 +323,58 @@ export default function PosTilePhoneScreen({ routeScope = "inventory" }: { route
 
 							{tileMode === "IMAGE" ? (
 								<View style={styles.actions}>
-									<ActionRow
-										icon='image-multiple'
-										label='Photo Library'
-										onPress={onChooseFromLibrary}
-										disabled={isUiDisabled}
-									/>
-									<ActionRow icon='camera' label='Take Photo' onPress={onTakePhoto} disabled={isUiDisabled} />
-									<ActionRow
-										icon='trash-can-outline'
-										label='Remove Photo'
-										onPress={onRemoveImage}
-										disabled={isUiDisabled || !hasImage}
-										danger
-									/>
-									{hasImage ? (
-										<View style={styles.previewContainer}>
-											<View style={styles.previewWrap}>
+									<View style={styles.inlineActions}>
+										<BAIButton
+											intent='primary'
+											variant='solid'
+											widthPreset='standard'
+											iconLeft='image-multiple'
+											onPress={onChooseFromLibrary}
+											disabled={isUiDisabled}
+											style={{ flex: 1 }}
+											contentStyle={{ gap: 4 }}
+										>
+											Photo Library
+										</BAIButton>
+										<BAIButton
+											intent='primary'
+											variant='solid'
+											widthPreset='standard'
+											iconLeft='camera'
+											onPress={onTakePhoto}
+											disabled={isUiDisabled}
+											style={{ flex: 1 }}
+											contentStyle={{ gap: 4 }}
+										>
+											Take Photo
+										</BAIButton>
+									</View>
+									<View style={styles.previewContainer}>
+										<View
+											style={[
+												styles.previewWrap,
+												{
+													borderColor: theme.colors.outlineVariant ?? theme.colors.outline,
+													backgroundColor: theme.colors.surfaceVariant ?? theme.colors.surface,
+												},
+											]}
+										>
+											{hasImage ? (
 												<Image source={{ uri: tileImageUri }} style={styles.previewImage} resizeMode='cover' />
-											</View>
+											) : (
+												<View style={styles.previewEmpty}>
+													<FontAwesome6
+														name='image'
+														size={52}
+														color={theme.colors.onSurfaceVariant ?? theme.colors.onSurface}
+													/>
+													<BAIText variant='caption' muted>
+														No Photo
+													</BAIText>
+												</View>
+											)}
 										</View>
-									) : null}
+									</View>
 								</View>
 							) : (
 								<PosTileColorSelector value={tileColor} onChange={setTileColor} disabled={isUiDisabled} />
@@ -365,23 +390,23 @@ export default function PosTilePhoneScreen({ routeScope = "inventory" }: { route
 							/>
 
 							<View style={[styles.actionBar, { borderColor: theme.colors.outlineVariant ?? theme.colors.outline }]}>
-								<BAIButton
-									intent='neutral'
-									variant='outline'
-									widthPreset='standard'
-									onPress={guardedOnExit}
-									disabled={isUiDisabled}
-									style={{ flex: 1 }}
-								>
-									Cancel
-								</BAIButton>
+								<BAIIconButton
+									icon={secondaryActionIcon}
+									accessibilityLabel={secondaryActionLabel}
+									variant='filled'
+									size='lg'
+									iconColor={secondaryActionIconColor}
+									onPress={secondaryActionPress}
+									disabled={secondaryActionDisabled}
+									style={{ backgroundColor: secondaryActionBackgroundColor }}
+								/>
 
 								<BAIButton
 									intent='primary'
 									variant='solid'
 									widthPreset='standard'
 									onPress={onSave}
-									disabled={isUiDisabled || !isTileLabelValid}
+									disabled={isUiDisabled || !isTileLabelValid || !hasChanges}
 									style={{ flex: 1 }}
 								>
 									Save
@@ -400,6 +425,10 @@ const styles = StyleSheet.create({
 	screen: { flex: 1, paddingHorizontal: 12 },
 	card: { borderWidth: 1, borderRadius: 24 },
 	actions: { gap: 12, marginBottom: 20 },
+	inlineActions: {
+		flexDirection: "row",
+		gap: 12,
+	},
 	separator: {
 		height: StyleSheet.hairlineWidth,
 		marginBottom: 10,
@@ -410,27 +439,23 @@ const styles = StyleSheet.create({
 		flexDirection: "row",
 		gap: 10,
 	},
-	actionRow: {
-		borderWidth: StyleSheet.hairlineWidth,
-		borderRadius: 18,
-		paddingVertical: 12,
-		paddingHorizontal: 14,
-	},
-	actionRowLeft: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 10,
-	},
 	previewContainer: {
 		alignItems: "center",
 		marginTop: 12,
 	},
 	previewWrap: {
+		borderWidth: 1,
 		borderRadius: 18,
 		overflow: "hidden",
 		width: "62%",
 		aspectRatio: 1,
 		alignSelf: "center",
+	},
+	previewEmpty: {
+		flex: 1,
+		alignItems: "center",
+		justifyContent: "center",
+		gap: 8,
 	},
 	previewImage: {
 		width: "100%",

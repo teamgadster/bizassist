@@ -66,6 +66,10 @@ export default function SettingsStackLayout() {
 				options={{ headerShown: false, animation: "none" }}
 			/>
 			<Stack.Screen name='items-services/products/pos-tile-crop' options={{ headerShown: false, animation: "none" }} />
+			<Stack.Screen name='items-services/attributes/index' options={{ title: "Attributes" }} />
+			<Stack.Screen name='items-services/attributes/picker' options={{ title: "Assign Attributes" }} />
+			<Stack.Screen name='items-services/attributes/create' options={{ title: "Create Attribute" }} />
+			<Stack.Screen name='items-services/attributes/[id]/edit' options={{ title: "Edit Attribute" }} />
 		</Stack>
 	);
 }
