@@ -11,8 +11,8 @@ function formatSku(prefix: string, n: number): string {
 }
 
 const PRODUCT_INCLUDE = {
-	Unit: true,
-	Category: true,
+	unit: true,
+	category: true,
 } satisfies Prisma.ProductInclude;
 
 export type ProductWithRelations = Prisma.ProductGetPayload<{

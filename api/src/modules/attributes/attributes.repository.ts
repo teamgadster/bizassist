@@ -25,11 +25,11 @@ export class AttributesRepository {
 			where: {
 				businessId,
 				productId,
-				Attribute: { isArchived: false },
+				attribute: { isArchived: false },
 			},
 			orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
 			include: {
-				Attribute: {
+				attribute: {
 					include: {
 						options: {
 							where: { isArchived: false },

@@ -16,6 +16,11 @@
 	"prisma": {
 		"seed": "ts-node prisma/seed.ts"
 	},
+	"overrides": {
+		"fast-xml-parser": "^5.3.8",
+		"hono": "^4.11.10",
+		"lodash": "^4.17.22"
+	},
 	"dependencies": {
 		"@prisma/adapter-pg": "^7.1.0",
 		"@prisma/client": "^7.3.0",

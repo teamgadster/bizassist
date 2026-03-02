@@ -19,7 +19,7 @@ const ROUTES = {
 	onboarding: "/(onboarding)/welcome",
 
 	// Canonical: tab node so Bottom Tabs render
-	appHome: "/(app)/(tabs)/home",
+	appHome: "/(app)/(tabs)/pos",
 
 	// Success screen should be a stable route; do NOT pass email via query param
 	verifySuccess: "/(auth)/verify-success",

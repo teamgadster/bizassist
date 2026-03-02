@@ -19,10 +19,10 @@ export class ModifiersRepository {
 
 	getActiveByProduct(businessId: string, productId: string) {
 		return this.prisma.productModifierGroup.findMany({
-			where: { businessId, productId, ModifierGroup: { isArchived: false } },
+			where: { businessId, productId, modifierGroup: { isArchived: false } },
 			orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
 			include: {
-				ModifierGroup: {
+				modifierGroup: {
 					include: {
 						options: {
 							where: { isArchived: false },

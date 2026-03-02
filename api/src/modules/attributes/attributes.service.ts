@@ -299,9 +299,9 @@ export class AttributesService {
 		return links.map((link) => ({
 			attributeId: link.attributeId,
 			productId: link.productId,
-			isRequired: link.isRequired ?? link.Attribute.isRequired,
+			isRequired: link.isRequired ?? link.attribute.isRequired,
 			sortOrder: link.sortOrder,
-			attribute: mapAttribute(link.Attribute),
+			attribute: mapAttribute(link.attribute),
 		}));
 	}
 
@@ -399,7 +399,7 @@ export class AttributesService {
 
 		const snapshots: CheckoutSelectedAttributeSnapshot[] = [];
 		for (const link of links) {
-			const attribute = link.Attribute;
+			const attribute = link.attribute;
 			const required = link.isRequired ?? attribute.isRequired;
 			const options = (attribute.options ?? []).filter((option) => !option.isArchived);
 			if (required && options.length < 1) {

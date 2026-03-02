@@ -87,32 +87,8 @@ export class InventoryRepository {
 		const product = await this.prisma.product.findFirst({
 			where: { id: params.productId, businessId: params.businessId },
 			include: {
-				Unit: true,
-				Category: true,
-				productOptionSets: {
-					orderBy: { sortOrder: "asc" },
-					include: {
-						OptionSet: true,
-						selectedValues: {
-							orderBy: { sortOrder: "asc" },
-							include: {
-								OptionValue: true,
-							},
-						},
-					},
-				},
-				productVariations: {
-					where: { isArchived: false },
-					orderBy: { sortOrder: "asc" },
-					include: {
-						values: {
-							orderBy: { sortOrder: "asc" },
-							include: {
-								OptionValue: true,
-							},
-						},
-					},
-				},
+				unit: true,
+				category: true,
 			},
 		});
 

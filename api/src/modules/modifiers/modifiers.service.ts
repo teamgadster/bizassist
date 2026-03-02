@@ -125,7 +125,7 @@ export class ModifiersService {
 		const product = await this.prisma.product.findFirst({ where: { id: productId, businessId }, select: { id: true } });
 		if (!product) throw new AppError(StatusCodes.NOT_FOUND, "Product not found.", "PRODUCT_NOT_FOUND");
 		const links = await this.repo.getActiveByProduct(businessId, productId);
-		return links.map((link) => mapGroup(link.ModifierGroup));
+		return links.map((link) => mapGroup(link.modifierGroup));
 	}
 
 	async replaceProductGroups(
@@ -414,7 +414,7 @@ export class ModifiersService {
 				id: optionId,
 				businessId,
 				isArchived: false,
-				ModifierGroup: { isArchived: false },
+				modifierGroup: { isArchived: false },
 			},
 			select: { id: true, name: true },
 		});
@@ -431,22 +431,22 @@ export class ModifiersService {
 			where: {
 				businessId,
 				isArchived: false,
-				ModifierGroup: { isArchived: false },
+				modifierGroup: { isArchived: false },
 			},
 			select: {
 				id: true,
 				name: true,
 				modifierGroupId: true,
 				isSoldOut: true,
-				ModifierGroup: { select: { id: true, name: true } },
+				modifierGroup: { select: { id: true, name: true } },
 			},
 		});
 
 		const groups = options
 			.filter((row) => normalizeModifierOptionName(row.name) === normalizedName)
 			.map((row) => ({
-				modifierGroupId: row.ModifierGroup.id,
-				modifierGroupName: row.ModifierGroup.name,
+				modifierGroupId: row.modifierGroup.id,
+				modifierGroupName: row.modifierGroup.name,
 				optionId: row.id,
 				isSoldOut: Boolean(row.isSoldOut),
 			}));
@@ -507,7 +507,7 @@ export class ModifiersService {
 				businessId,
 				id: { in: targetOptionIds },
 				isArchived: false,
-				ModifierGroup: { isArchived: false },
+				modifierGroup: { isArchived: false },
 			},
 			data: { isSoldOut: Boolean(input.isSoldOut) },
 		});
@@ -530,14 +530,14 @@ export class ModifiersService {
 				businessId,
 				id: { in: optionIds },
 				isArchived: false,
-				ModifierGroup: {
+				modifierGroup: {
 					isArchived: false,
 					productLinks: {
 						some: { productId, businessId },
 					},
 				},
 			},
-			include: { ModifierGroup: true },
+			include: { modifierGroup: true },
 		});
 		if (options.length !== optionIds.length) {
 			throw new AppError(StatusCodes.BAD_REQUEST, "One or more modifiers are invalid.", "MODIFIER_SELECTION_INVALID");

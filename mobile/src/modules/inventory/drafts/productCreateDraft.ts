@@ -43,9 +43,18 @@ export type ProductCreateDraft = {
 };
 
 const drafts = new Map<string, ProductCreateDraft>();
+const listeners = new Map<string, Set<(draft: ProductCreateDraft | null) => void>>();
 
 function makeId() {
 	return `draft_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function notifyProductDraft(draftId: string, draft: ProductCreateDraft | null) {
+	const id = (draftId ?? "").trim();
+	if (!id) return;
+	const subs = listeners.get(id);
+	if (!subs || subs.size === 0) return;
+	for (const listener of subs) listener(draft);
 }
 
 export function createProductDraft(forcedDraftId?: string): ProductCreateDraft {
@@ -87,6 +96,7 @@ export function createProductDraft(forcedDraftId?: string): ProductCreateDraft {
 	};
 
 	drafts.set(draftId, draft);
+	notifyProductDraft(draftId, draft);
 	return draft;
 }
 
@@ -107,6 +117,7 @@ export function upsertProductDraft(draftId: string, next: Partial<ProductCreateD
 	};
 
 	drafts.set(merged.draftId, merged);
+	notifyProductDraft(merged.draftId, merged);
 	return merged;
 }
 
@@ -114,4 +125,28 @@ export function clearProductDraft(draftId: string) {
 	const id = (draftId ?? "").trim();
 	if (!id) return;
 	drafts.delete(id);
+	notifyProductDraft(id, null);
+}
+
+export function subscribeProductDraft(
+	draftId: string,
+	handler: (draft: ProductCreateDraft | null) => void,
+): () => void {
+	const id = (draftId ?? "").trim();
+	if (!id) return () => {};
+
+	let subs = listeners.get(id);
+	if (!subs) {
+		subs = new Set();
+		listeners.set(id, subs);
+	}
+
+	subs.add(handler);
+
+	return () => {
+		const current = listeners.get(id);
+		if (!current) return;
+		current.delete(handler);
+		if (current.size === 0) listeners.delete(id);
+	};
 }

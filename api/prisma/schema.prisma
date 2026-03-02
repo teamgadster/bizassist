@@ -218,10 +218,10 @@ model Product {
   durationProcessingMinutes Int?
   durationFinalMinutes      Int?
   movements                 InventoryMovement[]
-  Business                  Business               @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  Category                  Category?              @relation(fields: [categoryId], references: [id])
-  Store                     Store?                 @relation(fields: [storeId], references: [id])
-  Unit                      Unit?                  @relation(fields: [unitId], references: [id], onDelete: SetNull)
+  business                  Business               @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  category                  Category?              @relation(fields: [categoryId], references: [id])
+  store                     Store?                 @relation(fields: [storeId], references: [id])
+  unit                      Unit?                  @relation(fields: [unitId], references: [id], onDelete: SetNull)
   images                    ProductImage[]
   productModifierGroups     ProductModifierGroup[]
   productAttributes         ProductAttribute[]
@@ -446,12 +446,11 @@ model ProductModifierGroup {
   sortOrder       Int           @default(0)
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
-  Business        Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  Product         Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
-  ModifierGroup   ModifierGroup @relation(fields: [modifierGroupId], references: [id], onDelete: Cascade)
+  business        Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  product         Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
+  modifierGroup   ModifierGroup @relation(fields: [modifierGroupId], references: [id], onDelete: Cascade)
 
   @@unique([productId, modifierGroupId])
-  @@index([businessId, productId, sortOrder])
   @@index([businessId, productId, sortOrder, createdAt])
   @@index([businessId, modifierGroupId])
 }
@@ -486,8 +485,8 @@ model AttributeOption {
   isArchived     Boolean    @default(false)
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
-  Business       Business   @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  Attribute      Attribute  @relation(fields: [attributeId], references: [id], onDelete: Cascade)
+  business       Business   @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  attribute      Attribute  @relation(fields: [attributeId], references: [id], onDelete: Cascade)
 
   @@unique([attributeId, nameNormalized])
   @@index([businessId, attributeId, isArchived, sortOrder])
@@ -503,9 +502,9 @@ model ProductAttribute {
   sortOrder   Int       @default(0)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
-  Business    Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  Product     Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
-  Attribute   Attribute @relation(fields: [attributeId], references: [id], onDelete: Cascade)
+  business    Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  product     Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  attribute   Attribute @relation(fields: [attributeId], references: [id], onDelete: Cascade)
 
   @@unique([productId, attributeId])
   @@index([businessId, productId, sortOrder])
@@ -523,8 +522,8 @@ model ModifierOption {
   isArchived            Boolean                @default(false)
   createdAt             DateTime               @default(now())
   updatedAt             DateTime               @updatedAt
-  Business              Business               @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  ModifierGroup         ModifierGroup          @relation(fields: [modifierGroupId], references: [id], onDelete: Cascade)
+  business              Business               @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  modifierGroup         ModifierGroup          @relation(fields: [modifierGroupId], references: [id], onDelete: Cascade)
   SaleLineItemModifiers SaleLineItemModifier[]
 
   @@index([businessId, modifierGroupId, isArchived, sortOrder])
@@ -647,7 +646,6 @@ model InventoryMovement {
   Store          Store?                  @relation(fields: [storeId], references: [id])
 
   @@unique([businessId, idempotencyKey])
-  @@index([businessId, productId, createdAt])
   @@index([businessId, productId, createdAt, id])
   @@index([storeId])
   @@index([relatedSaleId])

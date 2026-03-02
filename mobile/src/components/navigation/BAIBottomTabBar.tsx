@@ -31,18 +31,18 @@ import { BAIText } from "@/components/ui/BAIText";
 
 type CanonicalTab = "home" | "inventory" | "pos" | "settings";
 
-const TAB_ORDER: CanonicalTab[] = ["home", "inventory", "pos", "settings"];
+const TAB_ORDER: CanonicalTab[] = ["pos", "inventory", "home", "settings"];
 const CANONICAL_SET = new Set<CanonicalTab>(TAB_ORDER);
 
 const ICONS: Record<CanonicalTab, keyof typeof MaterialCommunityIcons.glyphMap> = {
-	home: "home-variant",
+	home: "clipboard-text-clock-outline",
 	inventory: "package-variant",
 	pos: "cash-register",
 	settings: "cog-outline",
 };
 
 const LABELS: Record<CanonicalTab, string> = {
-	home: "Home",
+	home: "Activity",
 	inventory: "Inventory",
 	pos: "POS",
 	settings: "Settings",

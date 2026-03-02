@@ -166,7 +166,7 @@ export class InventoryService {
 				id: true,
 				trackInventory: true,
 				onHandCached: true,
-				Unit: { select: { precisionScale: true } },
+				unit: { select: { precisionScale: true } },
 			},
 		});
 
@@ -185,7 +185,7 @@ export class InventoryService {
 			}
 		}
 
-		const precisionScale = Math.max(0, Math.min(5, Number(product.Unit?.precisionScale ?? 0)));
+		const precisionScale = Math.max(0, Math.min(5, Number(product.unit?.precisionScale ?? 0)));
 		enforcePrecisionScale(qtyRaw, precisionScale);
 		quantityDelta = normalizeDeltaByReason(input.reason, quantityDelta);
 
@@ -262,15 +262,15 @@ export class InventoryService {
 				sku: product.sku ?? null,
 				barcode: product.barcode ?? null,
 
-				unitId: product.unitId ?? product.Unit?.id ?? null,
-				unitName: product.Unit?.name ?? null,
-				unitAbbreviation: product.Unit?.abbreviation ?? null,
-				unitCategory: product.Unit?.category ?? null,
-				unitPrecisionScale: product.Unit?.precisionScale ?? null,
+				unitId: product.unitId ?? product.unit?.id ?? null,
+				unitName: product.unit?.name ?? null,
+				unitAbbreviation: product.unit?.abbreviation ?? null,
+				unitCategory: product.unit?.category ?? null,
+				unitPrecisionScale: product.unit?.precisionScale ?? null,
 
-				categoryId: product.Category?.id ?? null,
-				categoryName: product.Category?.name ?? null,
-				categoryColor: product.Category?.color ?? null,
+				categoryId: product.category?.id ?? null,
+				categoryName: product.category?.name ?? null,
+				categoryColor: product.category?.color ?? null,
 				categoryLegacy: (product as any).categoryLegacy ?? null,
 
 				description: product.description ?? null,

@@ -12,14 +12,15 @@ import { BAIBottomTabBar } from "@/components/navigation/BAIBottomTabBar";
 export default function AppTabsLayout() {
 	return (
 		<Tabs
+			initialRouteName='pos'
 			screenOptions={{
 				headerShown: false,
 			}}
 			tabBar={(props) => <BAIBottomTabBar {...props} />}
 		>
-			<Tabs.Screen name='home/index' options={{ title: "Home" }} />
-			<Tabs.Screen name='inventory' options={{ title: "Inventory" }} />
 			<Tabs.Screen name='pos' options={{ title: "POS" }} />
+			<Tabs.Screen name='inventory' options={{ title: "Inventory" }} />
+			<Tabs.Screen name='home/index' options={{ title: "Activity" }} />
 			<Tabs.Screen name='settings' options={{ title: "Settings" }} />
 		</Tabs>
 	);

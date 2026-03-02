@@ -305,8 +305,8 @@ async function toCatalogProduct(p: any): Promise<CatalogProduct> {
 		unitId: p.unitId ?? null,
 
 		categoryId: p.categoryId ?? null,
-		categoryName: p.Category?.name ?? null,
-		categoryColor: p.Category?.color ?? null,
+		categoryName: p.category?.name ?? null,
+		categoryColor: p.category?.color ?? null,
 		categoryLegacy: p.categoryLegacy ?? null,
 
 		description: p.description ?? null,
