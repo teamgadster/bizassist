@@ -53,6 +53,19 @@ export type InventoryProductSnapshot = {
 	posTileMode: "COLOR" | "IMAGE";
 	posTileColor: string | null;
 	posTileLabel: string | null;
+	optionSelections?: Array<{
+		optionSetId: string;
+		optionSetName: string;
+		selectedValueIds: string[];
+		selectedValueNames: string[];
+		sortOrder: number;
+	}>;
+	variations?: Array<{
+		variationKey: string;
+		label: string;
+		valueMap: Record<string, string>;
+		sortOrder: number;
+	}>;
 	isActive: boolean;
 
 	createdAt: string;

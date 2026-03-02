@@ -1,3 +1,27 @@
+## 2026-02-28 — Option + Variation Feature Design Finalization (Masterplan + Memory)
+
+### Memory Lock
+
+- Option + Variation is finalized for BizAssist v1 as a **catalog definition + attach** feature.
+- Canonical ownership split:
+  - Options module owns reusable option-set and option-value catalog management.
+  - Catalog module owns attaching selected option sets and persisted variations during Item/Service save.
+  - Inventory module remains the owner of stock movement only.
+  - POS module must not own option authoring or variation selection in v1.
+- Canonical user flow is locked to deterministic drill-in screens:
+  - Select Options
+  - Option Values
+  - Create Variations
+  - Add Variation
+- The Square-style reference is approved only as a conceptual reference for authoring flow, not as a direct scope copy.
+- Explicit v1 non-goals remain locked:
+  - no variation-level stock management
+  - no sold-out scheduling for variations
+  - no variation-level price/cost overrides
+  - no POS variation runtime selection
+- Inventory and Settings parity remains mandatory where the flow exists in both contexts.
+- All option/variation screens must preserve tablet-first governance, deterministic `replace()` closure, and Busy/Loading Overlay protection for async writes.
+
 ## 2026-02-25 — Toast Placement Governance (Top-First Lock)
 
 ### Memory Lock

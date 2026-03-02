@@ -89,6 +89,30 @@ export class InventoryRepository {
 			include: {
 				Unit: true,
 				Category: true,
+				productOptionSets: {
+					orderBy: { sortOrder: "asc" },
+					include: {
+						OptionSet: true,
+						selectedValues: {
+							orderBy: { sortOrder: "asc" },
+							include: {
+								OptionValue: true,
+							},
+						},
+					},
+				},
+				productVariations: {
+					where: { isArchived: false },
+					orderBy: { sortOrder: "asc" },
+					include: {
+						values: {
+							orderBy: { sortOrder: "asc" },
+							include: {
+								OptionValue: true,
+							},
+						},
+					},
+				},
 			},
 		});
 

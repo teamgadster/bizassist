@@ -1,13 +1,37 @@
 # BizAssist Option + Variation Feature Flow Design
 
 **Date:** 2026-02-21  
-**Status:** Implementation-ready design (masterplan-locked constraints applied)  
+**Status:** Finalized v1 design (masterplan-locked constraints applied)  
 **Scope:** `mobile` + `api` (feature-first)
 
 ## 1) Objective
-Implement a deterministic, business-scoped Option and Variation flow for Create Item, and refactor the current Option flow so it is API-backed, governance-compliant, and production-safe.
+Lock a deterministic, business-scoped Option and Variation flow for Create Item/Service, with API-backed option management and governance-compliant persistence behavior.
 
 This design intentionally does **not** introduce new architectural abstractions and does **not** redesign screen layout.
+
+## 1.1 Finalization Lock (2026-02-28)
+
+This document is now the canonical v1 lock for BizAssist Option + Variation behavior.
+
+Finalized scope:
+- Shared, business-scoped option-set catalog management.
+- Item and Service create/edit attach flows that select option sets, select values, and persist generated variations.
+- Deterministic draft-safe drill-in flow:
+  - Select Options
+  - Option Values
+  - Create Variations
+  - Add Variation
+
+Explicit v1 boundary:
+- This feature is a **catalog definition + attach** feature, not a variation-inventory feature.
+- Variation-level stock, sold-out scheduling, variation-level price/cost overrides, and POS variation runtime selection remain separate future-scope work.
+
+Current implementation alignment:
+- API-backed options endpoints already exist and are registered in `api/src/modules/index.ts`.
+- Product and Service save flows already send `optionSelections` and `variations`.
+- Catalog create/update validation and transactional persistence already normalize and store `ProductOptionSet*` and `ProductVariation*` rows.
+
+If any prior audit note in this document conflicts with this Finalization Lock, this section supersedes it.
 
 ## 2) Step 1 - Read + Audit Summary
 
@@ -17,7 +41,8 @@ This design intentionally does **not** introduce new architectural abstractions 
 - Prisma schema already has canonical models for options/variations:
   - `OptionSet`, `OptionValue`, `ProductOptionSet`, `ProductOptionSetValue`, `ProductVariation`, `ProductVariationValue` in `api/prisma/schema.prisma`.
 
-### 2.2 Critical gaps found
+### 2.2 Historical gaps from the initial 2026-02-21 audit
+These audit notes are retained for historical context. Resolved items are superseded by the Finalization Lock above.
 1. Option data is local-only (not API-backed):
 - `mobile/src/modules/options/options.api.ts` calls MMKV store functions directly.
 - `mobile/src/modules/options/options.storage.ts` persists option catalog in-device (`MMKV`) per business key.

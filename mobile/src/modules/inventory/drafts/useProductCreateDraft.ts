@@ -6,6 +6,7 @@ import {
 	clearProductDraft,
 	createProductDraft,
 	getProductDraft,
+	subscribeProductDraft,
 	upsertProductDraft,
 	type ProductCreateDraft,
 } from "./productCreateDraft";
@@ -19,6 +20,13 @@ export function useProductCreateDraft(paramDraftId?: string) {
 	useEffect(() => {
 		const current = getProductDraft(draftId);
 		if (current) setDraft(current);
+	}, [draftId]);
+
+	useEffect(() => {
+		return subscribeProductDraft(draftId, (next) => {
+			if (!next) return;
+			setDraft(next);
+		});
 	}, [draftId]);
 
 	const patch = useCallback(

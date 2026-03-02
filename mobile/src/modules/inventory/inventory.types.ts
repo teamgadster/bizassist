@@ -140,6 +140,19 @@ export type InventoryProductDetail = InventoryProduct & {
 	description?: string | null;
 	price?: number | null;
 	cost?: number | null;
+	optionSelections?: Array<{
+		optionSetId: string;
+		optionSetName: string;
+		selectedValueIds: string[];
+		selectedValueNames: string[];
+		sortOrder: number;
+	}>;
+	variations?: Array<{
+		variationKey: string;
+		label: string;
+		valueMap: Record<string, string>;
+		sortOrder: number;
+	}>;
 };
 
 export type InventoryMovementReason = "SALE" | "STOCK_IN" | "STOCK_OUT" | "ADJUSTMENT";

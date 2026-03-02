@@ -333,7 +333,7 @@ function normalizeInventoryProduct(input: any): InventoryProduct {
 		unitId: unit.unitId,
 		unitName: unit.unitName,
 		unitAbbreviation: unit.unitAbbreviation,
-			modifierGroupIds,
+		modifierGroupIds,
 		unitCategory: unit.unitCategory,
 		unitPrecisionScale: unit.unitPrecisionScale ?? undefined,
 
@@ -348,12 +348,68 @@ function normalizeInventoryProduct(input: any): InventoryProduct {
 	};
 }
 
+function normalizeProductOptionSelections(input: any): InventoryProductDetail["optionSelections"] {
+	if (!Array.isArray(input?.optionSelections)) return undefined;
+	const items = input.optionSelections
+		.map((selection: any, index: number) => {
+			const optionSetId = toTrimmedString(selection?.optionSetId);
+			if (!optionSetId) return null;
+			const selectedValueIds = Array.isArray(selection?.selectedValueIds)
+				? selection.selectedValueIds.map((value: unknown) => String(value ?? "").trim()).filter(Boolean)
+				: [];
+			const selectedValueNames = Array.isArray(selection?.selectedValueNames)
+				? selection.selectedValueNames.map((value: unknown) => String(value ?? "").trim()).filter(Boolean)
+				: [];
+			return {
+				optionSetId,
+				optionSetName: toTrimmedString(selection?.optionSetName) ?? "",
+				selectedValueIds,
+				selectedValueNames,
+				sortOrder:
+					typeof selection?.sortOrder === "number" && Number.isFinite(selection.sortOrder)
+						? selection.sortOrder
+						: index,
+			};
+		})
+		.filter(Boolean) as NonNullable<NonNullable<InventoryProductDetail["optionSelections"]>[number]>[];
+	items.sort((a, b) => a.sortOrder - b.sortOrder);
+	return items;
+}
+
+function normalizeProductVariations(input: any): InventoryProductDetail["variations"] {
+	if (!Array.isArray(input?.variations)) return undefined;
+	const items = input.variations
+		.map((variation: any, index: number) => {
+			const variationKey = toTrimmedString(variation?.variationKey);
+			if (!variationKey) return null;
+			const rawValueMap = variation?.valueMap && typeof variation.valueMap === "object" ? variation.valueMap : {};
+			const valueMap = Object.entries(rawValueMap).reduce<Record<string, string>>((acc, [key, value]) => {
+				const optionSetId = String(key ?? "").trim();
+				const optionValueId = String(value ?? "").trim();
+				if (optionSetId && optionValueId) acc[optionSetId] = optionValueId;
+				return acc;
+			}, {});
+			return {
+				variationKey,
+				label: toTrimmedString(variation?.label) ?? "",
+				valueMap,
+				sortOrder:
+					typeof variation?.sortOrder === "number" && Number.isFinite(variation.sortOrder) ? variation.sortOrder : index,
+			};
+		})
+		.filter(Boolean) as NonNullable<NonNullable<InventoryProductDetail["variations"]>[number]>[];
+	items.sort((a, b) => a.sortOrder - b.sortOrder);
+	return items;
+}
+
 function normalizeInventoryProductDetail(input: any): InventoryProductDetail {
 	return {
 		...normalizeInventoryProduct(input),
 		description: toTrimmedString(input?.description),
 		price: toNumberOrNull(input?.price ?? input?.unitPrice ?? input?.sellPrice),
 		cost: toNumberOrNull(input?.cost ?? input?.unitCost),
+		optionSelections: normalizeProductOptionSelections(input),
+		variations: normalizeProductVariations(input),
 	};
 }
 

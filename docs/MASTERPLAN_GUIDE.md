@@ -221,6 +221,46 @@ Modifier behavior is locked to a reusable-set model aligned to the approved UX r
 - **Toast placement rule (top-first):** completion toasts/snackbars should render at top by default in Modifiers flows to avoid collision with bottom tabs, bottom sheets, and keyboard surfaces.
 - **Governance non-regression:** UDQI precision/quantity behavior, tablet-first parity, Back vs Exit law, and POS structural architecture must remain unchanged.
 
+### Phase 6 — Options + Variations (Catalog Definition + Product/Service Attach)
+
+Option + Variation behavior is locked to a reusable option-set model for catalog definition and deterministic Item/Service attach flows.
+
+#### Phase 6 — Options + Variations Governance (Locked)
+
+- **Canonical owner split:**
+  - Options module owns reusable option sets and option values.
+  - Catalog module owns attaching selected option sets and persisted variations during Item/Service create/edit save.
+  - Inventory module owns stock movement only.
+  - POS module does not own option authoring or variation runtime selection in v1.
+- **Attach parity rule:** Create Item and Create Service must use the same option/variation attach pattern and semantics when the feature is exposed in both contexts.
+- **Canonical flow rule:** the authoring flow must stay deterministic and drill-in based:
+  - Select Options
+  - Option Values
+  - Create Variations
+  - Add Variation
+- **Variation generation rule:** generated variations must be based only on selected option values and must be deduped by canonical `variationKey`.
+- **Draft safety rule:** changing selected option sets or selected values invalidates stale variation selections and must clear/rebuild variation draft state deterministically.
+- **Process UX rule (v1):**
+  - full-screen drill-in screens only; no dropdowns or drawers
+  - one dominant job per screen
+  - explicit `Exit`/`Done`/`Next`/`Create` closure actions
+  - duplicate variation attempts must fail locally with explicit inline/modal feedback
+- **Async safety rule:** option set create/update/archive/restore, option value create/update/archive/restore, and parent Item/Service save must remain Busy/Loading Overlay governed and double-tap safe.
+- **Data model rule:** v1 uses the additive catalog relation model:
+  - `OptionSet`
+  - `OptionValue`
+  - `ProductOptionSet`
+  - `ProductOptionSetValue`
+  - `ProductVariation`
+  - `ProductVariationValue`
+  New schema abstractions are not required for v1 authoring flow.
+- **Explicit v1 non-goals:**
+  - no variation-level stock management
+  - no variation-level sold-out scheduling
+  - no variation-level price/cost overrides
+  - no POS variation runtime selection
+- **Governance non-regression:** UDQI precision/quantity behavior, tablet-first layout rules, Back vs Exit law, POS layout locks, and existing inventory ledger semantics must remain unchanged.
+
 ---
 
 ## Sellable Lifecycle Governance (Locked — Option A)

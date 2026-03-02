@@ -300,6 +300,51 @@ export class InventoryService {
 				posTileMode: (product as any).posTileMode === "IMAGE" ? "IMAGE" : "COLOR",
 				posTileColor: typeof (product as any).posTileColor === "string" ? (product as any).posTileColor : null,
 				posTileLabel: typeof (product as any).posTileLabel === "string" ? (product as any).posTileLabel : null,
+				optionSelections: Array.isArray((product as any).productOptionSets)
+					? (product as any).productOptionSets.map((selection: any) => {
+							const selectedValues = Array.isArray(selection?.selectedValues) ? selection.selectedValues : [];
+							return {
+								optionSetId: String(selection?.optionSetId ?? ""),
+								optionSetName: String(selection?.OptionSet?.name ?? "").trim(),
+								selectedValueIds: selectedValues
+									.map((value: any) => String(value?.optionValueId ?? "").trim())
+									.filter(Boolean),
+								selectedValueNames: selectedValues
+									.map((value: any) => String(value?.OptionValue?.name ?? "").trim())
+									.filter(Boolean),
+								sortOrder:
+									typeof selection?.sortOrder === "number" && Number.isFinite(selection.sortOrder)
+										? selection.sortOrder
+										: 0,
+							};
+						})
+					: [],
+				variations: Array.isArray((product as any).productVariations)
+					? (product as any).productVariations.map((variation: any) => {
+							const pairs = Array.isArray(variation?.values) ? variation.values : [];
+							const labelFromPairs = pairs
+								.map((pair: any) => String(pair?.OptionValue?.name ?? "").trim())
+								.filter(Boolean)
+								.join(", ");
+							return {
+								variationKey: String(variation?.variationKey ?? "").trim(),
+								label: String(variation?.label ?? "").trim() || labelFromPairs,
+								valueMap: pairs.reduce(
+									(acc: Record<string, string>, pair: any) => {
+										const optionSetId = String(pair?.optionSetId ?? "").trim();
+										const optionValueId = String(pair?.optionValueId ?? "").trim();
+										if (optionSetId && optionValueId) acc[optionSetId] = optionValueId;
+										return acc;
+									},
+									{} as Record<string, string>,
+								),
+								sortOrder:
+									typeof variation?.sortOrder === "number" && Number.isFinite(variation.sortOrder)
+										? variation.sortOrder
+										: 0,
+							};
+						})
+					: [],
 				isActive: Boolean(product.isActive),
 
 				createdAt: toIso(product.createdAt),
