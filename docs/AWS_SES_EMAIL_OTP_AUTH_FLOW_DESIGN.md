@@ -5,6 +5,33 @@
 - Scope: OTP-first registration, verification, resend, login gate for unverified users, forgot-password OTP, and reset-password ticket handoff.
 - Status: Implemented in existing feature-first architecture; documented and validated.
 
+## 1.1 Capability Alignment
+Capability:
+- Identity and Access
+
+Sub Capability:
+- Authentication
+- Email OTP Verification
+- Password Recovery
+
+Owner Surface:
+- System/Auth gateway and auth route group (`mobile/app/(system)` + `mobile/app/(auth)`)
+
+Domain Entities:
+- `User`
+- `EmailOtp`
+- `RefreshToken`
+- `PasswordResetTicket`
+
+System Invariants:
+- protected routes require valid authentication session
+- unverified users are blocked from authenticated app workspaces
+- OTP TTL/attempt/cooldown constraints are server-enforced
+
+Reference:
+- `docs/APP_FEATURE_FLOW_CAPABILITY_ALIGNMENT.md`
+- `docs/CAPABILITY_MODULE_WORKSPACE_MAPPING.md`
+
 ## 2. Architecture Fit (Feature-First)
 
 ### API (authoritative)

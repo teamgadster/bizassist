@@ -59,6 +59,9 @@ Sub Capability:
 - Authentication
 - Session Management
 
+Owner Surface:
+- System/Auth gateway (`mobile/app/(system)` + `mobile/app/(auth)`)
+
 Backend Module:
 - `auth`
 
@@ -88,6 +91,9 @@ Sub Capability:
 - Business Setup
 - Active Business Selection
 
+Owner Surface:
+- Onboarding bootstrap + Settings business management
+
 Backend Module:
 - `business`
 
@@ -115,6 +121,9 @@ Catalog Management
 Sub Capability:
 - Item Management
 - Service Management
+
+Owner Surface:
+- Inventory workspace-owned operational lifecycle
 
 Backend Module:
 - `catalog`
@@ -146,6 +155,9 @@ Sub Capability:
 - Unit Creation
 - Unit Precision Governance
 
+Owner Surface:
+- Settings-owned lifecycle (Inventory consumes via pickers)
+
 Backend Module:
 - `units`
 
@@ -172,6 +184,9 @@ Category Management
 Sub Capability:
 - Category Lifecycle
 
+Owner Surface:
+- Settings-owned lifecycle (Inventory/POS consume)
+
 Backend Module:
 - `categories`
 
@@ -197,6 +212,9 @@ Inventory Management
 Sub Capability:
 - Stock Adjustment
 - Inventory Activity
+
+Owner Surface:
+- Inventory workspace-owned ledger operations
 
 Backend Module:
 - `inventory`
@@ -227,6 +245,9 @@ Sub Capability:
 - Cart
 - Checkout
 - Sales Recording
+
+Owner Surface:
+- POS workspace-owned transaction flow
 
 Backend Module:
 - `pos`
@@ -260,6 +281,9 @@ Sub Capability:
 - Discount Management
 - POS Discount Application
 
+Owner Surface:
+- Settings-owned definitions + POS runtime application
+
 Backend Module:
 - `discounts`
 
@@ -288,6 +312,9 @@ Sub Capability:
 - Modifier Sets
 - Modifier Options
 
+Owner Surface:
+- Settings-owned definitions + Inventory/POS integration surfaces
+
 Backend Module:
 - `modifiers`
 
@@ -314,6 +341,9 @@ Media Management
 
 Sub Capability:
 - Product Image Pipeline
+
+Owner Surface:
+- Inventory-owned intake flow (media module-governed upload contract)
 
 Backend Module:
 - `media`
@@ -342,6 +372,9 @@ Sub Capability:
 - Sales Summary
 - Low Stock Indicators
 
+Owner Surface:
+- Home workspace summary surfaces (read-only)
+
 Backend Module:
 - `reports`
 
@@ -367,6 +400,8 @@ System Invariants:
 
 Every new feature ticket must define:
 - capability
+- sub capability
+- owner surface
 - backend module
 - mobile workspace
 - domain entities

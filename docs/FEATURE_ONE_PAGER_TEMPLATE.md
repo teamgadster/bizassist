@@ -32,6 +32,23 @@ As a <role>, I want <capability>, so that <outcome>.
 
 ---
 
+## 4.1 Capability Alignment (required)
+Capability:
+
+Sub Capability:
+
+Owner Surface:
+
+Domain Entities:
+
+System Invariants:
+
+Reference:
+- `docs/PRODUCT_CAPABILITY_MAP.md`
+- `docs/CAPABILITY_MODULE_WORKSPACE_MAPPING.md`
+
+---
+
 ## 5. Success Criteria (measurable)
 - …
 - …

@@ -8,6 +8,33 @@
 
 ## 1) Package Scan Summary
 
+## 1.1 Capability Alignment
+
+Capability:
+- System Operations and Reliability
+
+Sub Capability:
+- Runtime Integrity
+- Money Input Determinism
+
+Owner Surface:
+- Shared mobile input primitive `BAIMoneyInput`
+- Consuming flows in Inventory, Services, and Modifiers
+
+Domain Entities:
+- `Product`
+- `ModifierOption`
+- `SaleLineItem`
+
+System Invariants:
+- monetary input precision remains deterministic (2-decimal where policy applies)
+- numeric growth capping is stable and backspace-safe
+- no drift in minor-unit API payload behavior
+
+Reference:
+- `docs/APP_FEATURE_FLOW_CAPABILITY_ALIGNMENT.md`
+- `docs/PRODUCT_CAPABILITY_MAP.md`
+
 **Package:** `react-native-currency-input` (`^1.1.1`)  
 **NPM:** https://www.npmjs.com/package/react-native-currency-input  
 **License:** MIT  

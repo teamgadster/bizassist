@@ -36,6 +36,34 @@ As a business owner, I want to create and manage modifier sets and modifiers, so
 - New architectural abstractions
 - Non-governed navigation or state
 
+## 4.1 Capability Alignment
+
+Capability:
+- Modifiers
+
+Sub Capability:
+- Modifier Sets
+- Modifier Options
+
+Owner Surface:
+- Settings-owned modifier lifecycle
+- Inventory/POS integration surfaces for consumption
+
+Domain Entities:
+- `ModifierSet`
+- `ModifierOption`
+- `Product`
+- `SaleLineItem`
+
+System Invariants:
+- archive-only lifecycle
+- modifiers affect price only and never mutate inventory quantities
+- modifier selection constraints (min/max) are enforced
+
+Reference:
+- `docs/APP_FEATURE_FLOW_CAPABILITY_ALIGNMENT.md`
+- `docs/PRODUCT_CAPABILITY_MAP.md`
+
 ---
 
 ## 5. Success Criteria (measurable)

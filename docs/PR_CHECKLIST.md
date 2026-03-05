@@ -52,10 +52,13 @@ Quick index:
 - [ ] Smoke tested on phone (portrait) and tablet (portrait + landscape).
 - [ ] Verified error recovery paths (offline / server error / validation error).
 - [ ] Verified “happy path” completes with deterministic navigation result.
+- [ ] GitHub Action `Capability Alignment Check` is passing for this PR.
 - [ ] For Service flow parity changes, attach QA evidence from [docs/SERVICE_FLOW_PARITY_QA_CHECKLIST_2026-02-22.md](docs/SERVICE_FLOW_PARITY_QA_CHECKLIST_2026-02-22.md).
 
 ## E) Docs
 
 - [ ] Feature One‑Pager created/updated (if schema/screens/endpoints changed).
+- [ ] Capability alignment block is present and complete: `Capability`, `Sub Capability`, `Owner Surface`, `Domain Entities`, `System Invariants`.
+- [ ] App flow changes are mapped in `docs/APP_FEATURE_FLOW_CAPABILITY_ALIGNMENT.md`.
 - [ ] Masterplan docs updated if behavior/governance changed (rare, requires explicit rationale).
 - [ ] If service units/default/pinning changed, `docs/SERVICE_UNIT_CATALOG_SEED.md` is updated and matches mobile/API sources.

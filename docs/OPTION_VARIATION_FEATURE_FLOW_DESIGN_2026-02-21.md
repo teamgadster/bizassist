@@ -9,6 +9,35 @@ Lock a deterministic, business-scoped Option and Variation flow for Create Item/
 
 This design intentionally does **not** introduce new architectural abstractions and does **not** redesign screen layout.
 
+## 1.0 Capability Alignment
+Capability:
+- Catalog Management
+
+Sub Capability:
+- Variation Definition
+- Option Set Attachment
+
+Owner Surface:
+- Inventory workspace product create/edit flow
+- Settings items-services mirrored flow
+
+Domain Entities:
+- `OptionSet`
+- `OptionValue`
+- `ProductOptionSet`
+- `ProductOptionSetValue`
+- `ProductVariation`
+- `ProductVariationValue`
+
+System Invariants:
+- deterministic variation key generation and dedupe
+- business-scoped option catalog ownership
+- variation definition does not directly mutate inventory quantities
+
+Reference:
+- `docs/APP_FEATURE_FLOW_CAPABILITY_ALIGNMENT.md`
+- `docs/PRODUCT_CAPABILITY_MAP.md`
+
 ## 1.1 Finalization Lock (2026-02-28)
 
 This document is now the canonical v1 lock for BizAssist Option + Variation behavior.

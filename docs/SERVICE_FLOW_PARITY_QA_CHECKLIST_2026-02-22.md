@@ -3,6 +3,31 @@
 Date: 2026-02-22  
 Scope: BizAssist mobile Service flows parity to Item flows (excluding barcode button)
 
+## Capability Alignment
+Capability:
+- Catalog Management
+
+Sub Capability:
+- Service Management
+
+Owner Surface:
+- Inventory services route scope
+- Settings items-services/services mirrored scope
+
+Domain Entities:
+- `Product` (service type)
+- `Category`
+- `Unit`
+
+System Invariants:
+- archive-only lifecycle
+- route-scope parity between Inventory and Settings
+- deterministic post-action navigation for create/edit/archive/restore
+
+Reference:
+- `docs/APP_FEATURE_FLOW_CAPABILITY_ALIGNMENT.md`
+- `docs/PRODUCT_CAPABILITY_MAP.md`
+
 ## Pass Criteria
 - [ ] All checks below pass in both Inventory and Settings scopes.
 - [ ] No navigation dead-ends, duplicate pushes, or unexpected back behavior.

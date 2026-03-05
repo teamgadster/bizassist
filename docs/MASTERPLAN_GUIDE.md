@@ -226,6 +226,29 @@ Performance:
 
 PRs failing these checks must be corrected before merge.
 
+### Capability Alignment CI Gate (Mandatory)
+
+When a PR changes feature/flow documentation, the CI workflow `Capability Alignment Check` must pass.
+
+Scope enforced by CI:
+- `docs/features/*.md`
+- `docs/features/*MASTERPLAN*.md`
+- `docs/*FLOW*.md`
+- `docs/*QA_CHECKLIST*.md`
+
+Required fields in scoped docs:
+- `Capability:`
+- `Sub Capability:`
+- `Owner Surface:`
+- `Domain Entities:`
+- `System Invariants:`
+- `Reference:` with at least one non-empty backticked doc link bullet
+
+Implementation references:
+- `.github/workflows/capability-alignment-check.yml`
+- `scripts/validate-capability-alignment.sh`
+- `docs/APP_FEATURE_FLOW_CAPABILITY_ALIGNMENT.md`
+
 ### Debugging Workflow
 
 1. Reproduce consistently.

@@ -3,6 +3,23 @@
 - What changed:
 - Why it changed:
 
+## Capability Alignment (Required for feature/flow/schema/API changes)
+
+Capability:
+
+Sub Capability:
+
+Owner Surface:
+
+Domain Entities:
+
+System Invariants:
+
+Reference:
+- `docs/APP_FEATURE_FLOW_CAPABILITY_ALIGNMENT.md`
+- `docs/PRODUCT_CAPABILITY_MAP.md`
+- `docs/CAPABILITY_MODULE_WORKSPACE_MAPPING.md`
+
 ## Bottom Sheet vs Modal Governance (Required when applicable)
 
 - Canonical references:
