@@ -39,6 +39,24 @@ export type ProductCreateDraft = {
 	posTileColor: string | null;
 	posTileLabel: string;
 	posTileLabelTouched: boolean;
+
+	// options + variations
+	selectedOptionSetIds: string[];
+	selectedVariationKeys: string[];
+	variationSelectionInitialized: boolean;
+	optionSelections: {
+		optionSetId: string;
+		optionSetName: string;
+		selectedValueIds: string[];
+		selectedValueNames: string[];
+		sortOrder: number;
+	}[];
+	variations: {
+		variationKey: string;
+		label: string;
+		valueMap: Record<string, string>;
+		sortOrder: number;
+	}[];
 };
 
 const drafts = new Map<string, ProductCreateDraft>();
@@ -91,6 +109,12 @@ export function createProductDraft(forcedDraftId?: string): ProductCreateDraft {
 		posTileColor: null,
 		posTileLabel: "",
 		posTileLabelTouched: false,
+
+		selectedOptionSetIds: [],
+		selectedVariationKeys: [],
+		variationSelectionInitialized: false,
+		optionSelections: [],
+		variations: [],
 	};
 
 	drafts.set(draftId, draft);

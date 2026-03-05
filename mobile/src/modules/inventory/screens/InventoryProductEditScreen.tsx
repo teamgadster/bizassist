@@ -8,9 +8,10 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Image, Keyboard, Platform, ScrollView, StyleSheet, TouchableWithoutFeedback, View } from "react-native";
+import { Image, Keyboard, Platform, Pressable, ScrollView, StyleSheet, TouchableWithoutFeedback, View } from "react-native";
 import { useTheme } from "react-native-paper";
 import { FontAwesome6 } from "@expo/vector-icons";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 
 import { BAIMinorMoneyInput } from "@/components/ui/BAIMinorMoneyInput";
@@ -52,6 +53,13 @@ import { useInventoryHeader } from "@/modules/inventory/useInventoryHeader";
 import { uploadProductImage } from "@/modules/media/media.upload";
 import { toMediaDomainError } from "@/modules/media/media.errors";
 import { ModifierGroupSelector } from "@/modules/modifiers/components/ModifierGroupSelector";
+import {
+	DRAFT_ID_KEY as OPTION_DRAFT_ID_KEY,
+	PRODUCT_CREATE_VARIATIONS_ROUTE,
+	PRODUCT_ID_KEY,
+	PRODUCT_SELECT_OPTIONS_ROUTE,
+	RETURN_TO_KEY as OPTION_RETURN_TO_KEY,
+} from "@/modules/options/productOptionPicker.contract";
 import { FIELD_LIMITS } from "@/shared/fieldLimits";
 import { GTIN_MAX_LENGTH, sanitizeGtinInput, validateGtinValue } from "@/shared/validation/gtin";
 import {
@@ -395,6 +403,21 @@ export default function InventoryProductEditScreen({ routeScope = "inventory" }:
 		mediaDraft.posTileMode,
 		mediaDraftTileLabelTouched,
 	]);
+	const isOptionsDraftPristine = useMemo(() => {
+		return (
+			(mediaDraft.selectedOptionSetIds?.length ?? 0) === 0 &&
+			(mediaDraft.optionSelections?.length ?? 0) === 0 &&
+			(mediaDraft.variations?.length ?? 0) === 0 &&
+			(mediaDraft.selectedVariationKeys?.length ?? 0) === 0 &&
+			mediaDraft.variationSelectionInitialized !== true
+		);
+	}, [
+		mediaDraft.optionSelections,
+		mediaDraft.selectedOptionSetIds,
+		mediaDraft.selectedVariationKeys,
+		mediaDraft.variationSelectionInitialized,
+		mediaDraft.variations,
+	]);
 
 	useEffect(() => {
 		if (!product || !baseline) return;
@@ -409,13 +432,69 @@ export default function InventoryProductEditScreen({ routeScope = "inventory" }:
 		setSelectedModifierGroupIds(baseline.modifierGroupIds);
 		setError(null);
 		const shouldSeedMediaFromBaseline = !hasRouteDraftIdParam || isMediaDraftPristine;
-		if (!shouldSeedMediaFromBaseline) return;
+		const shouldSeedOptionsFromProduct = !hasRouteDraftIdParam || isOptionsDraftPristine;
+		if (!shouldSeedMediaFromBaseline && !shouldSeedOptionsFromProduct) return;
+
+		const productOptionSelections = Array.isArray(product.optionSelections)
+			? product.optionSelections
+					.map((selection, idx) => ({
+						optionSetId: String(selection?.optionSetId ?? "").trim(),
+						optionSetName: String(selection?.optionSetName ?? "").trim(),
+						selectedValueIds: Array.isArray(selection?.selectedValueIds)
+							? selection.selectedValueIds.map((id) => String(id ?? "").trim()).filter(Boolean)
+							: [],
+						selectedValueNames: Array.isArray(selection?.selectedValueNames)
+							? selection.selectedValueNames.map((name) => String(name ?? "").trim()).filter(Boolean)
+							: [],
+						sortOrder:
+							typeof selection?.sortOrder === "number" && Number.isFinite(selection.sortOrder)
+								? selection.sortOrder
+								: idx,
+					}))
+					.filter((selection) => selection.optionSetId.length > 0)
+			: [];
+
+		const productVariations = Array.isArray(product.variations)
+			? product.variations
+					.map((variation, idx) => ({
+						variationKey: String(variation?.variationKey ?? "").trim(),
+						label: String(variation?.label ?? "").trim(),
+						valueMap:
+							variation?.valueMap && typeof variation.valueMap === "object"
+								? Object.fromEntries(
+										Object.entries(variation.valueMap).map(([setId, valueId]) => [
+											String(setId ?? "").trim(),
+											String(valueId ?? "").trim(),
+										]),
+								  )
+								: {},
+						sortOrder:
+							typeof variation?.sortOrder === "number" && Number.isFinite(variation.sortOrder)
+								? variation.sortOrder
+								: idx,
+					}))
+					.filter((variation) => variation.variationKey.length > 0)
+			: [];
+
 		patchMediaDraft({
-			posTileMode: baselineTileSnapshot.tileMode,
-			posTileColor: baselineTileSnapshot.tileColor,
-			posTileLabel: baselineTileSnapshot.tileLabel,
-			posTileLabelTouched: false,
-			imageLocalUri: "",
+			...(shouldSeedMediaFromBaseline
+				? {
+						posTileMode: baselineTileSnapshot.tileMode,
+						posTileColor: baselineTileSnapshot.tileColor,
+						posTileLabel: baselineTileSnapshot.tileLabel,
+						posTileLabelTouched: false,
+						imageLocalUri: "",
+					}
+				: {}),
+			...(shouldSeedOptionsFromProduct
+				? {
+						selectedOptionSetIds: productOptionSelections.map((selection) => selection.optionSetId),
+						optionSelections: productOptionSelections,
+						variations: productVariations,
+						selectedVariationKeys: productVariations.map((variation) => variation.variationKey),
+						variationSelectionInitialized: productVariations.length > 0,
+					}
+				: {}),
 		});
 	}, [
 		baseline,
@@ -424,6 +503,7 @@ export default function InventoryProductEditScreen({ routeScope = "inventory" }:
 		baselineTileSnapshot.tileMode,
 		hasRouteDraftIdParam,
 		isMediaDraftPristine,
+		isOptionsDraftPristine,
 		patchMediaDraft,
 		product,
 	]);
@@ -626,6 +706,45 @@ export default function InventoryProductEditScreen({ routeScope = "inventory" }:
 		});
 	}, [draftId, isArchived, isUiDisabled, lockNav, router, scanRoute, thisRoute]);
 
+	const openOptionsVariations = useCallback(() => {
+		if (isUiDisabled || isArchived || !productId) return;
+		if (!lockNav()) return;
+		router.replace({
+			pathname: toScopedRoute(PRODUCT_SELECT_OPTIONS_ROUTE) as any,
+			params: {
+				[OPTION_DRAFT_ID_KEY]: draftId,
+				[OPTION_RETURN_TO_KEY]: thisRoute,
+				[PRODUCT_ID_KEY]: productId,
+			} as any,
+		});
+	}, [draftId, isArchived, isUiDisabled, lockNav, productId, router, thisRoute, toScopedRoute]);
+
+	const openCreateVariations = useCallback(() => {
+		if (isUiDisabled || isArchived || !productId) return;
+		if (!lockNav()) return;
+		router.replace({
+			pathname: toScopedRoute(PRODUCT_CREATE_VARIATIONS_ROUTE) as any,
+			params: {
+				[OPTION_DRAFT_ID_KEY]: draftId,
+				[OPTION_RETURN_TO_KEY]: thisRoute,
+				[PRODUCT_ID_KEY]: productId,
+			} as any,
+		});
+	}, [draftId, isArchived, isUiDisabled, lockNav, productId, router, thisRoute, toScopedRoute]);
+
+	const openAddVariation = useCallback(() => {
+		if (isUiDisabled || isArchived || !productId) return;
+		if (!lockNav()) return;
+		router.replace({
+			pathname: toScopedRoute(PRODUCT_CREATE_VARIATIONS_ROUTE) as any,
+			params: {
+				[OPTION_DRAFT_ID_KEY]: draftId,
+				[OPTION_RETURN_TO_KEY]: thisRoute,
+				[PRODUCT_ID_KEY]: productId,
+			} as any,
+		});
+	}, [draftId, isArchived, isUiDisabled, lockNav, productId, router, thisRoute, toScopedRoute]);
+
 	const onSave = useCallback(async () => {
 		if (!canSave || !productId || !product) return;
 		if (!lockNav()) return;
@@ -755,6 +874,43 @@ export default function InventoryProductEditScreen({ routeScope = "inventory" }:
 	}, []);
 	const tabBarHeight = useBottomTabBarHeight();
 	const screenBottomPad = tabBarHeight + 12;
+	const variationCount = mediaDraft.variations.length;
+	const selectedOptionRows = useMemo(() => {
+		return mediaDraft.selectedOptionSetIds
+			.map((optionSetId) => {
+				const selection = mediaDraft.optionSelections.find((row) => row.optionSetId === optionSetId);
+				if (!selection) return null;
+				return {
+					optionSetId,
+					name: selection.optionSetName,
+					selectedNames: selection.selectedValueNames,
+				};
+			})
+			.filter((row): row is NonNullable<typeof row> => !!row);
+	}, [mediaDraft.optionSelections, mediaDraft.selectedOptionSetIds]);
+	const hasSelectedOptionSets = mediaDraft.selectedOptionSetIds.length > 0;
+	const hasCompleteOptionSelections =
+		hasSelectedOptionSets &&
+		selectedOptionRows.length === mediaDraft.selectedOptionSetIds.length &&
+		selectedOptionRows.every((row) => row.selectedNames.length > 0);
+	const hasIncompleteOptionSelection = hasSelectedOptionSets && !hasCompleteOptionSelections;
+	const hasManualOnlyVariations = variationCount > 0 && !hasSelectedOptionSets;
+	const canCreateVariations = hasCompleteOptionSelections || !hasSelectedOptionSets;
+	const optionsVariationStateText =
+		hasManualOnlyVariations
+			? "Manual variations"
+			: variationCount > 0
+			? `${variationCount} variations`
+			: hasSelectedOptionSets
+				? hasCompleteOptionSelections
+					? "Options ready to create variations"
+					: "Complete option values"
+				: "No options selected";
+	const createVariationCta = variationCount > 0 ? "Add Variation" : "Create Variations";
+	const sortedVariations = useMemo(
+		() => mediaDraft.variations.slice().sort((a, b) => a.sortOrder - b.sortOrder),
+		[mediaDraft.variations],
+	);
 
 	return (
 		<>
@@ -955,12 +1111,119 @@ export default function InventoryProductEditScreen({ routeScope = "inventory" }:
 												selectedIds={selectedModifierGroupIds}
 												onChange={setSelectedModifierGroupIds}
 												disabled={isUiDisabled || isArchived}
+												showRowDividers
 											/>
+										) : null}
+
+										<View style={{ height: 8 }} />
+
+										<BAIText variant='subtitle' style={{ marginBottom: 8 }}>
+											{hasManualOnlyVariations ? "Variations" : "Options setup"}
+										</BAIText>
+
+										{!hasManualOnlyVariations ? (
+											<BAIPressableRow
+												label='Options setup'
+												value={optionsVariationStateText}
+												onPress={openOptionsVariations}
+												disabled={isUiDisabled || isArchived || !productId}
+												style={{ marginBottom: 8 }}
+											/>
+										) : (
+											<BAIText variant='caption' muted style={{ marginBottom: 8 }}>
+												Options are hidden while manual variations are active.
+											</BAIText>
+										)}
+
+										{!hasManualOnlyVariations && selectedOptionRows.length > 0 ? (
+											<View style={styles.optionSummaryWrap}>
+												{selectedOptionRows.map((row) => (
+													<View
+														key={row.optionSetId}
+														style={[
+															styles.optionSummaryRow,
+															{
+																borderColor,
+																backgroundColor: theme.colors.surfaceVariant ?? theme.colors.surface,
+															},
+														]}
+													>
+														<BAIText variant='subtitle'>{row.name}</BAIText>
+														<BAIText variant='caption' muted numberOfLines={1}>
+															{row.selectedNames.length > 0 ? row.selectedNames.join(", ") : "No options selected"}
+														</BAIText>
+													</View>
+												))}
+											</View>
+										) : null}
+
+										{hasIncompleteOptionSelection ? (
+											<BAIText variant='caption' muted style={{ marginBottom: 8 }}>
+												Select at least one value in each option set to create variations.
+											</BAIText>
+										) : null}
+
+										<BAIButton
+											mode='contained'
+											shape='pill'
+											onPress={() => {
+												if (variationCount > 0) {
+													openAddVariation();
+													return;
+												}
+												if (!hasSelectedOptionSets) {
+													openAddVariation();
+													return;
+												}
+												openCreateVariations();
+											}}
+											disabled={isUiDisabled || isArchived || !productId || !canCreateVariations}
+										>
+											{createVariationCta}
+										</BAIButton>
+
+										{sortedVariations.length > 0 ? (
+											<>
+												<View style={{ height: 12 }} />
+												<BAIText variant='subtitle' style={{ marginBottom: 8 }}>
+													Variations
+												</BAIText>
+												<View style={styles.variationRowsWrap}>
+													{sortedVariations.map((variation) => (
+														<Pressable
+															key={variation.variationKey}
+															onPress={openAddVariation}
+															disabled={isUiDisabled || isArchived}
+															style={({ pressed }) => [
+																styles.variationRow,
+																{
+																	borderColor,
+																	backgroundColor: theme.colors.surfaceVariant ?? theme.colors.surface,
+																},
+																pressed ? { opacity: 0.85 } : null,
+																isUiDisabled || isArchived ? { opacity: 0.55 } : null,
+															]}
+														>
+															<View style={styles.variationRowText}>
+																<BAIText variant='subtitle'>{variation.label}</BAIText>
+																<BAIText variant='caption' muted>
+																	Variable
+																</BAIText>
+															</View>
+															<MaterialCommunityIcons
+																name='chevron-right'
+																size={24}
+																color={theme.colors.onSurfaceVariant ?? theme.colors.onSurface}
+															/>
+														</Pressable>
+													))}
+												</View>
+											</>
 										) : null}
 
 										<View style={{ height: 12 }} />
 
-										<BAIText variant='subtitle'>Pricing</BAIText>
+										<BAIText variant='subtitle'>Price and Inventory</BAIText>
 
 										<BAIMinorMoneyInput
 											label='Price'
@@ -985,10 +1248,6 @@ export default function InventoryProductEditScreen({ routeScope = "inventory" }:
 										/>
 
 										<View style={{ height: 6 }} />
-
-										<BAIText variant='subtitle' style={{ marginBottom: 6 }}>
-											Inventory
-										</BAIText>
 
 										<BAISwitchRow
 											style={{ marginBottom: 6 }}
@@ -1093,10 +1352,10 @@ const styles = StyleSheet.create({
 		paddingBottom: 220,
 	},
 	moneyHalfInput: {
-		width: "50%",
-		alignSelf: "flex-start",
+		width: "100%",
 	},
 	moneyValueInputContent: {
+		textAlign: "left",
 		paddingLeft: 16,
 		paddingRight: 20,
 	},
@@ -1199,6 +1458,35 @@ const styles = StyleSheet.create({
 	actions: {
 		flexDirection: "row",
 		gap: 10,
-		marginTop: 10,
+		marginTop: 16,
+		marginBottom: 8,
+	},
+	optionSummaryWrap: {
+		gap: 8,
+	},
+	optionSummaryRow: {
+		paddingHorizontal: 12,
+		paddingVertical: 10,
+		borderWidth: 1,
+		borderRadius: 12,
+		gap: 2,
+	},
+	variationRowsWrap: {
+		gap: 8,
+	},
+	variationRow: {
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "space-between",
+		paddingHorizontal: 12,
+		paddingVertical: 10,
+		borderWidth: 1,
+		borderRadius: 12,
+		gap: 12,
+	},
+	variationRowText: {
+		flex: 1,
+		minWidth: 0,
+		gap: 2,
 	},
 });

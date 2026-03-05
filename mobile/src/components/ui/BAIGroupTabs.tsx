@@ -26,8 +26,11 @@ export function BAIGroupTabs<T extends string>({
 }: BAIGroupTabsProps<T>) {
 	const theme = useTheme();
 
-	const containerBg = theme.colors.surfaceVariant ?? theme.colors.surface;
-	const borderColor = theme.colors.outline;
+	const containerBg =
+		(theme.colors as typeof theme.colors & { surfaceInteractive?: string }).surfaceInteractive ??
+		theme.colors.surfaceVariant ??
+		theme.colors.surface;
+	const borderColor = theme.colors.outlineVariant ?? theme.colors.outline;
 
 	// 🔵 BizAssist Primary Blue Governance
 	const activeBg = theme.dark ? "#3B82F6" : "#2563EB";

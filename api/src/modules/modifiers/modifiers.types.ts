@@ -22,6 +22,8 @@ export type ModifierGroupDto = {
 	sortOrder: number;
 	isArchived: boolean;
 	attachedProductCount: number;
+	attachedProductIds: string[];
+	canHardDelete?: boolean;
 	availableOptionsCount: number;
 	soldOutOptionsCount: number;
 	createdAt: string;

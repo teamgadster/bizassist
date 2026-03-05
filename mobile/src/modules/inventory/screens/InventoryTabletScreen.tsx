@@ -11,6 +11,7 @@ import { BAIText } from "@/components/ui/BAIText";
 import { BAIButton } from "@/components/ui/BAIButton";
 import { BAISurface } from "@/components/ui/BAISurface";
 import { BAIGroupTabs, type BAIGroupTab } from "@/components/ui/BAIGroupTabs";
+import { formatMoney } from "@/shared/money/money.format";
 
 import { InventorySearchBar } from "@/modules/inventory/components/InventorySearchBar";
 import { InventoryListShell } from "@/modules/inventory/components/InventoryListShell";
@@ -194,8 +195,7 @@ function formatMoneyLike(value: unknown): string | null {
 function formatMoneyWithCurrency(value: unknown, currencyCode: string): string | null {
 	const base = formatMoneyLike(value);
 	if (!base) return null;
-	const code = currencyCode.trim().toUpperCase();
-	return code ? `${code} ${base}` : base;
+	return formatMoney({ amount: base, currencyCode });
 }
 
 function formatCompactCount(value: number, countryCode?: string | null): string {

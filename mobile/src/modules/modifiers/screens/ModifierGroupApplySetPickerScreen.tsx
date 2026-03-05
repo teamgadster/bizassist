@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { FlatList, Pressable, StyleSheet, View } from "react-native";
+import { FlatList, Image, Pressable, StyleSheet, View } from "react-native";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useTheme } from "react-native-paper";
 import { useQuery } from "@tanstack/react-query";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 
+import { BAIButton } from "@/components/ui/BAIButton";
+import { BAINeutralCheckbox } from "@/components/ui/BAINeutralCheckbox";
 import { BAIScreen } from "@/components/ui/BAIScreen";
 import { BAISurface } from "@/components/ui/BAISurface";
 import { BAIText } from "@/components/ui/BAIText";
@@ -125,7 +126,6 @@ function ProductRow({ item, selected, onToggle, abbreviationByUnitId, abbreviati
 	const borderColor = theme.colors.outlineVariant ?? theme.colors.outline;
 	const onSurface = theme.colors.onSurface;
 	const onSurfaceVariant = theme.colors.onSurfaceVariant ?? theme.colors.onSurface;
-	const primary = theme.colors.primary;
 
 	const label = item.name?.trim() || "Unnamed";
 	const durationLabel = isService(item) ? getServiceDurationLabel(item) : null;
@@ -134,6 +134,14 @@ function ProductRow({ item, selected, onToggle, abbreviationByUnitId, abbreviati
 		: getItemStockWithUnitAbbreviationLabel(item, abbreviationByUnitId, abbreviationByUnitName);
 	const rightMeta = item.category?.name?.trim() || "";
 	const initials = label.slice(0, 2).toUpperCase();
+	const imageUri = String(item.primaryImageUrl ?? "").trim();
+	const [imageFailed, setImageFailed] = useState(false);
+	const showImage = imageUri.length > 0 && !imageFailed;
+	const placeholderThumbBg = theme.colors.surfaceDisabled ?? theme.colors.surfaceVariant ?? theme.colors.surface;
+
+	useEffect(() => {
+		setImageFailed(false);
+	}, [imageUri]);
 
 	return (
 		<Pressable
@@ -144,10 +152,19 @@ function ProductRow({ item, selected, onToggle, abbreviationByUnitId, abbreviati
 			]}
 		>
 			<View style={styles.rowLeft}>
-				<View style={[styles.thumb, { borderColor, backgroundColor: theme.colors.surfaceVariant }]}>
-					<BAIText variant='body' style={{ color: onSurfaceVariant }}>
-						{initials}
-					</BAIText>
+				<View style={[styles.thumb, { borderColor, backgroundColor: showImage ? "transparent" : placeholderThumbBg }]}>
+					{showImage ? (
+						<Image
+							source={{ uri: imageUri }}
+							style={styles.thumbImage}
+							resizeMode='cover'
+							onError={() => setImageFailed(true)}
+						/>
+					) : (
+						<BAIText variant='body' style={{ color: onSurfaceVariant }}>
+							{initials}
+						</BAIText>
+					)}
 				</View>
 				<View style={styles.nameWrap}>
 					<BAIText variant='subtitle' numberOfLines={1}>
@@ -165,11 +182,7 @@ function ProductRow({ item, selected, onToggle, abbreviationByUnitId, abbreviati
 						{rightMeta}
 					</BAIText>
 				) : null}
-				<MaterialCommunityIcons
-					name={selected ? "checkbox-marked-circle" : "checkbox-blank-circle-outline"}
-					size={34}
-					color={selected ? primary : onSurfaceVariant}
-				/>
+				<BAINeutralCheckbox checked={selected} />
 			</View>
 		</Pressable>
 	);
@@ -196,18 +209,15 @@ async function listAllProductsAndServices() {
 export function ModifierGroupApplySetPickerScreen({ mode }: Props) {
 	const router = useRouter();
 	const tabBarHeight = useBottomTabBarHeight();
-	const params = useLocalSearchParams<{ draftId?: string }>();
+	const params = useLocalSearchParams<{ draftId?: string; returnTo?: string }>();
 	const draftId = String(params.draftId ?? "").trim();
-	const backRoute = "/(app)/(tabs)/inventory/modifiers/create";
+	const backRoute = String(params.returnTo ?? "").trim() || "/(app)/(tabs)/inventory/modifiers/create";
 
-	const [selectedIds, setSelectedIds] = useState<string[]>([]);
-
-	useEffect(() => {
-		if (!draftId) return;
+	const [selectedIds, setSelectedIds] = useState<string[]>(() => {
+		if (!draftId) return [];
 		const draft = getModifierGroupDraft(draftId);
-		if (!draft) return;
-		setSelectedIds(Array.isArray(draft.appliedProductIds) ? draft.appliedProductIds : []);
-	}, [draftId]);
+		return Array.isArray(draft?.appliedProductIds) ? draft.appliedProductIds : [];
+	});
 
 	const onBack = useCallback(() => {
 		if (router.canGoBack?.()) {
@@ -259,15 +269,29 @@ export function ModifierGroupApplySetPickerScreen({ mode }: Props) {
 		next.sort((a, b) => a.name.localeCompare(b.name));
 		return next;
 	}, [productsQuery.data]);
+	const hasRows = rows.length > 0;
 
 	const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
+	const allRowIds = useMemo(() => rows.map((item) => item.id), [rows]);
+
+	const persistSelectedIds = useCallback(
+		(next: string[]) => {
+			setSelectedIds(next);
+			if (!draftId) return;
+			const draft = getModifierGroupDraft(draftId);
+			if (draft) {
+				upsertModifierGroupDraft(draftId, { appliedProductIds: next });
+			}
+		},
+		[draftId],
+	);
 
 	const onToggle = useCallback(
 		(id: string) => {
-			if (!draftId) return;
 			setSelectedIds((prev) => {
 				const exists = prev.includes(id);
 				const next = exists ? prev.filter((value) => value !== id) : [...prev, id];
+				if (!draftId) return next;
 				const draft = getModifierGroupDraft(draftId);
 				if (draft) {
 					upsertModifierGroupDraft(draftId, { appliedProductIds: next });
@@ -278,40 +302,79 @@ export function ModifierGroupApplySetPickerScreen({ mode }: Props) {
 		[draftId],
 	);
 
+	const onClearAll = useCallback(() => {
+		persistSelectedIds([]);
+	}, [persistSelectedIds]);
+
+	const onApplyAll = useCallback(() => {
+		persistSelectedIds(allRowIds);
+	}, [allRowIds, persistSelectedIds]);
+
 	return (
 		<>
 			<Stack.Screen options={mode === "settings" ? appHeaderOptions : inventoryHeaderOptions} />
 			<BAIScreen tabbed padded={false} safeTop={false} safeBottom={false}>
 				<View style={[styles.screen, { paddingBottom: tabBarHeight + 8 }]}>
 					<BAISurface bordered padded={false} style={styles.card}>
-						{productsQuery.isLoading ? (
-							<View style={styles.centerState}>
-								<BAIActivityIndicator size='small' />
-								<BAIText variant='body' muted>
-									Loading items and services...
-								</BAIText>
-							</View>
-						) : productsQuery.isError ? (
-							<View style={styles.centerState}>
-								<BAIText variant='body'>Could not load items and services.</BAIText>
-							</View>
-						) : (
-							<FlatList
-								data={rows}
-								keyExtractor={(item) => item.id}
-								renderItem={({ item }) => (
-									<ProductRow
-										item={item}
-										selected={selectedSet.has(item.id)}
-										onToggle={onToggle}
-										abbreviationByUnitId={abbreviationByUnitId}
-										abbreviationByUnitName={abbreviationByUnitName}
-									/>
-								)}
-								ItemSeparatorComponent={null}
-								contentContainerStyle={styles.listContent}
-							/>
-						)}
+						<View style={styles.actionRow}>
+							<BAIButton
+								variant='outline'
+								intent='neutral'
+								shape='pill'
+								onPress={onClearAll}
+								style={styles.actionButton}
+								disabled={productsQuery.isLoading || selectedIds.length === 0}
+							>
+								Clear All
+							</BAIButton>
+							<BAIButton
+								variant='outline'
+								intent='neutral'
+								shape='pill'
+								onPress={onApplyAll}
+								style={styles.actionButton}
+								disabled={productsQuery.isLoading || rows.length === 0 || selectedIds.length === rows.length}
+							>
+								Apply All
+							</BAIButton>
+						</View>
+						<View style={styles.listStateWrap}>
+							{productsQuery.isLoading ? (
+								<View style={styles.centerState}>
+									<BAIActivityIndicator size='small' />
+									<BAIText variant='body' muted>
+										Loading items and services...
+									</BAIText>
+								</View>
+							) : productsQuery.isError ? (
+								<View style={styles.centerState}>
+									<BAIText variant='body'>Could not load items and services.</BAIText>
+								</View>
+							) : !hasRows ? (
+								<View style={styles.centerState}>
+									<BAIText variant='body'>No items or services available yet.</BAIText>
+									<BAIText variant='caption' muted style={styles.emptyCaption}>
+										Create an item or service first, then apply this modifier set.
+									</BAIText>
+								</View>
+							) : (
+								<FlatList
+									data={rows}
+									keyExtractor={(item) => item.id}
+									renderItem={({ item }) => (
+										<ProductRow
+											item={item}
+											selected={selectedSet.has(item.id)}
+											onToggle={onToggle}
+											abbreviationByUnitId={abbreviationByUnitId}
+											abbreviationByUnitName={abbreviationByUnitName}
+										/>
+									)}
+									ItemSeparatorComponent={null}
+									contentContainerStyle={styles.listContent}
+								/>
+							)}
+						</View>
 					</BAISurface>
 				</View>
 			</BAIScreen>
@@ -331,12 +394,29 @@ const styles = StyleSheet.create({
 		borderRadius: 16,
 		overflow: "hidden",
 	},
+	actionRow: {
+		flexDirection: "row",
+		gap: 8,
+		paddingHorizontal: 10,
+		paddingTop: 10,
+		paddingBottom: 4,
+	},
+	actionButton: {
+		flex: 1,
+	},
+	listStateWrap: {
+		flex: 1,
+		minHeight: 0,
+	},
 	centerState: {
 		flex: 1,
 		alignItems: "center",
 		justifyContent: "center",
 		gap: 8,
 		padding: 16,
+	},
+	emptyCaption: {
+		textAlign: "center",
 	},
 	listContent: {
 		paddingBottom: 8,
@@ -362,9 +442,14 @@ const styles = StyleSheet.create({
 		width: 46,
 		height: 46,
 		borderRadius: 8,
+		overflow: "hidden",
 		alignItems: "center",
 		justifyContent: "center",
 		borderWidth: StyleSheet.hairlineWidth,
+	},
+	thumbImage: {
+		width: "100%",
+		height: "100%",
 	},
 	nameWrap: {
 		flex: 1,

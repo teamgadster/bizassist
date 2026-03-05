@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import { BAIScreen } from "@/components/ui/BAIScreen";
+import { BAIButton } from "@/components/ui/BAIButton";
 import { BAISurface } from "@/components/ui/BAISurface";
 import { BAIText } from "@/components/ui/BAIText";
 import { SettingsScreenLayout, SettingsSectionTitle } from "@/components/settings/SettingsLayout";
@@ -31,6 +32,18 @@ function resolveModifierFilter(raw: unknown): ModifierFilter {
 		: "active";
 }
 
+function buildOptionSummary(item: ModifierGroup) {
+	const options = item.options
+		.filter((option) => !option.isArchived)
+		.map((option) => ({ label: option.name.trim(), isSoldOut: option.isSoldOut }))
+		.filter((option) => option.label.length > 0);
+
+	return {
+		entries: options.slice(0, 3),
+		remainingCount: Math.max(0, options.length - 3),
+	};
+}
+
 function Row({
 	item,
 	onOpen,
@@ -41,7 +54,7 @@ function Row({
 	countryCode?: string | null;
 }) {
 	const theme = useTheme();
-	const totalOptionsLabel = `${formatCompactNumber(item.options.length, countryCode)} modifier${item.options.length === 1 ? "" : "s"}`;
+	const optionSummary = buildOptionSummary(item);
 	const availableLabel = `${formatCompactNumber(item.availableOptionsCount, countryCode)} available`;
 	const soldOutLabel = `${formatCompactNumber(item.soldOutOptionsCount, countryCode)} sold out`;
 	const rowNameColor = item.isArchived
@@ -67,7 +80,25 @@ function Row({
 							</BAIText>
 						</View>
 						<BAIText variant='caption' muted numberOfLines={1} style={styles.countText}>
-							{totalOptionsLabel}
+							{optionSummary.entries.length === 0 ? (
+								"No modifiers"
+							) : (
+								<>
+									{optionSummary.entries.map((option, index) => (
+										<BAIText key={`${item.id}-${option.label}-${index}`} variant='caption' muted>
+											{index > 0 ? ", " : ""}
+											<BAIText
+												variant='caption'
+												muted={!option.isSoldOut}
+												style={option.isSoldOut ? { color: theme.colors.error } : undefined}
+											>
+												{option.label}
+											</BAIText>
+										</BAIText>
+									))}
+									{optionSummary.remainingCount > 0 ? `, +${optionSummary.remainingCount} more` : null}
+								</>
+							)}
 						</BAIText>
 					</View>
 				</View>
@@ -225,18 +256,29 @@ export function ModifiersLedgerScreen({
 										<BAISurface bordered style={styles.emptyWrap}>
 											<BAIText variant='body'>
 												{hasSearch
-													? `No matching ${filter === "active" ? "active" : "archived"} modifiers.`
+													? `No matching ${filter === "active" ? "active" : "archived"} modifier sets.`
 													: filter === "active"
-														? "No active modifiers."
-														: "No archived modifiers."}
+														? "No active modifier sets."
+														: "No archived modifier sets."}
 											</BAIText>
 											<BAIText variant='caption' muted>
 												{hasSearch
 													? "Try a different search term."
 													: filter === "active"
-														? "Create your first modifier."
-														: "Archived modifiers will appear here."}
+														? "Create your first modifier set."
+														: "Archived modifier sets will appear here."}
 											</BAIText>
+											{!hasSearch && filter === "active" ? (
+												<BAIButton
+													variant='solid'
+													intent='primary'
+													shape='pill'
+													onPress={onCreate}
+													style={styles.emptyAction}
+												>
+													Create Modifier Set
+												</BAIButton>
+											) : null}
 										</BAISurface>
 									) : (
 										<FlatList
@@ -330,4 +372,5 @@ const styles = StyleSheet.create({
 		justifyContent: "center",
 	},
 	emptyWrap: { padding: 12, borderRadius: 12, gap: 4 },
+	emptyAction: { marginTop: 6, alignSelf: "flex-start" },
 });

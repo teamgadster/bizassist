@@ -104,6 +104,13 @@ export const restoreModifierGroup = asyncHandler(async (req: Request, res: Respo
 	res.status(StatusCodes.OK).json({ success: true });
 });
 
+export const deleteModifierGroup = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+	const businessId = getBusinessId(req);
+	const { id } = groupIdParamSchema.parse(req.params);
+	await service.deleteGroup(businessId, id);
+	res.status(StatusCodes.OK).json({ success: true });
+});
+
 export const archiveModifierOption = asyncHandler(async (req: Request, res: Response): Promise<void> => {
 	const businessId = getBusinessId(req);
 	const { id } = optionIdParamSchema.parse(req.params);

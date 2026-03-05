@@ -15,7 +15,6 @@ import {
 	TouchableWithoutFeedback,
 	View,
 } from "react-native";
-import { useNavigation } from "@react-navigation/native";
 import { useHeaderHeight } from "@react-navigation/elements";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useTheme } from "react-native-paper";
@@ -36,14 +35,16 @@ import { useAppBusy } from "@/hooks/useAppBusy";
 import { useActiveBusinessMeta } from "@/modules/business/useActiveBusinessMeta";
 import { DEFAULT_STACKABLE } from "@/modules/discounts/discounts.constants";
 import {
-	buildInventoryDiscountDetailsRoute,
 	normalizeDiscountReturnTo,
-	buildSettingsDiscountDetailsRoute,
+	resolveDiscountEditExitRoute,
+	resolveDiscountEditSaveRoute,
+	type DiscountFlowMode,
 } from "@/modules/discounts/discounts.navigation";
 import { useDiscountById, useUpdateDiscount } from "@/modules/discounts/discounts.queries";
 import type { DiscountType } from "@/modules/discounts/discounts.types";
 import { normalizeNote, validateName, validateValueByType } from "@/modules/discounts/discounts.validators";
 import { useAppHeader } from "@/modules/navigation/useAppHeader";
+import { useProcessExitGuard } from "@/modules/navigation/useProcessExitGuard";
 import { useInventoryHeader } from "@/modules/inventory/useInventoryHeader";
 import { FIELD_LIMITS } from "@/shared/fieldLimits";
 import { useNavLock } from "@/shared/hooks/useNavLock";
@@ -58,11 +59,8 @@ function extractApiError(err: unknown): { code?: string; message?: string } {
 	return { code, message };
 }
 
-type DiscountFlowMode = "settings" | "inventory";
-
 export function DiscountEditScreen({ mode = "settings" }: { mode?: DiscountFlowMode }) {
 	const router = useRouter();
-	const navigation = useNavigation<any>();
 	const theme = useTheme();
 	const headerHeight = useHeaderHeight();
 	const { withBusy, busy } = useAppBusy();
@@ -147,40 +145,29 @@ export function DiscountEditScreen({ mode = "settings" }: { mode?: DiscountFlowM
 		return !isUiDisabled;
 	}, [discountId, hasChanges, isArchived, isUiDisabled, nameCheck.ok, valueCheck.ok]);
 
-	const detailRoute = useMemo(
-		() =>
-			mode === "settings"
-				? buildSettingsDiscountDetailsRoute(discountId, returnTo)
-				: buildInventoryDiscountDetailsRoute(discountId, returnTo),
+	const exitRoute = useMemo(
+		() => resolveDiscountEditExitRoute(mode, returnTo, discountId),
 		[discountId, mode, returnTo],
 	);
+	const saveRoute = useMemo(() => resolveDiscountEditSaveRoute(mode, returnTo), [mode, returnTo]);
 
 	const onExitBase = useCallback(() => {
 		if (isUiDisabled) return;
-		safeReplace(router as any, detailRoute as any);
-	}, [detailRoute, isUiDisabled, router, safeReplace]);
-
-	useEffect(() => {
-		const unsub = navigation.addListener("beforeRemove", (e: any) => {
-			const actionType = String(e?.data?.action?.type ?? "");
-			const isBackAction = actionType === "GO_BACK" || actionType === "POP" || actionType === "POP_TO_TOP";
-			if (!isBackAction) return;
-
-			e.preventDefault();
-			onExitBase();
-		});
-		return unsub;
-	}, [navigation, onExitBase]);
+		safeReplace(router as any, exitRoute as any);
+	}, [exitRoute, isUiDisabled, router, safeReplace]);
+	const onExit = useProcessExitGuard(onExitBase);
 
 	const settingsHeaderOptions = useAppHeader("process", {
 		title: "Edit Discount",
 		disabled: isUiDisabled,
-		onExit: onExitBase,
+		onExit,
+		exitFallbackRoute: exitRoute,
 	});
 	const inventoryHeaderOptions = useInventoryHeader("process", {
 		title: "Edit Discount",
 		disabled: isUiDisabled,
-		onExit: onExitBase,
+		onExit,
+		exitFallbackRoute: exitRoute,
 	});
 	const headerOptions = mode === "settings" ? settingsHeaderOptions : inventoryHeaderOptions;
 
@@ -197,7 +184,7 @@ export function DiscountEditScreen({ mode = "settings" }: { mode?: DiscountFlowM
 					value: valueCheck.ok ? valueCheck.value : "",
 					isStackable,
 				});
-				safeReplace(router as any, detailRoute as any);
+				safeReplace(router as any, saveRoute as any);
 			} catch (err) {
 				const { message } = extractApiError(err);
 				setError(message ?? "Failed to update discount.");
@@ -212,7 +199,7 @@ export function DiscountEditScreen({ mode = "settings" }: { mode?: DiscountFlowM
 		noteText,
 		router,
 		safeReplace,
-		detailRoute,
+		saveRoute,
 		type,
 		update,
 		valueCheck,
@@ -287,7 +274,7 @@ export function DiscountEditScreen({ mode = "settings" }: { mode?: DiscountFlowM
 											<View style={{ height: 12 }} />
 											<BAIButton
 												variant='outline'
-												onPress={onExitBase}
+												onPress={onExit}
 												disabled={isUiDisabled}
 												shape='pill'
 												widthPreset='standard'
@@ -407,7 +394,7 @@ export function DiscountEditScreen({ mode = "settings" }: { mode?: DiscountFlowM
 												<BAIButton
 													variant='outline'
 													intent='neutral'
-													onPress={onExitBase}
+													onPress={onExit}
 													disabled={isUiDisabled}
 													shape='pill'
 													widthPreset='standard'

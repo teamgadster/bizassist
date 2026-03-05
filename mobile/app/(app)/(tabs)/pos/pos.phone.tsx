@@ -502,7 +502,7 @@ export default function PosPhone() {
 		useCallback(() => {
 			const pending = consumePendingQuantityEdit();
 			if (pending) setQty(pending.productId, pending.quantity);
-		}, [addToCartResolved, setQty]),
+		}, [setQty]),
 	);
 
 	const showCatalogEmptyCta = !trimmedQ && items.length === 0 && !productsQuery.isError;
@@ -752,8 +752,16 @@ export default function PosPhone() {
 										const outColor = theme.colors.error;
 										const statusTextColor = isOutOfStock ? outColor : isLowStock ? warningColor : undefined;
 										const isOutOfStockRow = isOutOfStock && !inCartLine;
+										const disabledThumbBorderColor = theme.dark ? "#F5F5F5" : "#111111";
 
-										const tileColor = item.posTileColor ?? item.categoryColor ?? theme.colors.primary;
+										const imageUri = String(item.primaryImageUrl ?? "").trim();
+										const thumbnailInitials = String(item.name ?? "")
+											.trim()
+											.slice(0, 2)
+											.toUpperCase();
+										const neutralTileBg =
+											theme.colors.surfaceDisabled ?? theme.colors.surfaceVariant ?? theme.colors.surface;
+										const neutralTileText = theme.colors.onSurfaceVariant ?? theme.colors.onSurface;
 
 										return (
 											<Pressable
@@ -768,11 +776,23 @@ export default function PosPhone() {
 											>
 												<View style={styles.rowLeft}>
 													<View style={styles.tileShell}>
-														<View style={styles.tileInner}>
-															{item.posTileMode === "IMAGE" && item.primaryImageUrl ? (
-																<Image source={{ uri: item.primaryImageUrl }} style={styles.tileImage} />
+														<View
+															style={[
+																styles.tileInner,
+																{
+																	borderWidth: StyleSheet.hairlineWidth,
+																	borderColor: rowDisabled ? disabledThumbBorderColor : borderColor,
+																},
+															]}
+														>
+															{imageUri ? (
+																<Image source={{ uri: imageUri }} style={styles.tileImage} />
 															) : (
-																<View style={[styles.tileColor, { backgroundColor: tileColor }]} />
+																<View style={[styles.tileColor, { backgroundColor: neutralTileBg }]}>
+																	<BAIText variant='body' style={{ color: neutralTileText }}>
+																		{thumbnailInitials}
+																	</BAIText>
+																</View>
 															)}
 														</View>
 
@@ -990,7 +1010,13 @@ const styles = StyleSheet.create({
 		overflow: "hidden",
 	},
 	tileImage: { width: 44, height: 44, borderRadius: 10 },
-	tileColor: { width: 44, height: 44, borderRadius: 10 },
+	tileColor: {
+		width: 44,
+		height: 44,
+		borderRadius: 10,
+		alignItems: "center",
+		justifyContent: "center",
+	},
 
 	cartBadge: {
 		position: "absolute",

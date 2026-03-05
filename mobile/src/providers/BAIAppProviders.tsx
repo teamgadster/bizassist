@@ -12,7 +12,7 @@ import { StatusBar } from "expo-status-bar";
 import { ReactNode, createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { useColorScheme as useNativeColorScheme } from "react-native";
 import { PaperProvider } from "react-native-paper";
-import { SafeAreaProvider } from "react-native-safe-area-context";
+import { SafeAreaProvider, initialWindowMetrics } from "react-native-safe-area-context";
 
 import { useResponsiveLayout } from "@/lib/layout/useResponsiveLayout";
 import { queryClient } from "@/lib/queryClient";
@@ -116,7 +116,7 @@ export function BAIAppProviders({ children }: Props) {
 
 	return (
 		<DisplayModeContext.Provider value={contextValue}>
-			<SafeAreaProvider>
+			<SafeAreaProvider initialMetrics={initialWindowMetrics}>
 				<PaperProvider theme={theme}>
 					<StatusBar style={statusBarStyle} />
 					<QueryClientProvider client={queryClient}>

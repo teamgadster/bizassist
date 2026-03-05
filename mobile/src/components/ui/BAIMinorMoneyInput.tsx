@@ -3,7 +3,8 @@ import { StyleSheet } from "react-native";
 
 import { BAITextInput } from "@/components/ui/BAITextInput";
 import { MONEY_INPUT_PRECISION } from "@/shared/money/money.constants";
-import { digitsToMinorUnits, formatMinorUnits, MONEY_MAX_MINOR_DIGITS, parseMinorUnits, sanitizeDigits } from "@/shared/money/money.minor";
+import { resolveCurrencySymbol } from "@/shared/money/money.symbol";
+import { digitsToMinorUnits, MONEY_MAX_MINOR_DIGITS, parseMinorUnits, sanitizeDigits } from "@/shared/money/money.minor";
 
 type BAITextInputProps = React.ComponentProps<typeof BAITextInput>;
 
@@ -47,11 +48,38 @@ function minorUnitsToDecimalText(minorUnits: number, scale: number): string {
 
 function getMaxMaskedLength(currencyCode: string, scale: number, maxMinorDigits: number): number {
 	const maxMinor = digitsToMinorUnits("9".repeat(maxMinorDigits), maxMinorDigits);
-	return formatMinorUnits({
+	return formatMinorUnitsWithSymbolOnly({
 		minorUnits: maxMinor,
 		currencyCode,
 		scale,
 	}).length;
+}
+
+function formatMinorUnitsWithSymbolOnly(args: {
+	minorUnits: number;
+	currencyCode: string;
+	scale: number;
+}): string {
+	const normalizedMinor = parseMinorUnits(args.minorUnits);
+	const divisor = 10 ** args.scale;
+	const majorValue = normalizedMinor / divisor;
+	const currencySymbol = resolveCurrencySymbol(args.currencyCode);
+
+	let formattedNumber = majorValue.toFixed(args.scale);
+
+	try {
+		if (typeof Intl !== "undefined" && typeof Intl.NumberFormat === "function") {
+			formattedNumber = new Intl.NumberFormat(undefined, {
+				style: "decimal",
+				minimumFractionDigits: args.scale,
+				maximumFractionDigits: args.scale,
+			}).format(majorValue);
+		}
+	} catch {
+		// Fall back to fixed decimal text.
+	}
+
+	return currencySymbol ? `${currencySymbol}${formattedNumber}` : formattedNumber;
 }
 
 function applyMinorInputContract(args: { currentMinor: number; nextText: string; maxMinorDigits: number }): number {
@@ -97,7 +125,7 @@ export function BAIMinorMoneyInput({
 	const maskedValue = useMemo(
 		() =>
 			currentMinor > 0
-				? formatMinorUnits({
+				? formatMinorUnitsWithSymbolOnly({
 						minorUnits: currentMinor,
 						currencyCode,
 						scale,
@@ -110,7 +138,7 @@ export function BAIMinorMoneyInput({
 		() =>
 			typeof placeholder === "string" && placeholder.trim().length > 0
 				? placeholder
-				: formatMinorUnits({ minorUnits: 0, currencyCode, scale }),
+				: formatMinorUnitsWithSymbolOnly({ minorUnits: 0, currencyCode, scale }),
 		[placeholder, currencyCode, scale],
 	);
 

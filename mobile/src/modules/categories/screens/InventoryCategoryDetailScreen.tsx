@@ -11,7 +11,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useTheme } from "react-native-paper";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { Image as ExpoImage } from "expo-image";
-import { FontAwesome6, MaterialCommunityIcons } from "@expo/vector-icons";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import { BAIActivityIndicator } from "@/components/system/BAIActivityIndicator";
 import { BAIButton } from "@/components/ui/BAIButton";
@@ -64,14 +64,19 @@ function CategoryLinkedItemRow({
 		(theme.colors as any).surfaceVariant ?? (theme.dark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.035)");
 	const pressedBg = theme.dark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)";
 	const chevronColor = theme.colors.onSurfaceVariant ?? theme.colors.onSurface;
-	const placeholderBg = theme.colors.surfaceVariant ?? theme.colors.surface;
-	const placeholderIcon = theme.colors.onSurfaceVariant ?? theme.colors.onSurface;
+	const disabledThumbBorderColor = theme.dark ? "#F5F5F5" : "#111111";
+	const placeholderBg = theme.colors.surfaceDisabled ?? theme.colors.surfaceVariant ?? theme.colors.surface;
+	const placeholderTextColor = theme.colors.onSurfaceVariant ?? theme.colors.onSurface;
 
 	const imageUri = typeof item.primaryImageUrl === "string" ? item.primaryImageUrl.trim() : "";
 	const posTileColor = typeof item.posTileColor === "string" ? item.posTileColor.trim() : "";
 	const showImageTile = item.posTileMode === "IMAGE" && !!imageUri;
 	const showColorTile = item.posTileMode === "COLOR" && !!posTileColor;
 	const showPlaceholder = !showImageTile && !showColorTile;
+	const thumbnailInitials = String(item.name ?? "")
+		.trim()
+		.slice(0, 2)
+		.toUpperCase();
 
 	return (
 		<Pressable
@@ -87,7 +92,7 @@ function CategoryLinkedItemRow({
 				<View
 					style={[
 						styles.itemThumb,
-						{ borderColor },
+						{ borderColor: disabled ? disabledThumbBorderColor : borderColor },
 						showColorTile && { backgroundColor: posTileColor },
 						showPlaceholder && { backgroundColor: placeholderBg },
 					]}
@@ -100,7 +105,11 @@ function CategoryLinkedItemRow({
 							cachePolicy='memory-disk'
 						/>
 					) : null}
-					{showPlaceholder ? <FontAwesome6 name='image' size={26} color={placeholderIcon} /> : null}
+					{showPlaceholder ? (
+						<BAIText variant='body' style={{ color: placeholderTextColor }}>
+							{thumbnailInitials}
+						</BAIText>
+					) : null}
 				</View>
 
 				<View style={styles.itemTextWrap}>

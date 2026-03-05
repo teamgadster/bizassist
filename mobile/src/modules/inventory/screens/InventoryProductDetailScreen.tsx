@@ -18,6 +18,7 @@ import { BAIRetryButton } from "@/components/ui/BAIRetryButton";
 import { BAIScreen } from "@/components/ui/BAIScreen";
 import { BAISurface } from "@/components/ui/BAISurface";
 import { BAIText } from "@/components/ui/BAIText";
+import { formatMoney } from "@/shared/money/money.format";
 
 import { useActiveBusinessMeta } from "@/modules/business/useActiveBusinessMeta";
 import { categoriesApi } from "@/modules/categories/categories.api";
@@ -26,6 +27,7 @@ import type { Category } from "@/modules/categories/categories.types";
 import { InventoryMovementRow } from "@/modules/inventory/components/InventoryMovementRow";
 import { PosTileTextOverlay } from "@/modules/inventory/components/PosTileTextOverlay";
 import { inventoryApi } from "@/modules/inventory/inventory.api";
+import { useProductCreateDraft } from "@/modules/inventory/drafts/useProductCreateDraft";
 import {
 	inventoryScopeRoot,
 	mapInventoryRouteToScope,
@@ -39,6 +41,12 @@ import { unitsApi } from "@/modules/units/units.api";
 import { unitDisplayToken } from "@/modules/units/units.format";
 import { unitKeys } from "@/modules/units/units.queries";
 import type { Unit } from "@/modules/units/units.types";
+import {
+	DRAFT_ID_KEY as OPTION_DRAFT_ID_KEY,
+	PRODUCT_ID_KEY,
+	PRODUCT_SELECT_OPTIONS_ROUTE,
+	RETURN_TO_KEY as OPTION_RETURN_TO_KEY,
+} from "@/modules/options/productOptionPicker.contract";
 import { useNavLock } from "@/shared/hooks/useNavLock";
 import { sanitizeLabelInput, sanitizeProductNameInput } from "@/shared/validation/sanitize";
 
@@ -67,8 +75,7 @@ function formatMoneyLike(v: unknown): string | null {
 function formatMoneyWithCurrency(value: unknown, currencyCode: string): string | null {
 	const base = formatMoneyLike(value);
 	if (!base) return null;
-	const code = currencyCode.trim().toUpperCase();
-	return code ? `${code} ${base}` : base;
+	return formatMoney({ amount: base, currencyCode });
 }
 
 function formatProductTypeLabel(value: unknown): string | null {
@@ -397,6 +404,8 @@ export default function InventoryProductDetailScreen({
 
 	const params = useLocalSearchParams<{ id: string }>();
 	const productId = useMemo(() => String(params.id ?? "").trim(), [params.id]);
+	const optionsDraftId = useMemo(() => (productId ? `item_edit_${productId}` : ""), [productId]);
+	const { patch: patchOptionsDraft } = useProductCreateDraft(optionsDraftId || undefined);
 	const enabled = !!productId;
 
 	const productDetailQuery = useQuery<InventoryProductDetail>({
@@ -612,6 +621,68 @@ export default function InventoryProductDetailScreen({
 		safePush(router, toScopedRoute(`/(app)/(tabs)/inventory/products/${encodeURIComponent(productId)}/edit`));
 	}, [productId, router, safePush, toScopedRoute]);
 
+	const onOpenOptionsVariations = useCallback(() => {
+		if (!productId || !product || !canNavigate) return;
+
+		const productOptionSelections = Array.isArray(product.optionSelections)
+			? product.optionSelections
+					.map((selection, idx) => ({
+						optionSetId: String(selection?.optionSetId ?? "").trim(),
+						optionSetName: String(selection?.optionSetName ?? "").trim(),
+						selectedValueIds: Array.isArray(selection?.selectedValueIds)
+							? selection.selectedValueIds.map((id) => String(id ?? "").trim()).filter(Boolean)
+							: [],
+						selectedValueNames: Array.isArray(selection?.selectedValueNames)
+							? selection.selectedValueNames.map((name) => String(name ?? "").trim()).filter(Boolean)
+							: [],
+						sortOrder:
+							typeof selection?.sortOrder === "number" && Number.isFinite(selection.sortOrder)
+								? selection.sortOrder
+								: idx,
+					}))
+					.filter((selection) => selection.optionSetId.length > 0)
+			: [];
+
+		const productVariations = Array.isArray(product.variations)
+			? product.variations
+					.map((variation, idx) => ({
+						variationKey: String(variation?.variationKey ?? "").trim(),
+						label: String(variation?.label ?? "").trim(),
+						valueMap:
+							variation?.valueMap && typeof variation.valueMap === "object"
+								? Object.fromEntries(
+										Object.entries(variation.valueMap).map(([setId, valueId]) => [
+											String(setId ?? "").trim(),
+											String(valueId ?? "").trim(),
+										]),
+								  )
+								: {},
+						sortOrder:
+							typeof variation?.sortOrder === "number" && Number.isFinite(variation.sortOrder)
+								? variation.sortOrder
+								: idx,
+					}))
+					.filter((variation) => variation.variationKey.length > 0)
+			: [];
+
+		patchOptionsDraft({
+			selectedOptionSetIds: productOptionSelections.map((selection) => selection.optionSetId),
+			optionSelections: productOptionSelections,
+			variations: productVariations,
+			selectedVariationKeys: productVariations.map((variation) => variation.variationKey),
+			variationSelectionInitialized: productVariations.length > 0,
+		});
+
+		router.replace({
+			pathname: toScopedRoute(PRODUCT_SELECT_OPTIONS_ROUTE) as any,
+			params: {
+				[OPTION_DRAFT_ID_KEY]: optionsDraftId,
+				[OPTION_RETURN_TO_KEY]: toScopedRoute(`/(app)/(tabs)/inventory/products/${encodeURIComponent(productId)}`),
+				[PRODUCT_ID_KEY]: productId,
+			} as any,
+		});
+	}, [canNavigate, optionsDraftId, patchOptionsDraft, product, productId, router, toScopedRoute]);
+
 	const onArchiveItem = useCallback(() => {
 		if (!productId) return;
 		safePush(router, toScopedRoute(`/(app)/(tabs)/inventory/products/${encodeURIComponent(productId)}/archive`));
@@ -647,6 +718,8 @@ export default function InventoryProductDetailScreen({
 	const isError = productDetailQuery.isError || movementsQuery.isError;
 	const isArchived = product?.isActive === false;
 	const canEditItem = !!productId && !!product && !isArchived;
+	const variationCount = Array.isArray(product?.variations) ? product.variations.length : 0;
+	const optionsVariationsButtonLabel = variationCount > 0 ? `Options & Variations (${variationCount})` : "Options & Variations";
 	const canRestoreItem = !!productId && !!product && isArchived;
 	const canArchiveItem = !!productId && !!product && !isArchived;
 	const canPrimaryAction = isArchived ? canRestoreItem : canArchiveItem;
@@ -753,6 +826,18 @@ export default function InventoryProductDetailScreen({
 
 		if (typeof p.trackInventory === "boolean")
 			rows.push({ label: "Track Inventory", value: p.trackInventory ? "Yes" : "No" });
+
+		const variationCount = Array.isArray(p.variations) ? p.variations.length : 0;
+		rows.push({
+			label: "Variations",
+			value: variationCount > 0 ? `${variationCount} configured` : "None",
+		});
+
+		const optionSetCount = Array.isArray(p.optionSelections) ? p.optionSelections.length : 0;
+		rows.push({
+			label: "Option Sets",
+			value: optionSetCount > 0 ? `${optionSetCount} selected` : "None",
+		});
 
 		// ✅ UDQI-CORRECT: reorder point uses the same resolved-mode formatter
 		const reorderResolved = resolveQuantityDisplay(p, "reorder", unitPrecisionScale);
@@ -1103,6 +1188,20 @@ export default function InventoryProductDetailScreen({
 									</View>
 								) : null}
 
+								{!isArchived ? (
+									<View style={[styles.itemFooterActions, styles.topActionsSecondaryContainer]}>
+										<BAICTAPillButton
+											variant='outline'
+											intent='neutral'
+											onPress={onOpenOptionsVariations}
+											disabled={!canEditItem || !canNavigate || isLoading}
+											style={styles.footerActionButton}
+										>
+											{optionsVariationsButtonLabel}
+										</BAICTAPillButton>
+									</View>
+								) : null}
+
 								{showDetails ? (
 									<>
 										<View style={styles.detailsSectionContainerPadding}>
@@ -1265,6 +1364,11 @@ const styles = StyleSheet.create({
 	},
 	topActionsContainer: {
 		paddingHorizontal: 12,
+		paddingBottom: 12,
+	},
+	topActionsSecondaryContainer: {
+		paddingHorizontal: 12,
+		paddingTop: 0,
 		paddingBottom: 12,
 	},
 	bottomActionsContainer: {

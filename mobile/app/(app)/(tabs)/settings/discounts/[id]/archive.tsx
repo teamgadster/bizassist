@@ -19,18 +19,14 @@ import { BAIText } from "@/components/ui/BAIText";
 import { SettingsScreenLayout } from "@/components/settings/SettingsLayout";
 import { useAppBusy } from "@/hooks/useAppBusy";
 import {
-	buildInventoryDiscountDetailsRoute,
-	buildInventoryDiscountLedgerRoute,
-	buildSettingsDiscountDetailsRoute,
-	buildSettingsDiscountLedgerRoute,
+	resolveDiscountDetailRoute,
 	normalizeDiscountReturnTo,
+	type DiscountFlowMode,
 } from "@/modules/discounts/discounts.navigation";
 import { useArchiveDiscount, useDiscountById } from "@/modules/discounts/discounts.queries";
 import { useAppHeader } from "@/modules/navigation/useAppHeader";
 import { useProcessExitGuard } from "@/modules/navigation/useProcessExitGuard";
 import { useInventoryHeader } from "@/modules/inventory/useInventoryHeader";
-
-type DiscountFlowMode = "settings" | "inventory";
 
 function extractApiErrorMessage(err: unknown): string {
 	const data = (err as any)?.response?.data;
@@ -67,15 +63,7 @@ export function DiscountArchiveScreen({ mode = "settings" }: { mode?: DiscountFl
 	const archive = useArchiveDiscount(discountId);
 	const discount = query.data ?? null;
 	const canArchive = !!discount && discount.isActive;
-	const detailRoute = useMemo(() => {
-		if (!discountId)
-			return mode === "settings"
-				? buildSettingsDiscountLedgerRoute(returnTo)
-				: buildInventoryDiscountLedgerRoute(returnTo);
-		return mode === "settings"
-			? buildSettingsDiscountDetailsRoute(discountId, returnTo)
-			: buildInventoryDiscountDetailsRoute(discountId, returnTo);
-	}, [discountId, mode, returnTo]);
+	const detailRoute = useMemo(() => resolveDiscountDetailRoute(mode, discountId, returnTo), [discountId, mode, returnTo]);
 
 	const onExit = useCallback(() => {
 		if (isUiDisabled) return;
@@ -104,11 +92,13 @@ export function DiscountArchiveScreen({ mode = "settings" }: { mode?: DiscountFl
 		title: "Archive Discount",
 		disabled: isUiDisabled,
 		onExit: guardedOnExit,
+		exitFallbackRoute: detailRoute,
 	});
 	const inventoryHeaderOptions = useInventoryHeader("process", {
 		title: "Archive Discount",
 		disabled: isUiDisabled,
 		onExit: guardedOnExit,
+		exitFallbackRoute: detailRoute,
 	});
 	const headerOptions = mode === "settings" ? settingsHeaderOptions : inventoryHeaderOptions;
 

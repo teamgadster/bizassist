@@ -1,4 +1,9 @@
 import { MONEY_INPUT_MAX_WHOLE_DIGITS, MONEY_INPUT_PRECISION } from "@/shared/money/money.constants";
+import {
+	normalizeMoneyDisplayMode,
+	resolveCurrencySymbol,
+	type MoneyDisplayMode,
+} from "@/shared/money/money.symbol";
 
 export const MONEY_MINOR_SCALE_DEFAULT = MONEY_INPUT_PRECISION;
 export const MONEY_MAX_MINOR_DIGITS = MONEY_INPUT_MAX_WHOLE_DIGITS + MONEY_INPUT_PRECISION;
@@ -43,34 +48,51 @@ export function digitsToMinorUnits(digits: string, maxDigits = MONEY_MAX_MINOR_D
 	return parseMinorUnits(clampedDigits);
 }
 
+function formatCurrencyDisplay(
+	formattedNumber: string,
+	currencyCode: string,
+	displayMode: MoneyDisplayMode,
+): string {
+	if (displayMode === "explicit") {
+		return `${currencyCode} ${formattedNumber}`;
+	}
+
+	const symbol = resolveCurrencySymbol(currencyCode);
+	if (symbol && symbol !== currencyCode) {
+		return `${symbol}${formattedNumber}`;
+	}
+	return `${currencyCode} ${formattedNumber}`;
+}
+
 export function formatMoneyFromMinor(args: {
 	minorUnits: number;
 	currencyCode?: string | null;
 	scale?: number;
 	locale?: string | null;
+	displayMode?: MoneyDisplayMode | null;
 }): string {
 	const scale = Number.isFinite(args.scale) ? Math.max(0, Math.trunc(args.scale!)) : MONEY_MINOR_SCALE_DEFAULT;
 	const minorUnits = toNonNegativeInteger(args.minorUnits);
 	const divisor = 10 ** scale;
 	const major = minorUnits / divisor;
 	const code = String(args.currencyCode ?? "PHP").trim().toUpperCase() || "PHP";
+	const displayMode = normalizeMoneyDisplayMode(args.displayMode);
 
 	try {
 		if (typeof Intl !== "undefined" && typeof Intl.NumberFormat === "function") {
 			const locale = String(args.locale ?? "").trim() || undefined;
-			return new Intl.NumberFormat(locale, {
-				style: "currency",
-				currency: code,
-				currencyDisplay: "symbol",
+			const formattedNumber = new Intl.NumberFormat(locale, {
+				style: "decimal",
 				minimumFractionDigits: scale,
 				maximumFractionDigits: scale,
 			}).format(major);
+			return formatCurrencyDisplay(formattedNumber, code, displayMode);
 		}
 	} catch {
 		// fall through
 	}
 
-	return `${code} ${major.toFixed(scale)}`;
+	return formatCurrencyDisplay(major.toFixed(scale), code, displayMode);
 }
 
 export function formatMinorUnits(args: {
@@ -78,6 +100,7 @@ export function formatMinorUnits(args: {
 	currencyCode?: string | null;
 	scale?: number;
 	locale?: string | null;
+	displayMode?: MoneyDisplayMode | null;
 }): string {
 	return formatMoneyFromMinor(args);
 }

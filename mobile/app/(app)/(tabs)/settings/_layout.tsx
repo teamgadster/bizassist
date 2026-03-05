@@ -56,6 +56,9 @@ export default function SettingsStackLayout() {
 			}}
 		>
 			<Stack.Screen name='index' options={{ headerShown: false, animation: "none" }} />
+			<Stack.Screen name='discounts/index' options={{ headerShown: false }} />
+			<Stack.Screen name='items-services/products/manage-stock' options={{ headerShown: false }} />
+			<Stack.Screen name='items-services/products/stock-received' options={{ headerShown: false }} />
 		</Stack>
 	);
 }

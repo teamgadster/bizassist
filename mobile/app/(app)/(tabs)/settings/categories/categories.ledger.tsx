@@ -2,10 +2,11 @@
 // path: app/(app)/(tabs)/settings/categories/categories.ledger.tsx
 //
 // Header governance:
-// - This is a Settings detail/workspace screen -> use BACK (not Exit).
-// - Back follows navigation history (stack back).
+// - Manage categories uses BACK chrome, but this root management surface exits deterministically.
+// - Header Back should not rely on history because duplicate ledger entries can self-pop first.
 
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { FlatList, Keyboard, StyleSheet, TouchableWithoutFeedback, View } from "react-native";
@@ -13,15 +14,15 @@ import { Stack, useRouter } from "expo-router";
 import { useTheme } from "react-native-paper";
 
 import { BAIActivityIndicator } from "@/components/system/BAIActivityIndicator";
-import { BAIButton } from "@/components/ui/BAIButton";
 import { BAIGroupTabs, type BAIGroupTab } from "@/components/ui/BAIGroupTabs";
+import { BAIHeader } from "@/components/ui/BAIHeader";
 import { BAIPressableRow } from "@/components/ui/BAIPressableRow";
 import { BAIRetryButton } from "@/components/ui/BAIRetryButton";
 import { BAIScreen } from "@/components/ui/BAIScreen";
 import { BAISurface } from "@/components/ui/BAISurface";
 import { BAISearchBar } from "@/components/ui/BAISearchBar";
 import { BAIText } from "@/components/ui/BAIText";
-import { SettingsScreenLayout, SettingsSectionTitle } from "@/components/settings/SettingsLayout";
+import { SettingsScreenLayout } from "@/components/settings/SettingsLayout";
 
 import { useAppBusy } from "@/hooks/useAppBusy";
 import { categoriesApi } from "@/modules/categories/categories.api";
@@ -30,8 +31,6 @@ import { categoryKeys } from "@/modules/categories/categories.queryKeys";
 import type { Category } from "@/modules/categories/categories.types";
 import { CategoryRow } from "@/modules/categories/components/CategoryRow";
 import { useActiveBusinessMeta } from "@/modules/business/useActiveBusinessMeta";
-import { useAppHeader } from "@/modules/navigation/useAppHeader";
-import { useInventoryHeader } from "@/modules/inventory/useInventoryHeader";
 import { formatCompactNumber } from "@/lib/locale/businessLocale";
 import { FIELD_LIMITS } from "@/shared/fieldLimits";
 import { sanitizeSearchInput } from "@/shared/validation/sanitize";
@@ -99,7 +98,7 @@ export function CategoriesLedgerScreen({
 	}, []);
 
 	const isUiDisabled = isBusy;
-	const contentMaxWidth = isTablet ? 1100 : undefined;
+	const contentMaxWidth = isTablet ? 720 : undefined;
 
 	const queryParams = useMemo(() => ({ q: q || undefined, limit: 250 }), [q]);
 	const query = useQuery<{ items: Category[] }>({
@@ -177,21 +176,10 @@ export function CategoriesLedgerScreen({
 		router.push(CATEGORY_CREATE_ROUTE_BY_MODE[mode] as any);
 	}, [isUiDisabled, lockNav, mode, router]);
 
-	const onCancel = useCallback(() => {
-		Keyboard.dismiss();
-		if (isUiDisabled) return;
-		if (!lockNav()) return;
-		router.replace(ROOT_ROUTE_BY_MODE[mode] as any);
-	}, [isUiDisabled, lockNav, mode, router]);
-
 	const onBack = useCallback(() => {
 		Keyboard.dismiss();
 		if (isUiDisabled) return;
 		if (!lockNav()) return;
-		if (router.canGoBack?.()) {
-			router.back();
-			return;
-		}
 		router.replace(ROOT_ROUTE_BY_MODE[mode] as any);
 	}, [isUiDisabled, lockNav, mode, router]);
 
@@ -203,13 +191,6 @@ export function CategoriesLedgerScreen({
 	}, [isUiDisabled, lockNav, router]);
 
 	const borderColor = theme.colors.outlineVariant ?? theme.colors.outline;
-	const settingsHeaderOptions = useAppHeader("detail", { title: "Manage Categories", disabled: isUiDisabled, onBack });
-	const inventoryHeaderOptions = useInventoryHeader("detail", {
-		title: "Manage Categories",
-		disabled: isUiDisabled,
-		onBack,
-	});
-	const headerOptions = mode === "settings" ? settingsHeaderOptions : inventoryHeaderOptions;
 	const list =
 		filteredItems.length > 0 ? (
 			<FlatList
@@ -239,69 +220,57 @@ export function CategoriesLedgerScreen({
 
 	return (
 		<>
-			<Stack.Screen options={headerOptions} />
+			<Stack.Screen options={{ headerShown: false }} />
 			<BAIScreen tabbed padded={false} safeTop={false} safeBottom={false} style={styles.root}>
+				<BAIHeader
+					title='Manage Categories'
+					variant='back'
+					onLeftPress={onBack}
+					onRightPress={onCreate}
+					disabled={isUiDisabled}
+					rightSlot={({ disabled }) => (
+						<View style={[styles.addCircle, { backgroundColor: theme.colors.primary, opacity: disabled ? 0.5 : 1 }]}>
+							<MaterialCommunityIcons name='plus' size={28} color={theme.colors.onPrimary} />
+						</View>
+					)}
+				/>
 				<TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
 					<SettingsScreenLayout
-						screenStyle={{ paddingBottom: screenBottomPad }}
+						screenStyle={{ paddingTop: 0, paddingBottom: screenBottomPad }}
+						columnStyle={styles.contentColumn}
 						maxWidth={contentMaxWidth}
 					>
 						<BAISurface style={[styles.card, { borderColor }]} padded bordered>
-							<SettingsSectionTitle>Categories</SettingsSectionTitle>
-
 							<View style={styles.controls}>
-									<View style={styles.actionsRow}>
-										<BAIButton
-											variant='outline'
-											intent='neutral'
-											shape='pill'
-											widthPreset='standard'
-											onPress={onCancel}
-											disabled={isUiDisabled}
-											style={styles.actionButton}
-										>
-											Cancel
-										</BAIButton>
-										<BAIButton
-											shape='pill'
-											onPress={onCreate}
-											disabled={isUiDisabled}
-											widthPreset='standard'
-											style={styles.actionButton}
-										>
-											Create
-										</BAIButton>
-									</View>
-
-									{mode === "settings" ? (
-										<BAIPressableRow
-											label='Category Visibility'
-											value={visibilityRowValue}
-											onPress={onPressVisibility}
-											disabled={isUiDisabled}
-											style={styles.visibilityRow}
-										/>
-									) : null}
-
-									<BAISearchBar
-										value={qText}
-										onChangeText={(v) => {
-											const cleaned = sanitizeSearchInput(v);
-											setQText(cleaned.length > FIELD_LIMITS.search ? cleaned.slice(0, FIELD_LIMITS.search) : cleaned);
-										}}
-										placeholder='Search categories...'
-										maxLength={FIELD_LIMITS.search}
-										onClear={hasSearch ? onClearSearch : undefined}
+								{mode === "settings" ? (
+									<BAIPressableRow
+										label='Category Visibility'
+										value={visibilityRowValue}
+										onPress={onPressVisibility}
 										disabled={isUiDisabled}
+										style={styles.visibilityRow}
 									/>
+								) : null}
 
-									<BAIGroupTabs
-										tabs={categoryTabs}
-										value={filter}
-										onChange={setFilter}
-										disabled={isUiDisabled}
-										countFormatter={(count) => formatCompactNumber(count, countryCode)}
-									/>
+								<BAISearchBar
+									value={qText}
+									onChangeText={(v) => {
+										const cleaned = sanitizeSearchInput(v);
+										setQText(cleaned.length > FIELD_LIMITS.search ? cleaned.slice(0, FIELD_LIMITS.search) : cleaned);
+									}}
+									placeholder='Search categories...'
+									maxLength={FIELD_LIMITS.search}
+									onClear={hasSearch ? onClearSearch : undefined}
+									disabled={isUiDisabled}
+								/>
+
+								<BAIGroupTabs
+									tabs={categoryTabs}
+									value={filter}
+									onChange={setFilter}
+									disabled={isUiDisabled}
+									countFormatter={(count) => formatCompactNumber(count, countryCode)}
+								/>
 							</View>
 
 							<View style={styles.listSection}>
@@ -361,24 +330,28 @@ export default function CategoriesLedgerRoute() {
 
 const styles = StyleSheet.create({
 	root: { flex: 1 },
+	contentColumn: {
+		flex: 1,
+		minHeight: 0,
+	},
 	card: {
 		flex: 1,
+		minHeight: 0,
 		borderRadius: 18,
-		gap: 10,
-	},
-	actionsRow: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 10,
+		gap: 12,
 	},
 	controls: {
-		gap: 10,
-	},
-	actionButton: {
-		flex: 1,
+		gap: 12,
 	},
 	visibilityRow: {
 		marginTop: 0,
+	},
+	addCircle: {
+		width: 44,
+		height: 44,
+		borderRadius: 22,
+		alignItems: "center",
+		justifyContent: "center",
 	},
 	listSection: {
 		flex: 1,

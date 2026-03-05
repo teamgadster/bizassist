@@ -2,34 +2,33 @@
 // path: app/(app)/(tabs)/settings/discounts/discounts.ledger.tsx
 //
 // Header governance:
-// - Manage discounts is a detail/workspace screen -> use BACK (not Exit).
-// - Cancel remains deterministic and exits to the owning ledger/root flow.
+// - Manage discounts uses BACK chrome, but this root management surface exits deterministically.
+// - Header Back and Cancel share the same governed target to avoid self-loop history pops.
 
 import React, { useCallback, useMemo, useState } from "react";
 import { FlatList, Keyboard, Pressable, StyleSheet, Text, TouchableWithoutFeedback, View } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import { Stack, useLocalSearchParams, usePathname, useRouter } from "expo-router";
+import { useLocalSearchParams, usePathname, useRouter } from "expo-router";
 import { useTheme } from "react-native-paper";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 
 import { BAIActivityIndicator } from "@/components/system/BAIActivityIndicator";
 import { BAIButton } from "@/components/ui/BAIButton";
 import { BAIGroupTabs, type BAIGroupTab } from "@/components/ui/BAIGroupTabs";
+import { BAIHeader } from "@/components/ui/BAIHeader";
 import { BAIPressableRow } from "@/components/ui/BAIPressableRow";
 import { BAIRetryButton } from "@/components/ui/BAIRetryButton";
 import { BAIScreen } from "@/components/ui/BAIScreen";
 import { BAISearchBar } from "@/components/ui/BAISearchBar";
 import { BAISurface } from "@/components/ui/BAISurface";
 import { BAIText } from "@/components/ui/BAIText";
-import { SettingsScreenLayout, SettingsSectionTitle } from "@/components/settings/SettingsLayout";
+import { SettingsScreenLayout } from "@/components/settings/SettingsLayout";
 
 import { useAppBusy } from "@/hooks/useAppBusy";
 import { useActiveBusinessMeta } from "@/modules/business/useActiveBusinessMeta";
 import { useDiscountVisibilityQuery, useDiscountsList } from "@/modules/discounts/discounts.queries";
 import type { Discount } from "@/modules/discounts/discounts.types";
-import { useAppHeader } from "@/modules/navigation/useAppHeader";
-import { useInventoryHeader } from "@/modules/inventory/useInventoryHeader";
 import { formatCompactNumber } from "@/lib/locale/businessLocale";
 import { FIELD_LIMITS } from "@/shared/fieldLimits";
 import { useNavLock } from "@/shared/hooks/useNavLock";
@@ -224,24 +223,8 @@ export function DiscountsLedgerScreen({
 
 	const onBack = useCallback(() => {
 		if (isUiDisabled) return;
-		if (router.canGoBack?.()) {
-			router.back();
-			return;
-		}
 		onCancel();
-	}, [isUiDisabled, onCancel, router]);
-
-	const settingsHeaderOptions = useAppHeader("detail", {
-		title: "Manage Discounts",
-		disabled: isUiDisabled,
-		onBack,
-	});
-	const inventoryHeaderOptions = useInventoryHeader("detail", {
-		title: "Manage Discounts",
-		disabled: isUiDisabled,
-		onBack,
-	});
-	const headerOptions = mode === "settings" ? settingsHeaderOptions : inventoryHeaderOptions;
+	}, [isUiDisabled, onCancel]);
 
 	const [qText, setQText] = useState("");
 	const q = qText.trim();
@@ -320,45 +303,21 @@ export function DiscountsLedgerScreen({
 		[mode, returnTo, router, safePush],
 	);
 
-	const list =
-		filteredItems.length > 0 ? (
-			<FlatList
-				data={filteredItems}
-				keyExtractor={(it) => it.id}
-				contentContainerStyle={styles.listContent}
-				style={styles.list}
-				keyboardShouldPersistTaps='handled'
-				renderItem={({ item }) => (
-					<DiscountRow
-						item={item}
-						onPress={() => openDetails(item.id)}
-						disabled={isUiDisabled}
-						currencyCode={currencyCode}
-						isHidden={hiddenDiscountIds.has(item.id)}
-					/>
-				)}
-				ItemSeparatorComponent={() => <View style={styles.itemGap} />}
-				showsVerticalScrollIndicator={false}
-			/>
-		) : null;
-
 	const onClearSearch = useCallback(() => {
 		Keyboard.dismiss();
 		setQText("");
 	}, []);
 
 	return (
-		<>
-			<Stack.Screen options={headerOptions} />
-
-			<BAIScreen tabbed padded={false} safeTop={false} safeBottom={false} style={styles.root}>
-				<TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-					<SettingsScreenLayout
-						screenStyle={{ paddingBottom: screenBottomPad }}
-						maxWidth={contentMaxWidth}
-					>
-						<BAISurface style={[styles.card, { borderColor }]} padded bordered>
-							<SettingsSectionTitle>Discounts</SettingsSectionTitle>
+		<BAIScreen tabbed padded={false} safeTop={false} safeBottom={false} style={styles.root}>
+			<BAIHeader title='Manage Discounts' variant='back' onLeftPress={onBack} disabled={isUiDisabled} />
+			<TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+				<SettingsScreenLayout
+					screenStyle={{ paddingTop: 0, paddingBottom: screenBottomPad }}
+					columnStyle={styles.contentColumn}
+					maxWidth={contentMaxWidth}
+				>
+					<BAISurface style={[styles.card, { borderColor }]} padded bordered>
 
 							<View style={styles.controls}>
 								<View style={styles.actionsRow}>
@@ -416,53 +375,69 @@ export function DiscountsLedgerScreen({
 							</View>
 
 							<View style={styles.listSection}>
-									{query.isLoading ? (
-										<View style={styles.loading}>
-											<BAIActivityIndicator />
-											<View style={{ height: 10 }} />
-											<BAIText variant='body' muted>
-												Loading...
-											</BAIText>
-										</View>
-									) : null}
-
-									{!query.isLoading && query.isError ? (
-										<View style={styles.errorBox}>
-											<BAIText variant='caption' muted>
-												Failed to load discounts.
-											</BAIText>
-											<View style={{ height: 10 }} />
-											<BAIRetryButton onPress={() => query.refetch()} disabled={isUiDisabled}>
-												Retry
-											</BAIRetryButton>
-										</View>
-									) : null}
-
-									{!query.isLoading && !query.isError && !hasAnyFiltered ? (
-										<View style={styles.emptyBox}>
-											{hasSearch ? (
-												<BAIText variant='caption' muted style={styles.emptyText}>
-													No discounts match {`"${q}"`}.
+								<FlatList
+									data={query.isLoading || query.isError ? [] : filteredItems}
+									keyExtractor={(it) => it.id}
+									contentContainerStyle={[
+										styles.listContent,
+										!query.isLoading && !query.isError && hasAnyFiltered ? null : styles.listContentEmpty,
+									]}
+									style={styles.list}
+									keyboardShouldPersistTaps='handled'
+									renderItem={({ item }) => (
+										<DiscountRow
+											item={item}
+											onPress={() => openDetails(item.id)}
+											disabled={isUiDisabled}
+											currencyCode={currencyCode}
+											isHidden={hiddenDiscountIds.has(item.id)}
+										/>
+									)}
+									ItemSeparatorComponent={() => <View style={styles.itemGap} />}
+									showsVerticalScrollIndicator={false}
+									ListEmptyComponent={
+										query.isLoading ? (
+											<View style={styles.stateBox}>
+												<BAIActivityIndicator />
+												<View style={{ height: 10 }} />
+												<BAIText variant='body' muted>
+													Loading...
 												</BAIText>
-											) : (
+											</View>
+										) : query.isError ? (
+											<View style={styles.stateBox}>
 												<BAIText variant='caption' muted>
-													{filter === "active"
-														? "No active discounts."
-														: filter === "archived"
-															? "No archived discounts."
-															: "No discounts available."}
+													Failed to load discounts.
 												</BAIText>
-											)}
-										</View>
-									) : null}
-
-									{!query.isLoading ? list : null}
+												<View style={{ height: 10 }} />
+												<BAIRetryButton onPress={() => query.refetch()} disabled={isUiDisabled}>
+													Retry
+												</BAIRetryButton>
+											</View>
+										) : (
+											<View style={styles.stateBox}>
+												{hasSearch ? (
+													<BAIText variant='caption' muted style={styles.emptyText}>
+														No discounts match {`"${q}"`}.
+													</BAIText>
+												) : (
+													<BAIText variant='caption' muted>
+														{filter === "active"
+															? "No active discounts."
+															: filter === "archived"
+																? "No archived discounts."
+																: "No discounts available."}
+													</BAIText>
+												)}
+											</View>
+										)
+									}
+								/>
 							</View>
-						</BAISurface>
-					</SettingsScreenLayout>
-				</TouchableWithoutFeedback>
-			</BAIScreen>
-		</>
+					</BAISurface>
+				</SettingsScreenLayout>
+			</TouchableWithoutFeedback>
+		</BAIScreen>
 	);
 }
 
@@ -470,11 +445,16 @@ export default DiscountsLedgerScreen;
 
 const styles = StyleSheet.create({
 	root: { flex: 1 },
+	contentColumn: {
+		flex: 1,
+		minHeight: 0,
+	
+	},
 	card: {
 		flex: 1,
+		minHeight: 0,
 		position: "relative",
 		borderRadius: 18,
-		gap: 10,
 	},
 	controls: {
 		gap: 10,
@@ -494,21 +474,20 @@ const styles = StyleSheet.create({
 		flex: 1,
 		minHeight: 0,
 	},
-	loading: {
-		paddingTop: 18,
+	stateBox: {
+		flex: 1,
+		minHeight: 0,
 		alignItems: "center",
-	},
-	errorBox: {
-		paddingTop: 12,
-	},
-	emptyBox: {
-		paddingTop: 14,
-		alignItems: "center",
+		justifyContent: "center",
+		padding: 16,
 	},
 	emptyText: {
 		textAlign: "center",
 	},
 	listContent: { paddingVertical: 8 },
+	listContentEmpty: {
+		flexGrow: 1,
+	},
 	itemGap: { height: 0 },
 	list: {
 		flex: 1,

@@ -61,7 +61,6 @@ export default function PosLayout() {
 			<Stack.Screen name='discounts/select' />
 			<Stack.Screen name='discounts/enter-value' />
 			<Stack.Screen name='cart/edit-quantity' />
-			<Stack.Screen name='attributes/select' />
 		</Stack>
 	);
 }

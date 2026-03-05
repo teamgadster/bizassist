@@ -1,5 +1,8 @@
 # Navigation Governance Matrix — 2026-02-22
 
+Quick index:
+- Bottom sheet vs modal selection criteria: see **MASTERPLAN 1.13 Bottom Sheet vs Modal Selection Governance (Locked)** and **memory 2026-03-05 Bottom Sheet vs Modal Selection Lock**.
+
 ## Scope
 
 This matrix documents current mobile header-governance wiring after the Back vs Exit refactor and fallback hardening pass.

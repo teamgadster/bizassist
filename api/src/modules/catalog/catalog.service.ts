@@ -21,6 +21,12 @@ import type {
 	CatalogListProductsResult,
 	CatalogProduct,
 	CreateProductInput,
+	GenerateProductVariationsInput,
+	GenerateProductVariationsResult,
+	SyncManualProductVariationsInput,
+	SyncManualProductVariationsResult,
+	PreviewProductVariationsInput,
+	PreviewProductVariationsResult,
 	UpdateProductInput,
 } from "./catalog.types";
 import {
@@ -28,7 +34,10 @@ import {
 	CATALOG_LIST_MAX_LIMIT,
 	CATALOG_USAGE_WARNING_THRESHOLD,
 	MAX_MODIFIER_GROUPS_PER_PRODUCT,
+	MAX_OPTION_VALUES_PER_SET,
 	MAX_PRODUCTS_PER_BUSINESS,
+	MAX_VARIATIONS_PER_PRODUCT,
+	VARIATION_WARNING_THRESHOLD,
 } from "@/shared/catalogLimits";
 
 const SKU_PREFIX = "I-";
@@ -286,6 +295,68 @@ function maybeLogCatalogUsageWarning(args: { businessId: string; count: number }
 	});
 }
 
+type NormalizedVariationSelection = {
+	optionSetId: string;
+	optionSetName: string;
+	optionSetSortOrder: number;
+	values: Array<{
+		optionValueId: string;
+		name: string;
+		sortOrder: number;
+	}>;
+};
+
+function dedupeStringArray(values: string[]): string[] {
+	return Array.from(new Set(values.map((value) => String(value).trim()).filter(Boolean)));
+}
+
+function cartesianProduct<T>(arrays: T[][]): T[][] {
+	if (arrays.length === 0) return [];
+	return arrays.reduce<T[][]>((acc, cur) => {
+		if (acc.length === 0) return cur.map((item) => [item]);
+		return acc.flatMap((prefix) => cur.map((item) => [...prefix, item]));
+	}, []);
+}
+
+function buildPreviewItems(selections: NormalizedVariationSelection[]) {
+	const combos = cartesianProduct(selections.map((selection) => selection.values));
+
+	return combos.map((combo, idx) => {
+		const pairs = combo.map((value, selectionIndex) => ({
+			optionSetId: selections[selectionIndex].optionSetId,
+			optionValueId: value.optionValueId,
+			optionSetSortOrder: selections[selectionIndex].optionSetSortOrder,
+			optionValueSortOrder: value.sortOrder,
+			optionValueName: value.name,
+		}));
+
+		const sortedPairs = pairs
+			.slice()
+			.sort((a, b) =>
+				a.optionSetSortOrder === b.optionSetSortOrder
+					? a.optionValueSortOrder - b.optionValueSortOrder
+					: a.optionSetSortOrder - b.optionSetSortOrder,
+			);
+
+		const variationKey = sortedPairs.map((pair) => `${pair.optionSetId}:${pair.optionValueId}`).join("|");
+		const label = sortedPairs.map((pair) => pair.optionValueName).join(", ");
+		const valueMap = sortedPairs.reduce(
+			(acc, pair) => {
+				acc[pair.optionSetId] = pair.optionValueId;
+				return acc;
+			},
+			{} as Record<string, string>,
+		);
+
+		return {
+			variationKey,
+			label,
+			valueMap,
+			sortOrder: idx,
+		};
+	});
+}
+
 async function toCatalogProduct(p: any): Promise<CatalogProduct> {
 	const primaryImageUrl = await resolveProductImageUrl(p.primaryImageUrl ?? null);
 	const priceMinor = resolveMoneyMinor(p.priceMinor, p.price);
@@ -345,6 +416,104 @@ async function toCatalogProduct(p: any): Promise<CatalogProduct> {
 export class CatalogService {
 	private repo = new CatalogRepository(prisma);
 
+	private async assertProductBelongsToBusiness(businessId: string, productId: string) {
+		const product = await this.repo.getProductById({ businessId, id: productId });
+		if (!product) throw new AppError(StatusCodes.NOT_FOUND, "PRODUCT_NOT_FOUND", "Product not found.");
+		return product;
+	}
+
+	private async resolveVariationSelections(
+		businessId: string,
+		input: PreviewProductVariationsInput,
+	): Promise<NormalizedVariationSelection[]> {
+		const selections = (input.selections ?? []).map((selection) => ({
+			optionSetId: String(selection.optionSetId).trim(),
+			optionValueIds: dedupeStringArray(selection.optionValueIds ?? []),
+		}));
+
+		if (selections.length === 0) {
+			throw AppError.badRequest("At least one option selection is required.", "VARIATION_SELECTIONS_REQUIRED");
+		}
+
+		if (selections.length > MAX_MODIFIER_GROUPS_PER_PRODUCT) {
+			throw new AppError(
+				StatusCodes.UNPROCESSABLE_ENTITY,
+				`Max ${MAX_MODIFIER_GROUPS_PER_PRODUCT} option sets per product.`,
+				"OPTION_SET_SELECTIONS_LIMIT",
+			);
+		}
+
+		const optionSetIds = dedupeStringArray(selections.map((selection) => selection.optionSetId));
+		if (optionSetIds.length !== selections.length) {
+			throw AppError.badRequest("Duplicate option sets are not allowed.", "OPTION_SET_DUPLICATE");
+		}
+
+		const sets = await prisma.optionSet.findMany({
+			where: { businessId, id: { in: optionSetIds }, isActive: true },
+			select: {
+				id: true,
+				name: true,
+				sortOrder: true,
+				optionValues: {
+					where: { isActive: true },
+					select: { id: true, value: true, sortOrder: true },
+					orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+				},
+			},
+		});
+
+		if (sets.length !== optionSetIds.length) {
+			throw AppError.badRequest("One or more option sets are invalid or archived.", "OPTION_SET_INVALID");
+		}
+
+		const setById = new Map(sets.map((set) => [set.id, set]));
+		const normalized: NormalizedVariationSelection[] = [];
+
+		for (const selection of selections) {
+			if (selection.optionValueIds.length === 0) {
+				throw AppError.badRequest("Each option set must include at least one option value.", "OPTION_VALUES_REQUIRED");
+			}
+
+			if (selection.optionValueIds.length > MAX_OPTION_VALUES_PER_SET) {
+				throw new AppError(
+					StatusCodes.UNPROCESSABLE_ENTITY,
+					`Max ${MAX_OPTION_VALUES_PER_SET} values per option set in one request.`,
+					"OPTION_VALUE_SELECTIONS_LIMIT",
+				);
+			}
+
+			const set = setById.get(selection.optionSetId);
+			if (!set) {
+				throw AppError.badRequest("One or more option sets are invalid or archived.", "OPTION_SET_INVALID");
+			}
+
+			const valuesById = new Map(set.optionValues.map((value) => [value.id, value]));
+			const selectedValues = selection.optionValueIds.map((optionValueId) => {
+				const value = valuesById.get(optionValueId);
+				if (!value) {
+					throw AppError.badRequest(
+						"One or more option values are invalid for the selected option set.",
+						"OPTION_VALUE_INVALID",
+					);
+				}
+				return {
+					optionValueId: value.id,
+					name: value.value,
+					sortOrder: value.sortOrder,
+				};
+			});
+
+			normalized.push({
+				optionSetId: set.id,
+				optionSetName: set.name,
+				optionSetSortOrder: set.sortOrder,
+				values: selectedValues,
+			});
+		}
+
+		return normalized.sort((a, b) => a.optionSetSortOrder - b.optionSetSortOrder);
+	}
+
 	async listProducts(businessId: string, query: CatalogListProductsQuery): Promise<CatalogListProductsResult> {
 		const limit = Math.min(Math.max(query.limit ?? CATALOG_LIST_DEFAULT_LIMIT, 1), CATALOG_LIST_MAX_LIMIT);
 		const includeArchived = query.includeArchived === true;
@@ -366,6 +535,273 @@ export class CatalogService {
 		const p = await this.repo.getProductById({ businessId, id });
 		if (!p) throw new AppError(StatusCodes.NOT_FOUND, "PRODUCT_NOT_FOUND", "Product not found.");
 		return await toCatalogProduct(p);
+	}
+
+	async previewProductVariations(
+		businessId: string,
+		productId: string,
+		input: PreviewProductVariationsInput,
+	): Promise<PreviewProductVariationsResult> {
+		await this.assertProductBelongsToBusiness(businessId, productId);
+		const normalizedSelections = await this.resolveVariationSelections(businessId, input);
+
+		const total = normalizedSelections.reduce((acc, selection) => acc * selection.values.length, 1);
+		if (total > MAX_VARIATIONS_PER_PRODUCT) {
+			throw new AppError(
+				StatusCodes.UNPROCESSABLE_ENTITY,
+				`Max ${MAX_VARIATIONS_PER_PRODUCT} variations per product.`,
+				"VARIATION_LIMIT_REACHED",
+			);
+		}
+
+		const items = buildPreviewItems(normalizedSelections);
+		return {
+			items,
+			total,
+			warning: total >= VARIATION_WARNING_THRESHOLD,
+		};
+	}
+
+	async generateProductVariations(
+		businessId: string,
+		productId: string,
+		input: GenerateProductVariationsInput,
+	): Promise<GenerateProductVariationsResult> {
+		await this.assertProductBelongsToBusiness(businessId, productId);
+		const normalizedSelections = await this.resolveVariationSelections(businessId, input);
+		const total = normalizedSelections.reduce((acc, selection) => acc * selection.values.length, 1);
+
+		if (total > MAX_VARIATIONS_PER_PRODUCT) {
+			throw new AppError(
+				StatusCodes.UNPROCESSABLE_ENTITY,
+				`Max ${MAX_VARIATIONS_PER_PRODUCT} variations per product.`,
+				"VARIATION_LIMIT_REACHED",
+			);
+		}
+
+		const items = buildPreviewItems(normalizedSelections);
+		const selectedKeysRaw = Array.isArray(input.selectedVariationKeys)
+			? dedupeStringArray(input.selectedVariationKeys)
+			: [];
+		const selectedKeysSet = new Set(selectedKeysRaw);
+		const filteredItems =
+			selectedKeysRaw.length === 0
+				? items
+				: items.filter((item) => selectedKeysSet.has(item.variationKey)).map((item, idx) => ({ ...item, sortOrder: idx }));
+
+		if (selectedKeysRaw.length > 0 && filteredItems.length !== selectedKeysRaw.length) {
+			throw AppError.badRequest(
+				"One or more selected variation keys are invalid for the current selection set.",
+				"VARIATION_KEY_INVALID",
+			);
+		}
+
+		await prisma.$transaction(async (tx) => {
+			await tx.productOptionSet.deleteMany({ where: { businessId, productId } });
+
+			if (normalizedSelections.length > 0) {
+				await tx.productOptionSet.createMany({
+					data: normalizedSelections.map((selection, idx) => ({
+						businessId,
+						productId,
+						optionSetId: selection.optionSetId,
+						sortOrder: idx,
+					})),
+				});
+			}
+
+			const existingVariations = await tx.productVariation.findMany({
+				where: { businessId, productId },
+				select: { id: true, variationKey: true },
+			});
+			const existingVariationByKey = new Map(
+				existingVariations.map((variation) => [variation.variationKey, variation]),
+			);
+			const nextVariationKeySet = new Set(filteredItems.map((item) => item.variationKey));
+
+			for (const item of filteredItems) {
+				const existingVariation = existingVariationByKey.get(item.variationKey);
+				const savedVariation = existingVariation
+					? await tx.productVariation.update({
+							where: { id: existingVariation.id },
+							data: {
+								displayName: item.label,
+								sortOrder: item.sortOrder,
+								isActive: true,
+								archivedAt: null,
+							},
+							select: { id: true },
+					  })
+					: await tx.productVariation.create({
+							data: {
+								businessId,
+								productId,
+								displayName: item.label,
+								variationKey: item.variationKey,
+								sortOrder: item.sortOrder,
+							},
+							select: { id: true },
+					  });
+
+				await tx.variationOptionValue.deleteMany({
+					where: {
+						businessId,
+						variationId: savedVariation.id,
+					},
+				});
+
+				const pairs = Object.entries(item.valueMap);
+				if (pairs.length > 0) {
+					await tx.variationOptionValue.createMany({
+						data: pairs.map(([optionSetId, optionValueId], idx) => ({
+							businessId,
+							variationId: savedVariation.id,
+							optionSetId,
+							optionValueId,
+							sortOrder: idx,
+						})),
+					});
+				}
+			}
+
+			const archiveVariationIds = existingVariations
+				.filter((variation) => !nextVariationKeySet.has(variation.variationKey))
+				.map((variation) => variation.id);
+			if (archiveVariationIds.length > 0) {
+				await tx.productVariation.updateMany({
+					where: {
+						businessId,
+						productId,
+						id: { in: archiveVariationIds },
+					},
+					data: {
+						isActive: false,
+						archivedAt: new Date(),
+					},
+				});
+			}
+
+			await tx.product.update({
+				where: { id: productId },
+				data: {
+					hasVariations: filteredItems.length > 0,
+					updatedAt: new Date(),
+				},
+				select: { id: true },
+			});
+		});
+
+		return { count: filteredItems.length };
+	}
+
+	async syncManualProductVariations(
+		businessId: string,
+		productId: string,
+		input: SyncManualProductVariationsInput,
+	): Promise<SyncManualProductVariationsResult> {
+		await this.assertProductBelongsToBusiness(businessId, productId);
+
+		const seenKeys = new Set<string>();
+		const normalized = input.variations
+			.map((variation, idx) => ({
+				variationKey: String(variation.variationKey ?? "").trim(),
+				label: String(variation.label ?? "").trim(),
+				sortOrder:
+					typeof variation.sortOrder === "number" && Number.isFinite(variation.sortOrder)
+						? Math.max(0, Math.trunc(variation.sortOrder))
+						: idx,
+			}))
+			.filter((variation) => variation.variationKey.length > 0 && variation.label.length > 0)
+			.filter((variation) => {
+				if (seenKeys.has(variation.variationKey)) return false;
+				seenKeys.add(variation.variationKey);
+				return true;
+			})
+			.sort((a, b) => a.sortOrder - b.sortOrder)
+			.map((variation, idx) => ({ ...variation, sortOrder: idx }));
+
+		if (normalized.length === 0) {
+			throw AppError.badRequest("At least one variation is required.", "VARIATION_REQUIRED");
+		}
+
+		if (normalized.length > MAX_VARIATIONS_PER_PRODUCT) {
+			throw new AppError(
+				StatusCodes.UNPROCESSABLE_ENTITY,
+				`Max ${MAX_VARIATIONS_PER_PRODUCT} variations per product.`,
+				"VARIATION_LIMIT_REACHED",
+			);
+		}
+
+		await prisma.$transaction(async (tx) => {
+			await tx.productOptionSet.deleteMany({ where: { businessId, productId } });
+
+			const existingVariations = await tx.productVariation.findMany({
+				where: { businessId, productId },
+				select: { id: true, variationKey: true },
+			});
+			const existingVariationByKey = new Map(existingVariations.map((variation) => [variation.variationKey, variation]));
+			const nextVariationKeySet = new Set(normalized.map((variation) => variation.variationKey));
+
+			for (const variation of normalized) {
+				const existingVariation = existingVariationByKey.get(variation.variationKey);
+				const savedVariation = existingVariation
+					? await tx.productVariation.update({
+							where: { id: existingVariation.id },
+							data: {
+								displayName: variation.label,
+								sortOrder: variation.sortOrder,
+								isActive: true,
+								archivedAt: null,
+							},
+							select: { id: true },
+					  })
+					: await tx.productVariation.create({
+							data: {
+								businessId,
+								productId,
+								displayName: variation.label,
+								variationKey: variation.variationKey,
+								sortOrder: variation.sortOrder,
+							},
+							select: { id: true },
+					  });
+
+				await tx.variationOptionValue.deleteMany({
+					where: {
+						businessId,
+						variationId: savedVariation.id,
+					},
+				});
+			}
+
+			const archiveVariationIds = existingVariations
+				.filter((variation) => !nextVariationKeySet.has(variation.variationKey))
+				.map((variation) => variation.id);
+			if (archiveVariationIds.length > 0) {
+				await tx.productVariation.updateMany({
+					where: {
+						businessId,
+						productId,
+						id: { in: archiveVariationIds },
+					},
+					data: {
+						isActive: false,
+						archivedAt: new Date(),
+					},
+				});
+			}
+
+			await tx.product.update({
+				where: { id: productId },
+				data: {
+					hasVariations: normalized.length > 0,
+					updatedAt: new Date(),
+				},
+				select: { id: true },
+			});
+		});
+
+		return { count: normalized.length };
 	}
 
 	async createProduct(businessId: string, input: CreateProductInput): Promise<CatalogProduct> {

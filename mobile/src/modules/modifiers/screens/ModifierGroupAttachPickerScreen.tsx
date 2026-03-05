@@ -13,6 +13,8 @@ import { BAISearchBar } from "@/components/ui/BAISearchBar";
 import { BAISurface } from "@/components/ui/BAISurface";
 import { BAIText } from "@/components/ui/BAIText";
 import { useAppBusy } from "@/hooks/useAppBusy";
+import { formatCompactNumber } from "@/lib/locale/businessLocale";
+import { useActiveBusinessMeta } from "@/modules/business/useActiveBusinessMeta";
 import { modifiersApi } from "@/modules/modifiers/modifiers.api";
 import type { ModifierGroup } from "@/modules/modifiers/modifiers.types";
 import {
@@ -35,6 +37,7 @@ export function ModifierGroupAttachPickerScreen() {
 	const theme = useTheme();
 	const params = useLocalSearchParams<ModifierPickerInboundParams>();
 	const { busy } = useAppBusy();
+	const { countryCode } = useActiveBusinessMeta();
 	const pickerRoute = MODIFIER_PICKER_ROUTE;
 	const createRoute = INVENTORY_MODIFIER_CREATE_ROUTE;
 
@@ -98,6 +101,10 @@ export function ModifierGroupAttachPickerScreen() {
 	}, [items, search]);
 
 	const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
+	const selectedCountLabel = useMemo(
+		() => formatCompactNumber(selectedIds.length, countryCode),
+		[countryCode, selectedIds.length],
+	);
 	const initialSelectionSignature = useMemo(
 		() => [...parsedSelection.selectedModifierGroupIds].sort().join("|"),
 		[parsedSelection.selectedModifierGroupIds],
@@ -166,7 +173,7 @@ export function ModifierGroupAttachPickerScreen() {
 			<Stack.Screen options={{ headerShown: false }} />
 			<BAIScreen tabbed padded={false} safeTop={false} safeBottom style={styles.root}>
 				<BAIHeader
-					title='Select Modifiers'
+					title='Select Modifier Sets'
 					variant='back'
 					onLeftPress={onBack}
 					onRightPress={onConfirm}
@@ -238,12 +245,12 @@ export function ModifierGroupAttachPickerScreen() {
 										shape='pill'
 										style={styles.actionButton}
 									>
-										Create
+										Create Set
 									</BAIButton>
 								</View>
 
 								<BAIText variant='caption' muted style={styles.selectedCaption}>
-									{selectedIds.length} selected
+									{selectedCountLabel} selected
 								</BAIText>
 							</View>
 
@@ -251,7 +258,7 @@ export function ModifierGroupAttachPickerScreen() {
 								{query.isLoading ? (
 									<View style={styles.stateWrap}>
 										<BAIText variant='body' muted>
-											Loading modifiers...
+											Loading modifier sets...
 										</BAIText>
 									</View>
 								) : query.isError ? (
@@ -263,7 +270,7 @@ export function ModifierGroupAttachPickerScreen() {
 								) : filtered.length === 0 ? (
 									<View style={styles.stateWrap}>
 										<BAIText variant='body' muted>
-											No modifiers found.
+											No modifier sets found.
 										</BAIText>
 									</View>
 								) : (
@@ -276,6 +283,7 @@ export function ModifierGroupAttachPickerScreen() {
 												checked={selectedSet.has(item.id)}
 												onPress={() => toggle(item.id)}
 												disabled={isUiDisabled}
+												countryCode={countryCode}
 											/>
 										)}
 										contentContainerStyle={styles.listContent}
@@ -298,15 +306,18 @@ function ModifierRow({
 	checked,
 	onPress,
 	disabled,
+	countryCode,
 }: {
 	item: ModifierGroup;
 	checked: boolean;
 	onPress: () => void;
 	disabled?: boolean;
+	countryCode?: string | null;
 }) {
 	const theme = useTheme();
 	const outline = theme.colors.outlineVariant ?? theme.colors.outline;
 	const surfaceAlt = theme.colors.surfaceVariant ?? theme.colors.surface;
+	const optionCountLabel = formatCompactNumber(item.options.length, countryCode);
 	return (
 		<BAISurface style={[styles.rowCard, { borderColor: outline, backgroundColor: surfaceAlt }]} padded>
 			<Pressable
@@ -319,7 +330,7 @@ function ModifierRow({
 						{item.name}
 					</BAIText>
 					<BAIText variant='caption' muted numberOfLines={1}>
-						{item.options.length} option{item.options.length === 1 ? "" : "s"}
+						{optionCountLabel} option{item.options.length === 1 ? "" : "s"}
 					</BAIText>
 				</View>
 				<MaterialCommunityIcons

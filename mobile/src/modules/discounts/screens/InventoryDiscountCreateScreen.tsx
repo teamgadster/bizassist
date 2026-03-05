@@ -37,9 +37,9 @@ import {
 } from "@/shared/validation/percentageInput";
 import { useActiveBusinessMeta } from "@/modules/business/useActiveBusinessMeta";
 import {
-	buildInventoryDiscountDetailsRoute,
 	normalizeDiscountReturnTo,
-	resolveInventoryDiscountCreateExitRoute,
+	resolveDiscountCreateExitRoute,
+	resolveDiscountCreateSuccessRoute,
 } from "@/modules/discounts/discounts.navigation";
 import { useDiscountProcessExitGuard } from "@/modules/discounts/useDiscountProcessExitGuard";
 
@@ -100,6 +100,7 @@ export default function InventoryDiscountCreateScreen() {
 		const len = valueText.length;
 		return { start: len, end: len };
 	}, [type, valueText]);
+	const exitRoute = useMemo(() => resolveDiscountCreateExitRoute("inventory", returnTo), [returnTo]);
 
 	const nameCheck = useMemo(() => validateName(name), [name]);
 	const valueCheck = useMemo(() => validateValueByType(type, valueText), [type, valueText]);
@@ -124,9 +125,8 @@ export default function InventoryDiscountCreateScreen() {
 
 	const onExitBase = useCallback(() => {
 		if (isUiDisabled) return;
-		const route = resolveInventoryDiscountCreateExitRoute(returnTo);
-		safeReplace(router as any, route as any);
-	}, [isUiDisabled, returnTo, router, safeReplace]);
+		safeReplace(router as any, exitRoute as any);
+	}, [exitRoute, isUiDisabled, router, safeReplace]);
 	const onExit = useDiscountProcessExitGuard(onExitBase);
 
 	// NOTE governance:
@@ -189,12 +189,7 @@ export default function InventoryDiscountCreateScreen() {
 
 			try {
 				const created = await create.mutateAsync(payload);
-				if (returnTo) {
-					const route = resolveInventoryDiscountCreateExitRoute(returnTo);
-					safeReplace(router as any, route as any);
-					return;
-				}
-				safeReplace(router as any, buildInventoryDiscountDetailsRoute(created.id, null) as any);
+				safeReplace(router as any, resolveDiscountCreateSuccessRoute("inventory", created.id, returnTo) as any);
 			} catch (e: any) {
 				setError(extractDiscountSaveErrorMessage(e));
 			}

@@ -24,7 +24,437 @@ This document is the **north star** for how BizAssist is designed, built, and sh
 - Files Updated (path + one-line reason)
 - Unified patch diffs only
 
+## 0.1 BizAssist SaaS Engineering Governance Framework (Locked)
+
+BizAssist governance is enforced as a canonical **6-layer architecture framework**:
+
+1. Product UI / UX System Governance
+2. Backend Architecture Governance
+3. Data Model Governance
+4. Platform Integration Governance
+5. Mobile Engineering Governance
+6. Repository / File Structure Governance
+
+Implementation and review work must map to these layers and must not introduce parallel governance systems.
+
+Framework objectives:
+- UI consistency
+- stable APIs
+- predictable mobile state behavior
+- maintainable backend services
+- scalable repository architecture
+
+Audit lock:
+- governance coverage across these six layers is complete
+- no architectural governance layer is currently missing
+
+## 0.2 BizAssist Architecture Lawbook (Locked)
+
+Purpose:
+- The Architecture Lawbook defines non-negotiable engineering rules that protect long-term platform stability, scalability, and maintainability.
+- Violations must be corrected before acceptance.
+
+### Law 1 — Feature Ownership
+- Every feature must have a single owning module for business logic, API endpoints, and mutations.
+- Modules may consume other modules but must never override ownership.
+
+### Law 2 — Feature-First Architecture
+- Backend and mobile must use feature-first module structures:
+  - `api/src/modules/<feature>/`
+  - `mobile/src/modules/<feature>/`
+- Layer-first architecture as primary organization is prohibited.
+
+### Law 3 — Controllers Must Remain Thin
+- Controllers only handle HTTP input/output, validation handoff, and service invocation.
+- Business logic must live in services.
+
+### Law 4 — Repositories Are Database-Only
+- Repositories perform database access only.
+- No business logic, validation orchestration, or workflow orchestration in repositories.
+
+### Law 5 — APIs Must Be Backward Compatible
+- API contracts must remain stable for deployed clients.
+- Breaking changes require explicit versioning.
+- Safe evolution includes additive optional fields and careful enum extension.
+
+### Law 6 — Server State Belongs to React Query
+- Mobile server state must be managed through TanStack React Query.
+- React Query owns caching, synchronization, and invalidation.
+
+### Law 7 — UI State Must Remain Local
+- Temporary UI state remains local to screens where practical.
+- Global state must stay minimal and intentional.
+
+### Law 8 — Continuous Scroll Form Architecture
+- Forms must use continuous scroll with independent section surfaces.
+- A single large wrapper card around full-form content is prohibited.
+
+### Law 9 — One Primary Action per Screen Region
+- Each actionable region has one clear primary CTA.
+- Secondary CTAs are contextual and visually subordinate.
+
+### Law 10 — Domain Entities Must Have Stable Identity
+- Entities require stable primary keys.
+- Business identifiers (for example SKU/barcode) must remain separate mutable fields.
+
+### Law 11 — Schema Changes Must Be Safe
+- Prefer additive schema evolution.
+- Deprecate before removal.
+- Avoid destructive migrations in production paths.
+
+### Law 12 — Lifecycle Over Deletion
+- Critical entities should use lifecycle states (for example `ACTIVE`, `ARCHIVED`) rather than hard deletion.
+
+### Law 13 — API Endpoints Must Reflect Domain Ownership
+- Endpoint namespaces must map to owning domain responsibilities.
+- Mixed-responsibility endpoints are prohibited.
+
+### Law 14 — Feature Modules Must Remain Decoupled
+- Minimize cross-feature coupling.
+- Consume through shared utilities/contracts, not internal cross-module imports.
+
+### Law 15 — Repository Structure Must Remain Predictable
+- Backend modules should maintain canonical structure:
+  - controller
+  - service
+  - repository
+  - routes
+  - validators
+  - types
+- Mobile modules must group screens/components/api clients by feature.
+
+### Law 16 — Errors Must Be Structured and Understandable
+- Errors must return predictable structures with code and human-readable message.
+- Internal system details must not leak to clients.
+
+### Law 17 — Mutations Must Trigger Cache Updates
+- Writes must invalidate or update relevant caches deliberately and predictably.
+
+### Law 18 — Shared Components Must Remain Generic
+- Shared UI components must remain feature-agnostic.
+- Feature-specific components stay in feature modules.
+
+### Law 19 — Performance Must Be Preserved by Design
+- Architecture decisions must prioritize performance by default:
+  - efficient caching
+  - indexed query paths
+  - controlled payloads
+
+### Law 20 — Architecture Discipline Is Mandatory
+- Architecture rules are binding engineering constraints, not suggestions.
+- Non-compliant designs must be refactored before implementation/merge.
+
+Final principle:
+- Architecture discipline is the foundation of long-term BizAssist product stability.
+
+## 0.3 BizAssist Engineering Playbook (Locked)
+
+Purpose:
+- The Engineering Playbook is the operational development manual for day-to-day implementation, debugging, review, and delivery.
+- The Lawbook defines non-negotiable rules; the Playbook defines practical execution workflow.
+
+### Standard Engineering Workflow
+
+All feature work must follow:
+- Idea
+- Discovery
+- Architecture Design
+- Masterplan Approval
+- Implementation
+- Review
+- Merge
+
+No feature may bypass this workflow.
+
+### Discovery Phase Requirements
+
+Before implementation, discovery must produce:
+- user flow
+- affected modules
+- data model changes
+- mobile screen impact
+
+Discovery must identify:
+- feature intent and UX flow
+- ownership boundaries
+- architecture risks
+
+### Masterplan Approval Gate
+
+After discovery and before coding:
+- validate architecture compatibility
+- validate UI consistency
+- validate navigation compliance
+- validate module ownership
+
+Conflicting designs must be redesigned before implementation.
+
+### Implementation Phase Rules
+
+Implementation must:
+- follow feature ownership
+- preserve modular architecture
+- avoid unnecessary abstractions
+- respect API contracts
+- avoid architectural drift
+
+### Pull Request Review Checklist (Mandatory)
+
+Architecture:
+- Is ownership/module placement correct?
+
+Business logic:
+- Is workflow logic in services (not controllers)?
+
+Database:
+- Are schema changes safe and non-destructive?
+
+API:
+- Are contracts backward compatible?
+
+Mobile state:
+- Does server-state handling follow React Query governance?
+
+UI:
+- Does the screen follow section-surface architecture rules?
+
+Repository:
+- Does file structure remain feature-first and predictable?
+
+Performance:
+- Are unnecessary API calls and expensive query paths avoided?
+
+PRs failing these checks must be corrected before merge.
+
+### Debugging Workflow
+
+1. Reproduce consistently.
+2. Identify owning layer:
+   - UI
+   - state
+   - API
+   - service
+   - database
+3. Trace end-to-end data flow (UI to DB).
+4. Fix root cause; avoid symptom-only patches.
+
+### Bug Fix Principle
+
+- Prioritize root-cause resolution.
+- Temporary workarounds are exceptional and must be followed by scheduled permanent fixes.
+
+### Refactoring Rules
+
+Allowed:
+- simplify logic
+- remove duplication
+- improve naming
+
+Constraint:
+- no behavior change unless explicitly intended and reviewed.
+
+### Code Deletion Principle
+
+- Remove confirmed dead code.
+- Before deletion:
+  - verify unused status
+  - verify no dependent feature paths remain
+
+### Migration Safety Checklist
+
+For every migration:
+- verify safety
+- avoid destructive changes
+- test in development/staging prior to production
+
+Never deploy migrations that risk production data integrity.
+
+### API Change Procedure
+
+Before API modification:
+- evaluate deployed mobile compatibility impact
+
+Safe:
+- optional field additions
+- new endpoints
+
+Unsafe:
+- field removal
+- field rename
+- response contract changes
+
+Breaking changes require API versioning.
+
+### State Management Guidelines
+
+- Server data must be managed via React Query.
+- Queries must use stable keys.
+- Mutations must invalidate/update relevant caches.
+- Avoid manual non-React-Query server fetch/write patterns without explicit exception.
+
+### Form Development Rules
+
+- Keep form state local until explicit submit.
+- Validate before mutation.
+- Use continuous-scroll section architecture.
+
+### Performance Review Rules
+
+Every feature must evaluate:
+- render efficiency
+- API request volume
+- query/index performance for frequent access paths
+
+### Security Principle
+
+Security is mandatory in implementation:
+- validate all inputs
+- protect authenticated endpoints
+- avoid leaking internal system details
+
+### Documentation Standard
+
+Significant features must document:
+- feature description
+- API endpoints
+- data model changes
+
+### Final Principle
+
+The Engineering Playbook defines how BizAssist is built every day.
+Adherence is mandatory to keep the platform maintainable, scalable, and predictable.
+
+## 0.4 Architecture Decision Records (ADR) System (Locked)
+
+Purpose:
+- ADR is the official institutional memory for architectural decisions in BizAssist.
+- Architectural decisions must never rely on tribal knowledge.
+- If an engineer asks, “Why are we doing this?”, the answer must be “See ADR-XXXX.”
+
+### ADR Scope
+
+Create ADRs for strategic decisions affecting:
+- system architecture
+- data model architecture
+- product architecture
+- infrastructure architecture
+- cross-system governance
+- AI architecture
+
+Do not create ADRs for minor implementation tweaks (for example spacing-only UI changes, tiny refactors, or small non-strategic code edits).
+
+### ADR Storage and Format
+
+- Canonical directory:
+  - `docs/architecture/adr/`
+- ADR files are Markdown and immutable records:
+  - `ADR-0001-title.md`
+  - `ADR-0002-title.md`
+  - `ADR-0003-title.md`
+
+### Numbering and Immutability Rules
+
+- Sequential numbering, never reused.
+- ADR records are never deleted.
+- Status may evolve; record identity stays permanent.
+
+### Status Lifecycle
+
+Allowed statuses:
+- Proposed
+- Accepted
+- Deprecated
+- Superseded
+- Rejected
+
+### Mandatory ADR Template
+
+All ADRs must follow the canonical template in:
+- `docs/architecture/adr/TEMPLATE.md`
+
+### ADR Ownership
+
+Ownership by decision scope:
+- System Architecture:
+  - owner: System Architect / Founder
+- Product Architecture:
+  - owner: Product Architecture Authority
+- Infrastructure Architecture:
+  - owner: Platform / DevOps
+
+### ADR Review Workflow
+
+Problem Identified
+→ Architecture Discussion
+→ ADR Drafted
+→ Architecture Review
+→ ADR Accepted
+
+Accepted ADRs become enforceable architecture law.
+
+### ADR Change Governance
+
+To change architecture decisions:
+1. create a new ADR
+2. reference the prior ADR
+3. mark prior ADR status as `Superseded`
+
+Historical ADRs remain preserved.
+
+### Canonical ADR Set
+
+Current canonical records:
+- ADR-0001 Modular Monolith Architecture
+- ADR-0002 Feature-First Module Structure
+- ADR-0003 UDQI Quantity Model
+- ADR-0004 Append-Only Inventory Ledger
+- ADR-0005 Archive-Only Lifecycle
+- ADR-0006 Tablet-First Design
+- ADR-0007 POS Workspace Model
+- ADR-0008 Inventory-First Strategy
+- ADR-0009 Render Hosting
+- ADR-0010 Supabase Storage
+- ADR-0011 AWS SES Email
+- ADR-0012 AI Assistive Model
+- ADR-0013 AI Excluded From Transactions
+- ADR-0014 No Modal / Drawer UI Model
+- ADR-0015 Navigation Law (Back vs Exit)
+- ADR-0016 Global Busy Overlay
+
+## 0.5 Technical Standards Manual (Locked)
+
+Purpose:
+- The Technical Standards Manual defines implementation standards for day-to-day engineering across BizAssist.
+- It operationalizes architecture discipline through enforceable coding, structure, API, data, performance, and review rules.
+
+Canonical source:
+- `docs/TECHNICAL_STANDARDS_MANUAL.md`
+
+Coverage includes:
+- code style standards
+- project structure standards
+- API design standards
+- database standards
+- data integrity standards
+- mobile application standards
+- navigation standards
+- performance standards
+- security standards
+- media pipeline standards
+- logging standards
+- testing standards
+- error handling standards
+- documentation standards
+- governance enforcement standards
+
+Enforcement:
+- PRs must satisfy the Technical Standards Manual before merge.
+- Non-compliant changes must be corrected or rejected.
+
 ## 1. Non‑Negotiable Product Principles
+
+Quick index:
+- See **1.13 Bottom Sheet vs Modal Selection Governance (Locked)** for canonical pattern selection criteria.
 
 1. **Correctness over cleverness.** Inventory and POS must be deterministic, auditable, and replay‑safe.
 2. **Offline‑safe writes where applicable.** Inventory writes must be idempotent and transactionally safe.
@@ -90,6 +520,126 @@ Rules:
 3. Budgets must be centralized in shared limits (`FIELD_LIMITS` / shared `fieldLimits`) and treated as source of truth.
 4. Budgets must be based on field purpose (e.g., label/name, description, search query, money input, identifiers) and not ad-hoc per-screen values.
 5. All new/modified text inputs must enforce the same budget across UI input constraints and API validation.
+
+### 1.7 Lifecycle Eligibility Gating (Locked)
+
+1. Canonical product concept is **Lifecycle Eligibility Gating**.
+2. Canonical UI/action pattern is **Eligibility-Gated Destructive Action**.
+3. Hard delete may be offered only when the entity is provably **unreferenced and unused**:
+   - no current attachments/dependencies
+   - no historical operational usage
+   - no active draft/template/workflow references that the product treats as meaningful dependencies
+4. If the entity is not eligible for hard delete, the destructive action must fall back to the reversible lifecycle action (typically **Archive**).
+5. The backend must be the source of truth for eligibility. UI must not infer hard-delete safety from visible counts alone; prefer explicit capability fields such as `canHardDelete` and a blocking reason.
+6. Copy must remain explicit:
+   - **Delete** = permanent, non-restorable
+   - **Archive** = reversible, restorable
+7. This governance does **not** override archive-only entities locked under ledger-referenced configuration governance. If an entity is archive-only by policy, hard delete remains disallowed even when currently unreferenced.
+
+### 1.8 BAINeutralCheckbox Design Governance (Locked)
+
+1. `BAINeutralCheckbox` is the canonical neutral checkbox component for BizAssist.
+2. Visual state lock:
+   - unchecked = outline only
+   - checked = solid filled
+   - square form with softened corners
+   - bold check glyph
+3. Contrast lock:
+   - light mode uses dark monochrome treatment
+   - dark mode uses light monochrome treatment
+4. Reuse rule:
+   - feature screens must consume `BAINeutralCheckbox` for neutral checkbox selection UI
+   - do not create per-screen checkbox variants unless a new canonical checkbox pattern is explicitly approved
+5. This lock applies to management and attach-selection flows unless a feature requires a different semantic control (for example radio or switch).
+
+### 1.9 Flicker-Free Initial Screen Transition Governance (Locked)
+
+1. Canonical fix pattern name is **Flicker-Free Initial Screen Transition**.
+2. First-open transitions must avoid any layout jump caused by delayed safe-area resolution, cold-query loading branch swaps, or header remount mismatch.
+3. Safe-area rule:
+   - `SafeAreaProvider` must be seeded with `initialWindowMetrics`
+   - header surfaces that depend on top inset must not render below the initial safe-area baseline on first frame
+4. Header rule:
+   - do not stack an in-screen header on top of a stack-managed header as a transition workaround
+   - keep one stable header ownership strategy per route unless the navigation stack itself is intentionally redesigned
+   - if a route uses no stack header, set that route’s `headerShown: false` in the navigator layout itself; do not wait for the screen component to mount and then flip header visibility with a runtime `Stack.Screen` override
+5. Data warm-up rule:
+   - when a parent process screen already knows the next drill-in screen will likely open, prefetch that screen’s primary queries
+6. Layout stability rule:
+   - keep destination screen scaffolds stable on first mount
+   - prefer swapping inner list/content states over swapping the entire screen card structure
+7. This rule is especially enforced for Modifiers and other drill-in management flows where first-open transitions are repeated operationally.
+8. Navigator timing rule:
+   - header visibility must be resolved before the transition begins
+   - route-level runtime header flips are treated as a known first-frame flicker source and should be refactored into static stack layout options
+
+### 1.10 Stable First-Mount Scaffold (Locked)
+
+1. Canonical reusable pattern name is **Stable First-Mount Scaffold**.
+2. Canonical implementation term is **Single-Tree State Rendering**.
+3. First-render UI must keep a stable outer scaffold mounted while state changes resolve.
+4. Tree stability rules:
+   - do not swap between separate wrapper components for the same route when a shared screen can accept a `layout` or mode prop
+   - keep the primary list/card subtree mounted across loading, error, empty, and data states when feasible
+   - prefer `ListEmptyComponent`, overlays, inline state containers, or inner child swaps over replacing the full screen surface
+5. This pattern should be applied when the initial transition flicker is caused by first-mount component replacement rather than navigation timing alone.
+6. This lock complements, but does not replace, **Flicker-Free Initial Screen Transition** governance.
+
+### 1.11 POS Numeric Bottom Sheet Keyboard Governance (Locked)
+
+1. Canonical reusable pattern name is **POS Numeric Bottom Sheet Keyboard**.
+2. Canonical implementation/component name is **BAIPosNumpadSheet**.
+3. Pattern scope:
+  - all number inputs
+  - all money/currency inputs
+  - default numeric entry surface for operational forms moving forward.
+4. Required structure:
+  - bottom-anchored sheet container
+  - fixed numeric layout: `1-9`, `00`, `0`, `backspace`
+  - explicit in-sheet confirm action (`check` key)
+5. Reuse rule:
+  - do not create per-screen bespoke numeric keypad UIs when this pattern applies
+  - consume/reuse `BAIPosNumpadSheet` and keep key order/interaction semantics consistent.
+6. Money-governance compatibility:
+  - this lock standardizes the input surface, not money-domain validation semantics
+  - existing precision, formatting, and cap governance for money inputs remains mandatory.
+7. Visual consistency:
+  - spacing, border treatment, and elevation must follow existing sheet/surface tokens
+  - only minimal token-level tuning is allowed per host screen.
+8. Forward implementation allowance:
+  - bottom sheets and modals are approved interaction patterns for new and refactored flows moving forward
+  - choose the pattern that best matches task complexity and expected interruption level
+  - implementations must remain token-based, deterministic, and aligned with existing navigation/overlay governance.
+9. Cross-reference:
+  - for canonical pattern selection criteria, follow **1.13 Bottom Sheet vs Modal Selection Governance**.
+
+### 1.12 Currency Display Context Governance (Locked)
+
+1. Canonical policy name is **Currency Display Context Governance**.
+2. Money display must be selected by context, not by a single global “symbol only” rule.
+3. Default operational rule:
+   - day-to-day operational surfaces (POS, inventory item lists/details, form inputs, catalog management) should use **compact money display**
+   - compact money display means symbol-first output when the symbol is unambiguous for the business currency (example: `$12.00`)
+4. Explicit financial rule:
+   - finance, audit, reporting, exports, invoices, settlements, and any multi-currency comparison surface must use **explicit money display**
+   - explicit money display means `CURRENCY_CODE amount` (example: `USD 12.00`)
+5. Ambiguity rule:
+   - if a compact symbol is unavailable or still ambiguous, formatter fallback must remain code-based rather than inventing a symbol
+6. Shared formatter rule:
+   - all user-facing money text must route through shared money formatting utilities
+   - per-screen currency string concatenation and per-screen prefix stripping are disallowed
+   - shared formatters must expose both `compact` and `explicit` display modes
+7. Change-control rule:
+   - existing operational surfaces should remain compact by default
+   - a screen may switch to explicit display only when its product role is intentionally financial, auditable, or multi-currency by design
+
+### 1.13 Bottom Sheet vs Modal Selection Governance (Locked)
+
+1. Bottom sheets and modals are both approved interaction patterns.
+2. Use a **bottom sheet** when the task is lightweight, context-adjacent, and should preserve the host screen state/visibility.
+3. Use a **modal** when the task is disruptive, requires stronger focus/confirmation, or must isolate decision flow before returning.
+4. Selection must prioritize deterministic completion paths and predictable dismissal behavior for the chosen pattern.
+5. Implementations must remain token-based and aligned with existing overlay, navigation, and busy-state governance.
 
 ---
 
@@ -219,32 +769,55 @@ Modifier behavior is locked to a reusable-set model aligned to the approved UX r
   - Set-level destructive actions require explicit, globally-scoped warning language.
 - **Async safety rule:** bulk availability updates must use blocking Loading Overlay and completion toast/snackbar closure.
 - **Toast placement rule (top-first):** completion toasts/snackbars should render at top by default in Modifiers flows to avoid collision with bottom tabs, bottom sheets, and keyboard surfaces.
+- **Destructive action rule:** modifier-set and modifier-option Delete may be exposed only through **Lifecycle Eligibility Gating**. If the entity has been used or is still referenced, the destructive action must remain **Archive**.
 - **Governance non-regression:** UDQI precision/quantity behavior, tablet-first parity, Back vs Exit law, and POS structural architecture must remain unchanged.
 
 ### Phase 6 — Options + Variations (Catalog Definition + Product/Service Attach)
 
-Option + Variation behavior is locked to a reusable option-set model for catalog definition and deterministic Item/Service attach flows.
+Option + Variation behavior is locked to a reusable option-set model where **Options** is the authoring source for option-generated combinations and **Variations** is the resulting sellable output for deterministic Item/Service attach flows.
 
 #### Phase 6 — Options + Variations Governance (Locked)
 
 - **Canonical owner split:**
-  - Options module owns reusable option sets and option values.
-  - Catalog module owns attaching selected option sets and persisted variations during Item/Service create/edit save.
+  - Mobile Options module owns reusable option-set/value authoring and selection UI.
+  - Catalog module owns attaching selected option sets, previewing resulting combinations, and persisted variation writes during Item/Service create/edit save.
   - Inventory module owns stock movement only.
-  - POS module does not own option authoring or variation runtime selection in v1.
+  - POS module does not own option authoring or variation runtime selection.
 - **Attach parity rule:** Create Item and Create Service must use the same option/variation attach pattern and semantics when the feature is exposed in both contexts.
-- **Canonical flow rule:** the authoring flow must stay deterministic and drill-in based:
-  - Select Options
-  - Option Values
-  - Create Variations
-  - Add Variation
-- **Variation generation rule:** generated variations must be based only on selected option values and must be deduped by canonical `variationKey`.
+- **Canonical connected flow rule:** the authoring flow must stay deterministic and drill-in based:
+  - parent `Create Item` / `Edit Item` entry
+  - `Options` section (`Add options` / `Edit`)
+  - `Select Options`
+  - `Create Option` (optional)
+  - per-set `Option Values`
+  - `Create Variations`
+  - return to parent item/service flow with updated `Variations`
+- **Parent-screen state rule:**
+  - when no option sets are attached, `Options` is the primary setup section for option-generated variations
+  - `Variations` should appear only after a valid generation/update result exists
+  - when option sets already exist, the parent screen must show the selected option-set summary and the resulting variation rows
+- **Option-set authoring rule:**
+  - reusable option sets and reusable option values remain the source of truth
+  - `Create Option` requires Option set + Display name + at least one option value
+  - option values support inline add, inline edit, remove, and deterministic reorder
+- **Option-value selection rule:**
+  - each attached option set must have at least one selected value before variation generation
+  - duplicate labels inside the same option set are invalid
+  - per-set detail supports search, value selection, inline add value, and explicit `Done`
+- **Variation generation rule:**
+  - generated variations must be based only on selected option values and must be deduped by canonical `variationKey`
+  - `Create Variations` must distinguish `Update existing variations` from `New variations` whenever prior valid variations already exist
+  - expanding selected option values must not silently destroy still-valid existing variations
+- **Add Variation rule:**
+  - within the option-driven model, `Add Variation` is a constrained combination picker, not a free-form manual variation
+  - it may create only a valid not-yet-existing combination across attached option sets
+  - duplicate variation attempts must fail locally with explicit modal/inline feedback before any parent save
 - **Draft safety rule:** changing selected option sets or selected values invalidates stale variation selections and must clear/rebuild variation draft state deterministically.
-- **Process UX rule (v1):**
+- **Process UX rule:**
   - full-screen drill-in screens only; no dropdowns or drawers
   - one dominant job per screen
   - explicit `Exit`/`Done`/`Next`/`Create` closure actions
-  - duplicate variation attempts must fail locally with explicit inline/modal feedback
+  - deterministic return to the same parent draft
 - **Async safety rule:** option set create/update/archive/restore, option value create/update/archive/restore, and parent Item/Service save must remain Busy/Loading Overlay governed and double-tap safe.
 - **Data model rule:** v1 uses the additive catalog relation model:
   - `OptionSet`
@@ -254,11 +827,13 @@ Option + Variation behavior is locked to a reusable option-set model for catalog
   - `ProductVariation`
   - `ProductVariationValue`
   New schema abstractions are not required for v1 authoring flow.
-- **Explicit v1 non-goals:**
-  - no variation-level stock management
-  - no variation-level sold-out scheduling
-  - no variation-level price/cost overrides
+- **Variation stock rule:**
+  - variation rows may expose `Manage Stock` drill-in during item/service authoring when that flow is approved on the host surface
+  - stock movement semantics remain inventory-governed and must not be re-authored inside the options screens themselves
+- **Explicit non-goals:**
+  - no variation-level sold-out scheduling inside the options feature flow
   - no POS variation runtime selection
+  - no option-flow-owned inventory ledger behavior
 - **Governance non-regression:** UDQI precision/quantity behavior, tablet-first layout rules, Back vs Exit law, POS layout locks, and existing inventory ledger semantics must remain unchanged.
 
 ---
@@ -419,6 +994,59 @@ Use these canonical tiers:
 - **Long-lived metadata:** `24 * 60 * 60 * 1000`
 
 If a flow requires true near-real-time multi-device convergence, prefer event-driven invalidation (or websockets) over lowering staleTime globally.
+
+### 3.8 API Contract + State Management + File Structure Governance (Locked)
+
+This lock defines the architecture stabilization contract between `BizAssist_api` and `BizAssist_mobile`.
+
+#### 3.8.1 API contract lock
+
+- API contracts must remain backward-compatible by default.
+- Canonical response contract:
+  - success: `{ success: true, data, meta? }`
+  - error: `{ success: false, error: { code, message }, data? }`
+- All non-exempt endpoints must return structured `error.code`.
+- List endpoints must expose consistent pagination metadata when returning collections.
+- HTTP semantics must remain RESTful:
+  - `GET` read
+  - `POST` create/command
+  - `PATCH` partial update
+  - `DELETE` destructive/archive endpoints where policy allows
+
+#### 3.8.2 State management lock (mobile)
+
+- Server state is React Query-owned.
+- Write operations must be implemented as React Query mutations in module hooks (not ad hoc screen handlers).
+- Query keys must be domain-owned factories; avoid literal ad hoc query-key arrays in screens.
+- Cache invalidation must be deliberate and scoped; avoid broad invalidations unless required.
+- UI state remains local unless explicitly global by policy (auth/session/theme/business context).
+
+#### 3.8.3 File structure lock
+
+- Feature-first structure is mandatory across API and mobile.
+- API modules must follow canonical layering (`controller/service/repository/routes/validators/types`).
+- Mobile Expo route files must stay thin wrappers; feature logic belongs in module screens/hooks/services.
+- Shared folders must remain generic; feature logic must not leak into shared infra.
+- Remove stale/duplicate files after safe migration; avoid parallel legacy/new paths long-term.
+
+#### 3.8.4 Baseline audit findings (2026-03-05)
+
+- `P0` response/error envelope drift exists across endpoints and middleware responses.
+- `P1` endpoint namespace drift exists for settings-owned configuration domains.
+- `P1` list pagination metadata is inconsistent across multiple list contracts.
+- `P1` mobile writes are frequently screen-local API calls instead of mutation hooks.
+- `P1` query-key governance drift exists due to literal key usage in invalidation paths.
+- `P1` route-wrapper thinness is inconsistent in several mobile settings/inventory routes.
+- `P2` stale/legacy folder paths and duplicate ownership surfaces are present.
+
+#### 3.8.5 Implementation sequence (locked)
+
+- Phase 1: Normalize API envelopes and structured error shape across controllers/middleware.
+- Phase 2: Introduce settings-owned endpoint namespaces with backward-compatible aliases.
+- Phase 3: Standardize list pagination metadata and align mobile clients.
+- Phase 4: Refactor mobile writes into module mutation hooks and centralize query keys.
+- Phase 5: Enforce thin Expo route wrappers and module-owned feature logic placement.
+- Phase 6: Add governance gates (contract tests, key checks, ownership checks) to prevent regressions.
 
 ---
 

@@ -30,7 +30,6 @@ import {
 	buildSettingsDiscountRestoreRoute,
 	resolveSettingsDiscountDetailBackFallbackRoute,
 	normalizeReturnTo,
-	SETTINGS_DISCOUNTS_LEDGER_ROUTE,
 } from "@/modules/discounts/discounts.navigation";
 import type { Discount } from "@/modules/discounts/discounts.types";
 import { useAppHeader } from "@/modules/navigation/useAppHeader";
@@ -91,7 +90,7 @@ export default function SettingsDiscountDetailScreen() {
 		if (isUiDisabled) return;
 		if (!lockNav()) return;
 		if (returnTo) {
-			router.replace(SETTINGS_DISCOUNTS_LEDGER_ROUTE as any);
+			router.replace(ledgerRoute as any);
 			return;
 		}
 		if (router.canGoBack?.()) {
@@ -140,6 +139,7 @@ export default function SettingsDiscountDetailScreen() {
 		title: "Discount Details",
 		disabled: isUiDisabled,
 		onBack,
+		backFallbackRoute: ledgerRoute,
 	});
 
 	useEffect(() => {

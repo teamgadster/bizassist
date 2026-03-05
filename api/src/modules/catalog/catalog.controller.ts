@@ -3,7 +3,13 @@ import { Request, Response } from "express";
 import asyncHandler from "express-async-handler";
 import { StatusCodes } from "http-status-codes";
 import catalogService from "./catalog.service";
-import type { CreateProductInput, UpdateProductInput } from "./catalog.types";
+import type {
+	CreateProductInput,
+	GenerateProductVariationsInput,
+	PreviewProductVariationsInput,
+	SyncManualProductVariationsInput,
+	UpdateProductInput,
+} from "./catalog.types";
 import { listProductsQuerySchema } from "./catalog.validators";
 
 import { respondWithEtagJson } from "@/shared/http/etagResponse";
@@ -55,5 +61,32 @@ export const getCatalogWatermark = asyncHandler(async (req: Request, res: Respon
 	const businessId = getBusinessId(req);
 
 	const data = await catalogService.getWatermark(businessId);
+	res.status(StatusCodes.OK).json({ success: true, data });
+});
+
+export const previewProductVariations = asyncHandler(async (req: Request, res: Response) => {
+	const businessId = getBusinessId(req);
+	const productId = String(req.params.id);
+	const input = req.body as PreviewProductVariationsInput;
+
+	const data = await catalogService.previewProductVariations(businessId, productId, input);
+	res.status(StatusCodes.OK).json({ success: true, data });
+});
+
+export const generateProductVariations = asyncHandler(async (req: Request, res: Response) => {
+	const businessId = getBusinessId(req);
+	const productId = String(req.params.id);
+	const input = req.body as GenerateProductVariationsInput;
+
+	const data = await catalogService.generateProductVariations(businessId, productId, input);
+	res.status(StatusCodes.OK).json({ success: true, data });
+});
+
+export const syncManualProductVariations = asyncHandler(async (req: Request, res: Response) => {
+	const businessId = getBusinessId(req);
+	const productId = String(req.params.id);
+	const input = req.body as SyncManualProductVariationsInput;
+
+	const data = await catalogService.syncManualProductVariations(businessId, productId, input);
 	res.status(StatusCodes.OK).json({ success: true, data });
 });

@@ -19,7 +19,11 @@ SplashScreen.preventAutoHideAsync().catch(() => {
 });
 
 if (__DEV__) {
-	LogBox.ignoreLogs(["Sending `onAnimatedValueUpdate` with no listeners registered."]);
+	LogBox.ignoreLogs([
+		"Sending `onAnimatedValueUpdate` with no listeners registered.",
+		"Sending `onAnimatedValueUpdate` with no listeners registered",
+		"onAnimatedValueUpdate",
+	]);
 }
 
 function RootShell() {

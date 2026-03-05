@@ -2,6 +2,11 @@
 
 This checklist is mandatory for every BizAssist change that touches UI, API, schema, or behavior.
 
+Quick index:
+- Bottom sheet vs modal governance references:
+	- [docs/MASTERPLAN_GUIDE.md](docs/MASTERPLAN_GUIDE.md#L209)
+	- [docs/memory.md](docs/memory.md#L102)
+
 ---
 
 ## A) Governance
@@ -9,6 +14,7 @@ This checklist is mandatory for every BizAssist change that touches UI, API, sch
 - [ ] No dropdowns/drawers added to operational flows (Inventory/POS).
 - [ ] Tablet adds spatial persistence only (two‑pane/inspector), not hidden interactions.
 - [ ] Navigation uses deterministic “hard transitions” for critical flows.
+- [ ] Bottom sheet vs modal choice is explicitly validated against `MASTERPLAN 1.13 Bottom Sheet vs Modal Selection Governance` and `memory 2026-03-05 Bottom Sheet vs Modal Selection Lock`, with evidence attached (one-line rationale + screenshot/video of interaction state).
 
 ## A.1) Post-Action Navigation Flow Governance
 

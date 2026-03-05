@@ -1,7 +1,7 @@
 import React, { useCallback, useMemo, useRef, useState, type ReactNode } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { useRouter } from "expo-router";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { initialWindowMetrics, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "react-native-paper";
 
 import { BAIHeaderIconButton } from "@/components/system/BAIHeaderIconButton";
@@ -43,6 +43,8 @@ export function BAIHeader({
 	const insets = useSafeAreaInsets();
 	const { paddingX } = useResponsiveLayout();
 	const { busy } = useAppBusy();
+	const fallbackTopInset = initialWindowMetrics?.insets.top ?? 0;
+	const resolvedTopInset = Math.max(insets.top, fallbackTopInset);
 
 	const tapLockRef = useRef(false);
 	const [isTapLocked, setIsTapLocked] = useState(false);
@@ -91,7 +93,10 @@ export function BAIHeader({
 	const railSize = Math.max(56, resolvedBarHeight);
 
 	return (
-		<View testID={testID} style={[styles.root, { paddingTop: insets.top, backgroundColor: theme.colors.background }]}>
+		<View
+			testID={testID}
+			style={[styles.root, { paddingTop: resolvedTopInset, backgroundColor: theme.colors.background }]}
+		>
 			<View style={[styles.bar, { height: resolvedBarHeight, paddingHorizontal: paddingX || 16 }]}>
 				<View style={[styles.leftRail, { width: railSize }]}>
 					<BAIHeaderIconButton
@@ -140,7 +145,7 @@ const styles = StyleSheet.create({
 		width: 56,
 		height: "100%",
 		justifyContent: "center",
-		alignItems: "flex-start",
+		alignItems: "center",
 	},
 	centerRail: {
 		flex: 1,
@@ -154,7 +159,7 @@ const styles = StyleSheet.create({
 		width: 56,
 		height: "100%",
 		justifyContent: "center",
-		alignItems: "flex-end",
+		alignItems: "center",
 	},
 	rightPressable: {
 		minWidth: 44,

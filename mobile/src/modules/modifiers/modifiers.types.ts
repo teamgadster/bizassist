@@ -20,6 +20,8 @@ export type ModifierGroup = {
 	sortOrder: number;
 	isArchived: boolean;
 	attachedProductCount: number;
+	attachedProductIds: string[];
+	canHardDelete?: boolean;
 	availableOptionsCount: number;
 	soldOutOptionsCount: number;
 	options: ModifierOption[];

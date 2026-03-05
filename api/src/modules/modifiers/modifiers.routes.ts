@@ -7,6 +7,7 @@ import {
 	archiveModifierOption,
 	createModifierGroup,
 	createModifierOption,
+	deleteModifierGroup,
 	getSharedModifierAvailabilityPreview,
 	getModifierGroup,
 	listModifierGroups,
@@ -31,6 +32,7 @@ modifiersRoutes.get("/groups", listModifierGroups);
 modifiersRoutes.get("/groups/:id", getModifierGroup);
 modifiersRoutes.post("/groups", createModifierGroup);
 modifiersRoutes.patch("/modifier-groups/:id", patchModifierGroup);
+modifiersRoutes.delete("/modifier-groups/:id", deleteModifierGroup);
 modifiersRoutes.post("/modifier-groups/:id/options", createModifierOption);
 modifiersRoutes.patch("/modifier-options/:id", patchModifierOption);
 modifiersRoutes.post("/modifier-groups/:id/archive", archiveModifierGroup);

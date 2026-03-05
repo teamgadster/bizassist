@@ -68,6 +68,8 @@ export default function InventoryStackLayout() {
 			/>
 
 			<Stack.Screen name='products/create' options={{ title: "Add Items" }} />
+			<Stack.Screen name='products/manage-stock' options={{ headerShown: false }} />
+			<Stack.Screen name='products/stock-received' options={{ headerShown: false }} />
 			<Stack.Screen name='categories/category.ledger' options={{ title: "Categories" }} />
 			<Stack.Screen name='categories/create' options={{ title: "Create Category" }} />
 			<Stack.Screen name='categories/[id]/index' options={{ title: "Category Details" }} />
@@ -75,20 +77,16 @@ export default function InventoryStackLayout() {
 			<Stack.Screen name='categories/[id]/archive' options={{ title: "Archive Category" }} />
 			<Stack.Screen name='categories/[id]/restore' options={{ title: "Restore Category" }} />
 			<Stack.Screen name='categories/picker' options={{ title: "Select Categories" }} />
-			<Stack.Screen name='discounts/discount.ledger' options={{ title: "Discounts" }} />
+			<Stack.Screen name='discounts/discount.ledger' options={{ headerShown: false }} />
 			<Stack.Screen name='discounts/create' options={{ headerShown: false }} />
 			<Stack.Screen name='discounts/[id]/index' options={{ headerShown: false }} />
 			<Stack.Screen name='discounts/[id]/edit' options={{ title: "Edit Discount" }} />
 			<Stack.Screen name='modifiers/index' options={{ title: "Modifiers" }} />
-			<Stack.Screen name='modifiers/picker' options={{ title: "Select Modifiers" }} />
-			<Stack.Screen name='modifiers/create' options={{ title: "Create Modifier" }} />
+			<Stack.Screen name='modifiers/picker' options={{ title: "Select Modifier Sets" }} />
+			<Stack.Screen name='modifiers/create' options={{ title: "Create Modifier Set" }} />
 			<Stack.Screen name='modifiers/[id]/index' options={{ title: "Modifier Details" }} />
-			<Stack.Screen name='modifiers/[id]/edit' options={{ title: "Edit Modifier" }} />
-			<Stack.Screen name='modifiers/[id]/archive' options={{ title: "Archive Modifier" }} />
-			<Stack.Screen name='attributes/index' options={{ title: "Attributes" }} />
-			<Stack.Screen name='attributes/picker' options={{ title: "Assign Attributes" }} />
-			<Stack.Screen name='attributes/create' options={{ title: "Create Attribute" }} />
-			<Stack.Screen name='attributes/[id]/edit' options={{ title: "Edit Attribute" }} />
+			<Stack.Screen name='modifiers/[id]/edit' options={{ title: "Edit Modifier Set" }} />
+			<Stack.Screen name='modifiers/[id]/archive' options={{ title: "Archive Modifier Set" }} />
 			<Stack.Screen name='units/add' options={{ title: "Unit Category", headerBackTitle: "Unit Type" }} />
 			<Stack.Screen name='units/select' options={{ title: "Add Unit", headerBackTitle: "Add Unit" }} />
 			<Stack.Screen

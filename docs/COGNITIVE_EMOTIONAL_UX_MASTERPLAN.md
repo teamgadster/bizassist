@@ -1,5 +1,8 @@
 # Cognitive-Emotional UX Governance Masterplan (App + Website)
 
+Quick index:
+- Bottom sheet vs modal selection criteria: see **MASTERPLAN 1.13 Bottom Sheet vs Modal Selection Governance (Locked)** and **memory 2026-03-05 Bottom Sheet vs Modal Selection Lock**.
+
 **Status:** Canonical (must be followed)  
 **Effective date:** 2026-02-21  
 **Scope:** Mobile app + website experiences (new features and modified flows)

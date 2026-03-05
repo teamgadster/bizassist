@@ -28,9 +28,9 @@ import { sanitizeMoneyInput } from "@/shared/validation/sanitize";
 import { useAppHeader } from "@/modules/navigation/useAppHeader";
 import { useActiveBusinessMeta } from "@/modules/business/useActiveBusinessMeta";
 import {
-	buildSettingsDiscountDetailsRoute,
+	resolveDiscountCreateExitRoute,
+	resolveDiscountCreateSuccessRoute,
 	normalizeReturnTo,
-	resolveSettingsDiscountFlowExitRoute,
 } from "@/modules/discounts/discounts.navigation";
 import { useDiscountProcessExitGuard } from "@/modules/discounts/useDiscountProcessExitGuard";
 
@@ -91,6 +91,7 @@ export default function DiscountCreateScreen() {
 		const len = valueText.length;
 		return { start: len, end: len };
 	}, [type, valueText]);
+	const exitRoute = useMemo(() => resolveDiscountCreateExitRoute("settings", returnTo), [returnTo]);
 
 	const nameCheck = useMemo(() => validateName(name), [name]);
 	const valueCheck = useMemo(() => validateValueByType(type, valueText), [type, valueText]);
@@ -115,14 +116,15 @@ export default function DiscountCreateScreen() {
 
 	const onExitBase = useCallback(() => {
 		if (isUiDisabled) return;
-		safeReplace(router as any, resolveSettingsDiscountFlowExitRoute(returnTo) as any);
-	}, [isUiDisabled, returnTo, router, safeReplace]);
+		safeReplace(router as any, exitRoute as any);
+	}, [exitRoute, isUiDisabled, router, safeReplace]);
 	const onExit = useDiscountProcessExitGuard(onExitBase);
 
 	const headerOptions = useAppHeader("process", {
 		title: "Create Discount",
 		disabled: isUiDisabled,
 		onExit,
+		exitFallbackRoute: exitRoute,
 	});
 
 	const onSave = useCallback(async () => {
@@ -142,11 +144,7 @@ export default function DiscountCreateScreen() {
 
 			try {
 				const created = await create.mutateAsync(payload);
-				if (returnTo) {
-					safeReplace(router as any, resolveSettingsDiscountFlowExitRoute(returnTo) as any);
-					return;
-				}
-				safeReplace(router as any, buildSettingsDiscountDetailsRoute(created.id, null) as any);
+				safeReplace(router as any, resolveDiscountCreateSuccessRoute("settings", created.id, returnTo) as any);
 			} catch (e: any) {
 				setError(extractDiscountSaveErrorMessage(e));
 			}

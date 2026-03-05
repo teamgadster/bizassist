@@ -66,7 +66,7 @@ function validateRules(
 	}
 }
 
-function mapGroup(group: any): ModifierGroupDto {
+function mapGroup(group: any, opts?: { canHardDelete?: boolean }): ModifierGroupDto {
 	const options = (group.options ?? []).map((option: any) => ({
 		id: option.id,
 		modifierGroupId: option.modifierGroupId,
@@ -90,6 +90,10 @@ function mapGroup(group: any): ModifierGroupDto {
 		sortOrder: group.sortOrder,
 		isArchived: group.isArchived,
 		attachedProductCount: Array.isArray(group.productLinks) ? group.productLinks.length : 0,
+		attachedProductIds: Array.isArray(group.productLinks)
+			? group.productLinks.map((link: { productId: string }) => String(link.productId ?? "").trim()).filter(Boolean)
+			: [],
+		canHardDelete: opts?.canHardDelete,
 		availableOptionsCount,
 		soldOutOptionsCount,
 		createdAt: group.createdAt.toISOString(),
@@ -106,7 +110,7 @@ export class ModifiersService {
 
 	async listModifierGroups(businessId: string, includeArchived = false): Promise<ModifierGroupDto[]> {
 		const groups = await this.repo.listGroups(businessId, includeArchived);
-		return groups.map(mapGroup);
+		return groups.map((group) => mapGroup(group));
 	}
 
 	async getModifierGroupById(businessId: string, id: string): Promise<ModifierGroupDto> {
@@ -118,7 +122,35 @@ export class ModifiersService {
 			},
 		});
 		if (!group) throw new AppError(StatusCodes.NOT_FOUND, "Modifier group not found.", "MODIFIER_GROUP_NOT_FOUND");
-		return mapGroup(group);
+		const canHardDelete = await this.canHardDeleteGroup(businessId, group);
+		return mapGroup(group, { canHardDelete });
+	}
+
+	private async canHardDeleteGroup(
+		businessId: string,
+		group:
+			| {
+					productLinks?: Array<unknown>;
+					options?: Array<{ id: string }>;
+			  }
+			| null
+			| undefined,
+	): Promise<boolean> {
+		if (!group) return false;
+		if (Array.isArray(group.productLinks) && group.productLinks.length > 0) return false;
+
+		const optionIds = Array.isArray(group.options)
+			? group.options.map((option) => String(option.id ?? "").trim()).filter(Boolean)
+			: [];
+		if (optionIds.length === 0) return true;
+
+		const usageCount = await this.prisma.saleLineItemModifier.count({
+			where: {
+				businessId,
+				modifierOptionId: { in: optionIds },
+			},
+		});
+		return usageCount === 0;
 	}
 
 	async getProductModifiers(businessId: string, productId: string): Promise<ModifierGroupDto[]> {
@@ -397,6 +429,29 @@ export class ModifiersService {
 		const existing = await this.prisma.modifierGroup.findFirst({ where: { id, businessId }, select: { id: true } });
 		if (!existing) throw new AppError(StatusCodes.NOT_FOUND, "Modifier group not found.", "MODIFIER_GROUP_NOT_FOUND");
 		await this.prisma.modifierGroup.update({ where: { id }, data: { isArchived: archived } });
+	}
+
+	async deleteGroup(businessId: string, id: string): Promise<void> {
+		const group = await this.prisma.modifierGroup.findFirst({
+			where: { id, businessId },
+			select: {
+				id: true,
+				productLinks: { select: { id: true } },
+				options: { select: { id: true } },
+			},
+		});
+		if (!group) throw new AppError(StatusCodes.NOT_FOUND, "Modifier group not found.", "MODIFIER_GROUP_NOT_FOUND");
+
+		const canHardDelete = await this.canHardDeleteGroup(businessId, group);
+		if (!canHardDelete) {
+			throw new AppError(
+				StatusCodes.CONFLICT,
+				"Modifier set cannot be deleted because it is already in use. Archive it instead.",
+				"MODIFIER_GROUP_DELETE_BLOCKED",
+			);
+		}
+
+		await this.prisma.modifierGroup.delete({ where: { id: group.id } });
 	}
 
 	async archiveOption(businessId: string, id: string, archived: boolean): Promise<void> {

@@ -53,12 +53,12 @@ export function ModifierGroupArchiveScreen({ mode }: { mode: "settings" | "inven
 	}, [baseRoute, exitReturnTo, groupId, router, withBusy]);
 
 	const appHeader = useAppHeader("process", {
-		title: "Archive Modifier",
+		title: "Archive Modifier Set",
 		onExit: guardedExit,
 		exitFallbackRoute,
 	});
 	const inventoryHeader = useInventoryHeader("process", {
-		title: "Archive Modifier",
+		title: "Archive Modifier Set",
 		onExit: guardedExit,
 		exitFallbackRoute,
 	});
@@ -71,7 +71,7 @@ export function ModifierGroupArchiveScreen({ mode }: { mode: "settings" | "inven
 					<View style={styles.content}>
 						<BAISurface bordered padded style={[styles.card, surfaceInteractive]}>
 							<View style={styles.header}>
-								<BAIText variant='title'>Archive Modifier</BAIText>
+								<BAIText variant='title'>Archive Modifier Set</BAIText>
 							</View>
 							<BAIText variant='body'>
 								Archiving removes this modifier set from active use while keeping historical records intact.

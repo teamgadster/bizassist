@@ -29,6 +29,10 @@ export const modifiersApi = {
 		await apiClient.post(`/catalog/modifiers/modifier-groups/${encodeURIComponent(id)}/restore`);
 	},
 
+	async deleteGroup(id: string) {
+		await apiClient.delete(`/catalog/modifiers/modifier-groups/${encodeURIComponent(id)}`);
+	},
+
 	async getGroup(id: string): Promise<ModifierGroup> {
 		const res = await apiClient.get<{ success: true; data: { item: ModifierGroup } }>(
 			`/catalog/modifiers/groups/${encodeURIComponent(id)}`,

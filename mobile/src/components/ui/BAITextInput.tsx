@@ -20,25 +20,28 @@ type BAITextInputProps = React.ComponentProps<typeof TextInput> & {
 	sanitizeOptions?: BAITextInputSanitizeOptions;
 };
 
-export function BAITextInput({
-	error,
-	errorMessage,
-	style,
-	contentStyle,
-	height,
-	outlineColor,
-	activeOutlineColor,
-	shape = "default",
-	multiline = false,
-	numberOfLines,
-	scrollEnabled,
-	value,
-	onChangeText,
-	onBlur,
-	secureTextEntry,
-	sanitizeOptions,
-	...rest
-}: BAITextInputProps) {
+export const BAITextInput = React.forwardRef<any, BAITextInputProps>(function BAITextInput(
+	{
+		error,
+		errorMessage,
+		style,
+		contentStyle,
+		height,
+		outlineColor,
+		activeOutlineColor,
+		shape = "default",
+		multiline = false,
+		numberOfLines,
+		scrollEnabled,
+		value,
+		onChangeText,
+		onBlur,
+		secureTextEntry,
+		sanitizeOptions,
+		...rest
+	}: BAITextInputProps,
+	ref,
+) {
 	const theme = useTheme();
 
 	const resolvedOutlineColor = outlineColor ?? (theme.dark ? theme.colors.outline : theme.colors.outlineVariant);
@@ -116,6 +119,7 @@ export function BAITextInput({
 	return (
 		<>
 			<TextInput
+				ref={ref}
 				mode='outlined'
 				style={[styles.input, fixedHeightStyle, style]}
 				outlineStyle={[styles.outline, { borderRadius: outlineRadius }]}
@@ -143,7 +147,7 @@ export function BAITextInput({
 			) : null}
 		</>
 	);
-}
+});
 
 const styles = StyleSheet.create({
 	input: {

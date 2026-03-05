@@ -1,3 +1,538 @@
+Quick index:
+- See **2026-03-05 — Bottom Sheet vs Modal Selection Lock (Masterplan + Memory)** for canonical bottom sheet vs modal criteria.
+- See **2026-03-05 — API Contract + State Management + File Structure Governance Lock (Masterplan + Memory)** for architecture contract stabilization and implementation sequencing.
+- See **2026-03-05 — BizAssist SaaS Engineering Governance Framework Consolidation Lock** for canonical multi-layer governance coverage.
+- See **2026-03-05 — BizAssist Architecture Lawbook Lock** for non-negotiable engineering laws.
+- See **2026-03-05 — BizAssist Engineering Playbook Lock** for operational development workflow.
+- See **2026-03-05 — Architecture Decision Records (ADR) System Lock** for canonical architecture-decision memory.
+- See **2026-03-05 — BizAssist Technical Standards Manual Lock** for implementation standards enforcement.
+
+## 2026-03-05 — BizAssist Technical Standards Manual Lock
+
+### Memory Lock
+
+- Canonical policy name is **BizAssist Technical Standards Manual**.
+- Canonical masterplan reference is:
+  - `docs/MASTERPLAN_GUIDE.md` section `0.5 Technical Standards Manual (Locked)`
+- Canonical standards document is:
+  - `docs/TECHNICAL_STANDARDS_MANUAL.md`
+
+### Locked Scope
+
+The Technical Standards Manual is now a required governance layer and defines enforceable standards for:
+- code style
+- project structure
+- API design
+- database conventions
+- data integrity
+- mobile architecture implementation
+- navigation behavior
+- performance
+- security
+- media pipeline
+- logging
+- testing
+- error handling
+- documentation
+- PR governance enforcement
+
+### Enforcement
+
+- Technical standards compliance is mandatory for all pull requests.
+- Non-compliant code must be corrected before merge.
+
+## 2026-03-05 — Architecture Decision Records (ADR) System Lock
+
+### Memory Lock
+
+- Canonical policy name is **BizAssist Architecture Decision Records (ADR) System**.
+- Canonical masterplan source is:
+  - `docs/MASTERPLAN_GUIDE.md` section `0.4 Architecture Decision Records (ADR) System (Locked)`
+- Canonical ADR directory is:
+  - `docs/architecture/adr/`
+- ADR is official architecture memory and must be used to explain strategic decisions.
+
+### Locked Rules
+
+- ADRs are required for strategically significant architecture decisions (system, data, product, infrastructure, cross-system governance, AI architecture).
+- ADR numbering is sequential and immutable (`ADR-0001`, `ADR-0002`, ...).
+- ADR records are never deleted or renumbered.
+- ADR status lifecycle is constrained to:
+  - Proposed
+  - Accepted
+  - Deprecated
+  - Superseded
+  - Rejected
+- To change a prior accepted decision, create a new ADR and mark the prior ADR as superseded.
+- Minor non-strategic changes do not require ADRs.
+
+### Locked Canonical Set
+
+- ADR-0001 through ADR-0016 are established as canonical baseline architecture decisions.
+
+## 2026-03-05 — BizAssist Engineering Playbook Lock
+
+### Memory Lock
+
+- Canonical policy name is **BizAssist Engineering Playbook**.
+- Canonical source is:
+  - `docs/MASTERPLAN_GUIDE.md` section `0.3 BizAssist Engineering Playbook (Locked)`
+- Relationship lock:
+  - Architecture Lawbook = non-negotiable rules
+  - Engineering Playbook = operational workflow and execution discipline
+
+### Locked Operational Discipline
+
+- Mandatory feature workflow:
+  - Idea → Discovery → Architecture Design → Masterplan Approval → Implementation → Review → Merge
+- Discovery must complete before implementation and include:
+  - user flow
+  - affected modules
+  - data model impact
+  - mobile screen impact
+- Masterplan approval is a hard gate before coding.
+- PR review must enforce architecture, business-logic placement, DB safety, API compatibility, React Query governance, UI architecture, repository structure, and performance checks.
+- Debugging must follow root-cause workflow (reproduce, isolate layer, trace data flow, fix cause).
+- Refactors must improve maintainability without unintended behavior drift.
+- Dead code deletion is required after usage validation.
+- Migration/API change/state/form/performance/security/documentation procedures are mandatory operational checks.
+
+### Enforcement
+
+- Playbook compliance is required for daily engineering execution.
+- Non-compliant changes must be corrected before merge.
+
+## 2026-03-05 — BizAssist Architecture Lawbook Lock
+
+### Memory Lock
+
+- Canonical policy name is **BizAssist Architecture Lawbook**.
+- Lawbook status is **non-negotiable** and applies to all contributors across:
+  - product UX
+  - mobile architecture
+  - backend services
+  - API contracts
+  - repository/file structure
+- The canonical law set is persisted in:
+  - `docs/MASTERPLAN_GUIDE.md` section `0.2 BizAssist Architecture Lawbook (Locked)`
+- Enforcement lock:
+  - any change violating lawbook rules must be redesigned before acceptance
+  - lawbook rules are mandatory constraints, not optional guidance
+
+### Locked Coverage
+
+- 20 architecture laws are now formally locked, including:
+  - feature ownership
+  - feature-first modular architecture
+  - thin controllers
+  - database-only repositories
+  - backward-compatible API contracts
+  - React Query server-state ownership
+  - local UI-state boundaries
+  - continuous-scroll sectioned forms
+  - primary CTA clarity
+  - stable entity identity
+  - safe schema evolution
+  - lifecycle over deletion
+  - endpoint ownership clarity
+  - module decoupling
+  - predictable repository structure
+  - structured readable errors
+  - mutation-driven cache updates
+  - generic shared components
+  - performance-by-design
+  - mandatory architecture discipline
+
+## 2026-03-05 — BizAssist SaaS Engineering Governance Framework Consolidation Lock
+
+### Memory Lock
+
+- Canonical policy name is **BizAssist SaaS Engineering Governance Framework**.
+- Canonical architecture coverage is a **6-layer governance model** (normalized from prior “five-layer” phrasing):
+  - Product UI / UX System Governance
+  - Backend Architecture Governance
+  - Data Model Governance
+  - Platform Integration Governance
+  - Mobile Engineering Governance
+  - Repository / File Structure Governance
+- This framework is the standing architecture discipline for:
+  - product UX consistency
+  - mobile architecture predictability
+  - backend service ownership clarity
+  - API contract stability
+  - repository maintainability and scalability
+
+### Locked Audit Conclusion
+
+- After consolidation review, governance coverage is complete across all six layers.
+- No governance layer is missing.
+- Future governance additions must extend one of the six canonical layers and avoid creating parallel governance taxonomies.
+
+## 2026-03-05 — API Contract + State Management + File Structure Governance Lock (Masterplan + Memory)
+
+### Memory Lock
+
+- Canonical policy name is **API Contract + State Management + File Structure Governance Lock**.
+- This lock governs architecture boundaries between `BizAssist_api` and `BizAssist_mobile` for:
+  - API contract stability and backward compatibility
+  - client-side server state governance (React Query)
+  - feature-first file structure and module ownership boundaries
+
+### Locked Findings Baseline (Audit Snapshot)
+
+- `P0` API error/response envelope drift exists and must be normalized:
+  - some endpoints return `success + message` without canonical `error.code`
+  - not-found, auth unauthorized responses, and health endpoints are not envelope-aligned with the canonical client expectation
+- `P1` endpoint namespace drift exists:
+  - configuration domains are mounted as top-level routes (`/categories`, `/units`, `/discounts`, `/taxes`) instead of explicit settings-owned namespace contracts
+- `P1` list contract drift exists:
+  - multiple list endpoints accept filters/limits but do not return canonical pagination metadata
+- `P1` mobile state governance drift exists:
+  - many write operations are executed directly inside screen handlers instead of React Query mutation hooks
+  - ad hoc literal query keys are used in invalidation paths instead of centralized query key factories
+- `P1` file structure drift exists:
+  - route layer contains heavy feature logic instead of thin wrappers in several settings/inventory routes
+  - duplicated ownership surfaces exist (for example duplicated business context card variants and mixed `features` + `modules` patterns)
+- `P2` stale/legacy structure indicators exist:
+  - empty/stale backend feature folders and compatibility parsing paths indicate historical contract drift
+
+### Locked Implementation Sequence
+
+- Phase 1 — Contract normalization:
+  - enforce one API success envelope and one error envelope across all non-exempt endpoints
+  - enforce canonical structured errors (`error.code`, `error.message`) with backward-compatible transitional mapping where needed
+- Phase 2 — Namespace and ownership normalization:
+  - migrate configuration endpoints to settings-owned namespace contracts
+  - keep compatibility aliases temporarily with explicit deprecation window
+- Phase 3 — Pagination and list contract hardening:
+  - add consistent list metadata contracts across list endpoints
+  - update mobile API clients to consume canonical metadata while preserving compatibility behavior during migration
+- Phase 4 — Mobile state governance hardening:
+  - move screen-level writes to domain mutation hooks
+  - centralize and enforce query key factories; remove ad hoc literal keys
+- Phase 5 — File structure conformance:
+  - restore thin route wrappers
+  - relocate feature logic to module-owned screen/hook/api folders
+  - remove stale/duplicate files after safe migration and verification
+- Phase 6 — Governance enforcement:
+  - add architecture PR gates for API envelope checks, query-key checks, and file-ownership checks
+  - add contract tests to prevent regression
+
+### Non-Negotiable Compatibility Guardrails
+
+- Do not break existing deployed mobile clients during migration.
+- Preserve auth/session behavior while error envelope normalization is introduced.
+- Preserve navigation laws (`Back vs Exit`), Busy Overlay behavior, and tablet-first UI governance while state/file refactors are applied.
+
+## 2026-03-05 — Manual Variation-First Mode Lock (Masterplan + Memory)
+
+### Memory Lock
+
+- Canonical policy name is **Manual Variation-First Mode Lock**.
+- Item authoring must support two valid variation paths:
+  - **Option-driven path** (select option sets + values, then generate combinations)
+  - **Manual variation-first path** (create named variations directly without option sets)
+- Manual-first enablement lock:
+  - users may create variations even when no option sets are selected
+  - manual variation creation must remain available from create-item and edit-item flows
+- Visibility lock when manual-only mode is active:
+  - if variations exist and selected option-set count is `0`, options setup controls must be hidden
+  - the section title should shift to a `Variations` state (not options setup)
+- Save/persistence lock:
+  - manual-only variations persist through the manual sync path
+  - option-generated variations persist through the variation generation path
+- Safety lock:
+  - duplicate manual variations must be blocked by canonical key/label duplicate checks
+  - deterministic return and process-screen closure rules remain mandatory
+
+## 2026-03-05 — Square-Style Options & Variations Procedure Alignment (Masterplan + Memory)
+
+### Memory Lock
+
+- Canonical policy name is **Square-Style Options & Variations Procedure Alignment**.
+- External behavioral reference is Square Help US guidance for item options/variations flow (notably article `6689` and linked POS app procedures):
+  - create/select reusable option sets
+  - ensure option sets have option values
+  - select values per set
+  - create variations from option-set/value combinations
+  - use add-variation only for valid not-yet-existing combinations
+- BizAssist authoring sequence is locked to:
+  - `Create/Edit Item`
+  - `Options` (`Add Options` or `Edit Options`)
+  - `Select options`
+  - `Create option` (optional)
+  - per-set `Option values`
+  - `Create variations`
+  - optional `Add variation` for one additional constrained combination
+  - return to item authoring with refreshed variations
+- Flow-gating lock:
+  - `Create variations`/`Add variation` actions must stay disabled until each selected option set has at least one selected value.
+  - If variation count is `0`, the variation CTA opens `Create variations` (bulk combination generation).
+  - If variation count is `>0`, the variation CTA opens `Add variation` (single combination picker).
+- Duplicate-protection lock:
+  - add-variation must always block duplicates by canonical `variationKey` and show explicit duplicate feedback.
+- Empty-state lock:
+  - if add-variation has no eligible option-set selections, it must provide deterministic guidance and a direct path back to `Select options`.
+- Terminology lock:
+  - copy should consistently use `option set`, `option values`, and `variations` aligned with POS mental model.
+
+## 2026-03-05 — Option-Driven Variation Authoring Finalization (Masterplan + Memory)
+
+### Memory Lock
+
+- Canonical policy name is **Option-Driven Variation Authoring Finalization**.
+- This lock supersedes the narrower 2026-02-28 v1 interpretation where option/variation authoring excluded variation-level stock handling in the item authoring flow.
+- `Options` is the canonical authoring source for **option-generated variations** in BizAssist.
+- `Variations` is the resulting sellable combination list produced from selected option values.
+- Canonical connected flow is locked to this deterministic sequence:
+  - `Create Item` / `Edit Item`
+  - `Options` section entry (`Add options` or `Edit`)
+  - `Select options`
+  - `Create option` (optional)
+  - per-set `Option values`
+  - `Create variations`
+  - return to `Create Item` / `Edit Item` with updated `Variations`
+- Screen-state rule:
+  - when no option sets are attached, the parent item flow should show the `Options` section as the primary setup entry
+  - `Variations` should appear only after a valid option-driven variation result exists, or when returning from a variation generation/update process
+- Option-set authoring rule:
+  - reusable option sets and reusable option values remain the source of truth
+  - `Create option` requires Option set + Display name + at least one option value
+  - option values support inline add, inline edit, remove, and deterministic reorder
+- Option-value selection rule:
+  - each attached option set must have at least one selected value before variation generation
+  - duplicate labels inside the same option set are invalid
+  - per-set detail supports search, value selection, inline add value, and explicit `Done`
+- Variation generation rule:
+  - generated combinations are derived only from attached option sets and selected option values
+  - duplicate combinations must be blocked by canonical `variationKey` semantics
+  - `Create variations` must separate valid `Update existing variations` outcomes from `New variations` outcomes when prior variations already exist
+  - expanding option values must not silently destroy still-valid existing variations
+- `Add variation` rule:
+  - in the option-driven model, `Add variation` is a constrained combination picker, not a free-form manual variation
+  - it may create only a valid not-yet-existing combination across attached option sets
+  - attempts to create an already-existing combination must fail locally with explicit duplicate feedback (modal or equivalent governed feedback)
+- Ownership lock:
+  - mobile Options module owns the reusable option-set/value selection and authoring UI flow
+  - API Catalog module owns product-linked option attachment, variation preview, and persisted generated variation writes
+  - Inventory owns stock movement only
+- Variation stock lock:
+  - variation rows may expose `Manage Stock` drill-in in item authoring and edit flows
+  - stock movement semantics remain inventory-governed and must not be re-authored inside the options feature itself
+- Governance lock:
+  - no dropdowns or drawers in operational authoring flows
+  - drill-in process screens only
+  - deterministic closure (`Exit`/`Back`/`Done`/`Next`/`Create`)
+  - Busy/Loading Overlay and double-tap prevention remain mandatory for async writes
+  - UDQI, tablet-first layout governance, POS architecture, and modifier governance remain unchanged
+
+## 2026-03-05 — Currency Display Context Governance (Masterplan + Memory)
+
+### Memory Lock
+
+- Canonical policy name is **Currency Display Context Governance**.
+- Currency display must be **context-aware**, not symbol-only everywhere.
+- Default operational rule:
+  - day-to-day POS, catalog, item authoring, and routine operational UI uses **compact money display**
+  - compact money display means **money symbol first** when unambiguous (example: `$12.00`)
+- Explicit financial rule:
+  - audit, finance, reporting, exports, invoices, settlements, and any multi-currency comparison surface must use **explicit money display**
+  - explicit money display means **currency code + amount** (example: `USD 12.00`)
+- Ambiguity rule:
+  - if symbol-only display is ambiguous or not available, fallback remains code-based display
+- Implementation lock:
+  - all app money display must route through shared money formatters
+  - no ad-hoc per-screen currency prefix stripping or string concatenation
+  - shared formatters must support both `compact` and `explicit` display modes
+- Current product default:
+  - existing mobile operational surfaces remain on compact display unless a feature is explicitly classified as finance/audit/multi-currency
+
+## 2026-03-04 — POS Numeric Bottom Sheet Keyboard Lock (Masterplan + Memory)
+
+### Memory Lock
+
+- The canonical reusable pattern for this keyboard is **POS Numeric Bottom Sheet Keyboard**.
+- The implementation/component name is **BAIPosNumpadSheet**.
+- Scope lock:
+  - all number inputs
+  - all money inputs
+  - default numeric entry surface for operational forms moving forward
+- UI/behavior lock:
+  - bottom-sheet surface anchored to bottom
+  - 3x4 numeric grid (`1-9`, `00`, `0`, backspace)
+  - explicit confirm key (`check`) in-sheet
+  - received/value preview remains in host screen; keypad only handles digit input events
+- Money-governance compatibility lock:
+  - existing money precision, formatting, and cap rules remain mandatory
+  - this keyboard standard governs input surface/pattern, not money validation semantics
+- Reuse rule:
+  - feature screens must reuse this pattern/component instead of recreating ad-hoc numeric keypads
+  - visual tuning should be token-based and minimal, preserving core structure and key order
+- Forward-use allowance lock:
+  - bottom sheets and modals are approved UI interaction surfaces moving forward
+  - teams may implement either pattern when it best fits the task flow, as long as interaction remains deterministic and token-based
+  - prefer reuse of existing shared components/patterns before creating new bespoke overlays
+  - selection criteria are governed by **Bottom Sheet vs Modal Selection Lock (2026-03-05)**
+
+## 2026-03-05 — Bottom Sheet vs Modal Selection Lock (Masterplan + Memory)
+
+### Memory Lock
+
+- Bottom sheets and modals are both approved interaction patterns.
+- Selection rule:
+  - use a bottom sheet for lightweight, context-adjacent actions that should keep host-screen continuity
+  - use a modal for disruptive or focus-critical tasks that require stronger isolation/confirmation
+- Determinism rule:
+  - each chosen pattern must preserve clear completion and dismissal behavior
+  - implementation remains token-based and compliant with overlay/navigation governance
+
+## 2026-03-04 — Stable First-Mount Scaffold (Masterplan + Memory)
+
+### Memory Lock
+
+- The canonical reusable pattern for reducing initial screen transition flicker is **Stable First-Mount Scaffold**.
+- The implementation term for this pattern is **Single-Tree State Rendering**.
+- Locked rendering rules:
+  - keep the first-render screen frame mounted and stable
+  - avoid swapping between wrapper components for the same route just to support device/layout variants
+  - keep one list/card subtree mounted across loading, error, empty, and data states when feasible
+  - swap only the inner state content (`ListEmptyComponent`, inline state box, overlays, inner children) instead of replacing the whole surface
+- Use this pattern in addition to the broader **Flicker-Free Initial Screen Transition** rules when the flicker is caused by first-mount tree replacement.
+- Discounts ledger reference:
+  - render the ledger route directly and pass `layout` as a prop instead of swapping route wrapper components
+  - keep the `FlatList` mounted while state content changes inside one stable list shell
+
+## 2026-03-04 — Flicker-Free Initial Screen Transition Lock (Masterplan + Memory)
+
+### Memory Lock
+
+- The approved fix pattern for first-open screen transition flicker is **Flicker-Free Initial Screen Transition**.
+- Root cause class:
+  - first-frame layout shifts from late safe-area inset resolution
+  - cold-query loading branch swaps on first open
+  - header ownership mismatch between stack header and in-screen header
+- Locked implementation rules:
+  - seed `SafeAreaProvider` with `initialWindowMetrics`
+  - `BAIHeader` must not render with a smaller top inset than the initial safe-area metric
+  - do not introduce duplicate header ownership to “fix” transitions; prefer one stable header strategy per navigation path
+  - when a route hides the stack header, declare `headerShown: false` in the navigator layout for that route instead of setting `Stack.Screen` header overrides from inside the screen component on first render
+  - prefetch first-open drill-in data when the parent process screen is already known
+  - keep the destination screen scaffold stable while only the inner list/content state changes
+- Navigator header visibility lock:
+  - route-level header visibility must be known before the push animation starts
+  - runtime header visibility flips from inside the mounted screen are a known source of one-frame header flash/flicker
+- Modifiers flow reference:
+  - `ModifierGroupUpsertScreen` prefetches Apply Set data
+  - `ModifierGroupApplySetPickerScreen` stays on the stack-managed header path
+  - `BAIHeader` top inset is clamped against initial metrics to prevent first-frame jump
+- Discounts flow reference:
+  - discounts ledger routes hide the stack header in the stack layout, not through in-screen `Stack.Screen` overrides
+
+## 2026-03-03 — BAINeutralCheckbox Design Lock (Masterplan + Memory)
+
+### Memory Lock
+
+- The current `BAINeutralCheckbox` is approved as the canonical neutral checkbox pattern for BizAssist.
+- Visual lock:
+  - unchecked = outline only
+  - checked = solid filled
+  - shape = square with softened corners
+  - check glyph = bold
+- Contrast lock:
+  - light mode = dark outline/fill with light check contrast
+  - dark mode = light outline/fill with dark check contrast
+- Reuse rule:
+  - this component is the source of truth for neutral checkbox selection UI
+  - feature screens must reuse `BAINeutralCheckbox` instead of re-implementing local checkbox styles
+
+## 2026-03-03 — Lifecycle Eligibility Gating (Masterplan + Memory)
+
+### Memory Lock
+
+- Canonical product concept for conditional destructive actions is **Lifecycle Eligibility Gating**.
+- Canonical UI/action pattern is **Eligibility-Gated Destructive Action**.
+- Hard delete may be offered only when an entity is provably **unused and unreferenced**:
+  - no active attachments/dependencies
+  - no historical operational usage
+  - no meaningful draft/template/workflow references that should preserve it
+- If hard-delete eligibility is false, the destructive action must fall back to the reversible lifecycle action (typically **Archive**).
+- Backend must remain the source of truth for deletion eligibility. UI should consume an explicit capability (for example `canHardDelete`) plus an optional blocking reason instead of inferring from visible counts alone.
+- Copy lock:
+  - `Delete` = permanent and non-restorable
+  - `Archive` = reversible and restorable
+- This rule is reusable across feature flows, but it does **not** override archive-only governance for ledger-referenced configuration entities. Archive-only entities remain non-deletable even when currently unreferenced.
+- Modifiers may adopt this pattern for modifier sets/options only when they have never been used and have no live references; otherwise they remain archive-governed.
+
+## 2026-03-02 — Variation Stock State + Items Closure Behavior Lock (Photo-Referenced)
+
+### Memory Lock
+
+- The newly uploaded `Adjust stock` + `Stock received` sequence is approved as an additional canonical behavior reference for this cycle.
+- `Stock received` state lock:
+  - Header action `Done` is enabled only when `Received` is greater than `0`.
+  - When `Received` is `0`, `Done` is disabled and `New total` remains equal to `Current stock`.
+  - Numeric keypad flow remains in-screen with explicit confirm key and supports direct integer entry.
+  - `New total` updates immediately from `Current stock + Received`.
+- `Adjust stock` sold-out lock:
+  - When `Mark as sold out at this location` is ON, `Choose a time to mark for sale again` is shown with current schedule summary (e.g., `None`).
+  - When sold-out is OFF, the schedule row is hidden.
+  - `Save` is stateful and disabled when no effective change exists.
+- `Schedule` picker lock:
+  - Options remain mutually exclusive: `None` and `Specify a time and date`.
+  - Selection uses single-choice radio semantics with deterministic `Done` closure.
+- Variation form return lock:
+  - Completing `Stock received` returns to variation create/edit flow with `Stock on hand` reflecting the resolved quantity.
+- Surface closure/navigation lock:
+  - The `More -> Items` path remains the canonical non-checkout management entry for item administration surfaces.
+  - After lifecycle completion/exit from item authoring, closure should land users on governed Items surfaces (not undefined intermediate routes).
+
+## 2026-03-02 — Options/Variations + Variation Stock UX Reference Lock (Photo-Referenced, Consolidated)
+
+### Memory Lock
+
+- The uploaded UI sequence is approved as the canonical behavior reference for options/variations authoring and variation-level stock adjustment flow in this cycle.
+- Item Option management reference is locked to these structures:
+  - `Options` ledger shows option-set rows with right-side option count (e.g., `2 options`, `3 options`) and drill-in chevron.
+  - `Select options` allows enabling reusable option sets via row toggles, with an explicit `Create option` action.
+  - Newly created sets appear in a draggable selected block with summary subtitles and chevron drill-in.
+  - Remaining reusable sets appear under `Options` with toggle activation.
+  - `Next` is enabled when at least one option set is selected.
+  - Option-set value selection supports `All options` plus per-value multi-select with checkmark indicators.
+- `Create option` authoring behavior is locked:
+  - `Create` remains disabled until Option set + Display name + at least one option value are provided.
+  - Option values support inline add, inline text edit, remove action, and drag-handle reorder.
+  - Once set name exists, values section header reflects contextual naming (e.g., `Shirt options`).
+- `Create variations` generation behavior is locked:
+  - Generated combinations are listed with per-row checkbox controls plus `All variations` master select.
+  - `Create` commits selected combinations back to the item draft.
+- Variation management reference is locked to these structures:
+  - `Edit Item` → `Variations` list presents each variation row with `Manage Stock` action.
+  - `Create variation` includes a `Stock on hand` row that enters the same stock-management process.
+  - `Done` remains disabled until required variation fields are valid.
+  - A valid variation save enables `Done` and returns to item draft with new variation row.
+- `Adjust stock` flow lock:
+  - Primary control is `Mark as sold out at this location` toggle.
+  - When sold-out is OFF, schedule controls are hidden.
+  - When sold-out is ON, `Choose a time to mark for sale again` row is shown.
+  - Schedule summary value supports either `None` or a concrete localized datetime string.
+- `Schedule` picker flow lock:
+  - Two mutually exclusive choices: `None` and `Specify a time and date`.
+  - Selecting `Specify a time and date` reveals editable `Date` and `Time` rows.
+  - Date/time editing uses modal pickers and updates a sentence-case confirmation summary before Done.
+- `Stock received` flow lock:
+  - Screen shows `Current stock`, editable `Received`, and computed `New total`.
+  - Dedicated numeric keypad flow supports direct quantity entry and explicit confirm key.
+  - Entered `Received` value immediately updates `New total`.
+  - Completing stock entry returns to variation form with `Stock on hand` rendered as the resolved quantity (e.g., `800`).
+  - `Done` remains disabled when no effective received quantity is entered.
+- Item draft outcome lock after save path:
+  - `Options` section shows selected sets with comma-separated value summaries.
+  - `Variations` section shows generated combinations and stock-management affordance per row.
+  - Item appears in Checkout Library with aggregated price-count label (e.g., `6 Prices`) when multiple variation prices exist.
+- Process-control lock:
+  - Top-right completion actions (`Save`/`Done`) are stateful (enabled only when form state is valid/dirty).
+  - Deterministic closure pattern remains required (back/close affordance on left, commit action on right).
+
 ## 2026-02-28 — Option + Variation Feature Design Finalization (Masterplan + Memory)
 
 ### Memory Lock
@@ -1066,3 +1601,84 @@ Lock canonical cancel behavior across process flows so cancellation is safe, det
   - header-left on process screens uses `Close/Exit`;
   - in-content secondary action uses `Cancel`;
   - `Back` is reserved for detail/picker/history navigation.
+
+## 2026-03-03 — Square Alignment Locked: Item Options / Variations + Modifier Flow
+
+### Summary
+
+Reviewed current Square US help documentation on March 3, 2026 and locked the Square-aligned reference behavior for BizAssist item creation and modifier flows.
+
+### Source Basis (Square US Help)
+
+- Item options and variations:
+  - https://squareup.com/help/us/en/article/6689-item-options
+  - https://squareup.com/help/us/en/article/5093-add-edit-items
+- Modifiers:
+  - https://squareup.com/help/us/en/article/5119-create-and-edit-modifiers
+  - https://squareup.com/help/us/en/article/5696-customize-modifiers-for-order-entry
+- Archive / restore baseline reference (items only; used as lifecycle analogy because no direct modifier archive help article was found):
+  - https://squareup.com/help/us/en/article/8060-archive-or-unarchive-items
+
+### Locked Rules — Create Item with Options and Variations
+
+- Variations and modifiers remain separate concepts:
+  - variations are fixed sellable forms of the item (for example size, color, pack);
+  - modifiers are checkout-time customizations (for example toppings, add-ons, requests).
+- BizAssist `Create Item` must keep the primary item flow item-first:
+  - define core item data first;
+  - then attach options / variations;
+  - then attach modifier sets separately.
+- Option / variation authoring must stay item-owned in the create/edit item workflow:
+  - `Create Variation` belongs in the item process;
+  - reusable option-set behavior may be supported later, but item creation must still feel local and immediate.
+- Variation setup should generate the item’s concrete sellable variants, not become a second catalog type.
+- Modifiers must not be created inline inside the variation builder.
+
+### Locked Rules — Modifier Feature Flow
+
+- Modifier set creation remains a dedicated management flow:
+  - `Create New` -> `Modifiers` -> `Create Modifier Set`.
+- Item screens are primarily for attaching existing modifier sets, not for full modifier authoring.
+- Square-aligned assignment pattern for BizAssist:
+  - in `Create Item` and `Edit Item`, show available modifier sets inline in the item form;
+  - selecting a set is an attach/detach action in-place;
+  - avoid a primary `Select / Create Modifiers` button as the main interaction when inline assignment is practical.
+- Empty state rule:
+  - if no modifier sets exist, show helper text plus a secondary CTA to `Create Modifier Set`;
+  - after creation, return to the item flow and auto-select the newly created modifier set.
+- Modifier set configuration rules should remain on the dedicated modifier screen:
+  - set name;
+  - option rows;
+  - selection rules (`min` / `max`);
+  - apply-to-items flow.
+- Item-level modifier behavior can support per-item assignment and ordering; item-level overrides are allowed as future scope, but they should remain item-scoped and not silently rewrite the shared base set.
+
+### Locked Rules — Modifier Create / Edit / Archive / Restore
+
+- Create:
+  - use a dedicated create screen for modifier-set authoring;
+  - support adding option rows, pricing, and selection rules before save.
+- Edit:
+  - editing a modifier set should happen from the Modifiers manager, not inside the item form;
+  - item forms should only attach/detach existing sets.
+- Archive / Restore:
+  - Square’s current public help docs reviewed here describe create, edit, apply, remove, reorder, and item archive behavior, but no direct modifier-set archive / restore help article was found.
+  - Therefore BizAssist keeps modifier archive / restore as a product-owned lifecycle extension.
+  - BizAssist archive rule:
+    - archived modifier sets are hidden from active item assignment and excluded from checkout use;
+    - existing historical data must remain intact.
+  - BizAssist restore rule:
+    - restored modifier sets return to the active library and become attachable again.
+  - Do not hard-delete modifier sets as the default operational path.
+
+### Implementation Implications for BizAssist
+
+- `Create Item`:
+  - keep inline modifier assignment in the `Modifiers` section;
+  - if modifier sets exist, show set rows with secondary option-summary text;
+  - if none exist, show helper text and `Create Modifier Set`.
+- `Select Modifiers` picker can remain as a secondary utility for large libraries, but it is not the primary UX pattern.
+- `Create Modifier Set` must preserve context return so creating from item setup returns to the item flow and rehydrates selection.
+- Modifier ordering should be treated as meaningful:
+  - default order is library-owned;
+  - item-level presentation order may be item-owned if BizAssist later exposes override ordering.

@@ -123,3 +123,45 @@ export type UpdateProductInput = Partial<Omit<CreateProductInput, "initialOnHand
 	posTileLabel?: string | null;
 	modifierGroupIds?: string[];
 };
+
+export type VariationSelectionInput = {
+	optionSetId: string;
+	optionValueIds: string[];
+};
+
+export type PreviewProductVariationsInput = {
+	selections: VariationSelectionInput[];
+};
+
+export type PreviewProductVariationsResult = {
+	items: Array<{
+		variationKey: string;
+		label: string;
+		valueMap: Record<string, string>;
+		sortOrder: number;
+	}>;
+	total: number;
+	warning: boolean;
+};
+
+export type GenerateProductVariationsInput = PreviewProductVariationsInput & {
+	selectedVariationKeys?: string[];
+};
+
+export type GenerateProductVariationsResult = {
+	count: number;
+};
+
+export type ManualProductVariationInput = {
+	variationKey: string;
+	label: string;
+	sortOrder?: number;
+};
+
+export type SyncManualProductVariationsInput = {
+	variations: ManualProductVariationInput[];
+};
+
+export type SyncManualProductVariationsResult = {
+	count: number;
+};

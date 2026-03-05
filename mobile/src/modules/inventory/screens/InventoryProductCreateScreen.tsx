@@ -20,12 +20,12 @@
 //   Solution: wire Cancel to onExitToAddItems.
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Image, ScrollView, StyleSheet, View } from "react-native";
+import { Image, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useTheme } from "react-native-paper";
-import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { FontAwesome6 } from "@expo/vector-icons";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 
 import { BAIScreen } from "@/components/ui/BAIScreen";
 import { BAISurface } from "@/components/ui/BAISurface";
@@ -33,11 +33,13 @@ import { BAIText } from "@/components/ui/BAIText";
 import { BAIButton } from "@/components/ui/BAIButton";
 import { BAIIconButton } from "@/components/ui/BAIIconButton";
 import { BAICTAPillButton } from "@/components/ui/BAICTAButton";
-import { BAIMinorMoneyInput } from "@/components/ui/BAIMinorMoneyInput";
+import {
+	BAINumericBottomSheetKeyboard,
+	type BAINumericBottomSheetKey,
+} from "@/components/ui/BAINumericBottomSheetKeyboard";
 import { BAITextInput } from "@/components/ui/BAITextInput";
 import { BAITextarea } from "@/components/ui/BAITextarea";
 import { BAIPressableRow } from "@/components/ui/BAIPressableRow";
-import { BAISwitchRow } from "@/components/ui/BAISwitchRow";
 import { ConfirmActionModal } from "@/components/settings/ConfirmActionModal";
 
 import { useAppBusy } from "@/hooks/useAppBusy";
@@ -55,6 +57,8 @@ import {
 	sanitizeDescriptionInput,
 	sanitizeSkuInput,
 } from "@/shared/validation/sanitize";
+import { MONEY_INPUT_PRECISION } from "@/shared/money/money.constants";
+import { digitsToMinorUnits, formatMoneyFromMinor, parseMinorUnits, sanitizeDigits } from "@/shared/money/money.minor";
 import { GTIN_MAX_LENGTH, sanitizeGtinInput, validateGtinValue } from "@/shared/validation/gtin";
 import { inventoryApi } from "@/modules/inventory/inventory.api";
 import { useInventoryHeader } from "@/modules/inventory/useInventoryHeader";
@@ -69,9 +73,10 @@ import { PosTileTextOverlay } from "@/modules/inventory/components/PosTileTextOv
 import type { CreateProductInput } from "@/modules/inventory/inventory.types";
 import { uploadProductImage } from "@/modules/media/media.upload";
 import { toMediaDomainError } from "@/modules/media/media.errors";
+import { ModifierGroupSelector, modifierGroupSelectorKey } from "@/modules/modifiers/components/ModifierGroupSelector";
+import { modifiersApi } from "@/modules/modifiers/modifiers.api";
 import {
 	buildModifierSelectionParams,
-	MODIFIER_PICKER_ROUTE,
 	MODIFIER_SELECTED_IDS_KEY,
 	MODIFIER_SELECTION_SOURCE_KEY,
 	parseModifierSelectionParams,
@@ -116,9 +121,18 @@ import {
 	RETURN_TO_KEY,
 	DRAFT_ID_KEY,
 } from "@/modules/units/unitPicker.contract";
+import {
+	DRAFT_ID_KEY as OPTION_DRAFT_ID_KEY,
+	PRODUCT_CREATE_VARIATIONS_ROUTE,
+	PRODUCT_SELECT_OPTIONS_ROUTE,
+	RETURN_TO_KEY as OPTION_RETURN_TO_KEY,
+} from "@/modules/options/productOptionPicker.contract";
+import { optionsApi } from "@/modules/options/options.api";
 
 const INVENTORY_THIS_ROUTE = "/(app)/(tabs)/inventory/products/create" as const;
 const INVENTORY_ADD_ITEMS_ROUTE = "/(app)/(tabs)/inventory/add-item" as const;
+const INVENTORY_MODIFIER_CREATE_ROUTE = "/(app)/(tabs)/inventory/modifiers/create" as const;
+const INVENTORY_MANAGE_STOCK_ROUTE = "/(app)/(tabs)/inventory/products/manage-stock" as const;
 const SCANNED_BARCODE_KEY = "scannedBarcode" as const;
 const INVENTORY_SCAN_ROUTE = "/(app)/(tabs)/inventory/scan" as const;
 
@@ -127,6 +141,9 @@ const COUNT_PRECISION: PrecisionScale = 0;
 const COUNT_CATALOG_ID = "ea";
 const COUNT_DISPLAY_NAME = "Per Piece";
 const COUNT_DISPLAY_ABBR = "pc";
+const DECIMAL_PATTERN = /^\d+(\.\d+)?$/;
+const MONEY_SCALE = MONEY_INPUT_PRECISION;
+const MONEY_MAX_MINOR_DIGITS = 11;
 
 // UDQI caps
 const HARD_QTY_CAP = 18;
@@ -152,94 +169,50 @@ function toMoneyOrNull(raw: string): number | null {
 	return n;
 }
 
-/**
- * UDQI: Quantity input invariant (Create Item; non-negative):
- * - digits + optional single dot
- * - max `scale` decimals
- * - no negative values
- * - allows "10." during typing (submit blocks trailing '.')
- * - must not behave like “cents input”: "12" stays "12"
- */
-function sanitizeQuantityInput(raw: string, scale: number): string {
-	let v = String(raw ?? "")
-		.replace(/,/g, "")
-		.trim();
+function moneyTextToMinorUnits(raw: string, scale: number, maxMinorDigits: number): number {
+	const cleaned = String(raw ?? "").replace(/,/g, "").replace(/[^\d.]/g, "");
+	if (!cleaned) return 0;
 
-	if (!v) return "";
+	const [intRaw = "", ...fractionParts] = cleaned.split(".");
+	const intDigits = sanitizeDigits(intRaw);
+	const fractionDigits = sanitizeDigits(fractionParts.join(""));
+	const decimalDigits = scale > 0 ? fractionDigits.slice(0, scale).padEnd(scale, "0") : "";
+	const combinedDigits = `${intDigits}${decimalDigits}`;
 
-	// Strip everything except digits and dot
-	v = v.replace(/[^\d.]/g, "");
+	if (!combinedDigits) return 0;
+	return digitsToMinorUnits(combinedDigits, maxMinorDigits);
+}
 
-	// Collapse multiple dots into one
-	const parts = v.split(".");
-	if (parts.length > 2) {
-		v = parts[0] + "." + parts.slice(1).join("");
+function minorUnitsToMoneyText(minorUnits: number, scale: number): string {
+	const safeMinor = parseMinorUnits(minorUnits);
+	if (safeMinor <= 0) return "";
+	if (scale <= 0) return String(safeMinor);
+
+	const divisor = 10 ** scale;
+	const major = Math.floor(safeMinor / divisor);
+	const minor = safeMinor % divisor;
+	return `${major}.${String(minor).padStart(scale, "0")}`;
+}
+
+function applyMoneyKeypadKey(
+	currentMinor: number,
+	key: BAINumericBottomSheetKey,
+	maxMinorDigits: number,
+): number {
+	const currentDigits = sanitizeDigits(String(parseMinorUnits(currentMinor)));
+
+	if (key === "backspace") {
+		const nextDigits = currentDigits.slice(0, -1);
+		return nextDigits ? digitsToMinorUnits(nextDigits, maxMinorDigits) : 0;
 	}
 
-	// If scale is 0, remove dots entirely (whole numbers only)
-	if (scale <= 0) {
-		return v.replace(/\./g, "");
-	}
-
-	// Clamp fractional length to scale
-	if (v.includes(".")) {
-		const [int, dec = ""] = v.split(".");
-		v = int + "." + dec.slice(0, Math.max(0, Math.trunc(scale)));
-	}
-
-	return v;
+	if (currentDigits.length >= maxMinorDigits) return parseMinorUnits(currentMinor);
+	return digitsToMinorUnits(`${currentDigits}${key}`, maxMinorDigits);
 }
 
 function capText(raw: string, maxLen: number) {
 	if (maxLen <= 0) return "";
 	return raw.length > maxLen ? raw.slice(0, maxLen) : raw;
-}
-
-/**
- * ✅ MIN SAFE FIX (Create):
- * Enforce UDQI integer digit cap (12) + scale fractional cap, keeping natural typing.
- * - Non-negative only (Create screen does not allow negatives).
- * - At most 1 '.' (already ensured by sanitizeQuantityInput).
- * - Cap integer digits to UDQI_INT_MAX_DIGITS.
- * - Cap fractional digits to `scale`.
- * - Apply HARD_QTY_CAP as final safety net.
- */
-function enforceUdiqCaps(sanitized: string, scale: number, hardCap: number) {
-	let s = String(sanitized ?? "");
-	if (!s) return "";
-
-	if (scale <= 0) {
-		const intOnly = s.replace(/\./g, "");
-		const cappedInt = intOnly.slice(0, UDQI_INT_MAX_DIGITS);
-		return capText(cappedInt, hardCap);
-	}
-
-	if (s.includes(".")) {
-		const [intPartRaw, fracRaw = ""] = s.split(".");
-		const intPart = intPartRaw.slice(0, UDQI_INT_MAX_DIGITS);
-		const frac = fracRaw.slice(0, Math.max(0, Math.trunc(scale)));
-		return capText(intPart + "." + frac, hardCap);
-	}
-
-	// no dot: integer typing
-	return capText(s.slice(0, UDQI_INT_MAX_DIGITS), hardCap);
-}
-
-/**
- * Placeholder must reflect precision: scale 0 => "0", scale 2 => "0.00", scale 5 => "0.00000"
- */
-function formatZeroPlaceholder(scale: number): string {
-	const s = Math.max(0, Math.trunc(Number(scale) || 0));
-	if (s <= 0) return "0";
-	return "0." + "0".repeat(s);
-}
-
-function countFractionDigits(decimal: string): number {
-	const s = String(decimal ?? "").trim();
-	if (!s) return 0;
-	const dot = s.indexOf(".");
-	if (dot < 0) return 0;
-	return Math.max(0, s.length - dot - 1);
 }
 
 function clampPrecisionScale(raw: unknown): PrecisionScale {
@@ -250,6 +223,38 @@ function clampPrecisionScale(raw: unknown): PrecisionScale {
 
 function normalizeUnitKey(value: string | null | undefined): string {
 	return (value ?? "").trim().toLowerCase();
+}
+
+function normalizeQuantityForSubmit(
+	raw: string,
+	scale: number,
+): { ok: true; value: string | null } | { ok: false; message: string } {
+	const s0 = String(raw ?? "").trim();
+	if (!s0) return { ok: true, value: null };
+
+	if (/[eE,]/.test(s0)) return { ok: false, message: "Invalid number format." };
+	if (!DECIMAL_PATTERN.test(s0)) return { ok: false, message: "Enter a valid quantity." };
+	if (s0.endsWith(".")) return { ok: false, message: "Quantity cannot end with a decimal point." };
+
+	const sc = Math.max(0, Math.trunc(Number(scale) || 0));
+	if (sc <= 0) return { ok: true, value: s0.replace(/\./g, "") };
+
+	const [intRaw, fracRaw = ""] = s0.split(".");
+	if (fracRaw.length > sc) return { ok: false, message: `Max ${sc} decimals for this unit.` };
+
+	const intPart = intRaw.length ? intRaw : "0";
+	const frac = (fracRaw + "0".repeat(sc)).slice(0, sc);
+	return { ok: true, value: `${intPart}.${frac}` };
+}
+
+type MoneyFieldKey = "price" | "cost";
+
+function formatStockOnHandDisplay(raw: string): string {
+	const trimmed = String(raw ?? "").trim();
+	if (!trimmed) return "";
+	if (!DECIMAL_PATTERN.test(trimmed)) return trimmed;
+	if (!trimmed.includes(".")) return trimmed;
+	return trimmed.replace(/\.?0+$/, "");
 }
 
 function isEachUnit(name: string | undefined, abbr: string | undefined, category?: string): boolean {
@@ -272,58 +277,6 @@ function displayUnitValueInline(name: string, abbr: string, category?: string): 
 	if (!n) return COUNT_DISPLAY_NAME;
 	if (!a) return n;
 	return `${n} (${a})`;
-}
-
-function buildUnitPrecisionHelper(scale: number, unitToken: string) {
-	if (scale <= 0) return `Whole numbers only (${unitToken}).`;
-	if (scale === 1) return `Up to 1 decimal place (${unitToken}).`;
-	return `Up to ${scale} decimal places (${unitToken}).`;
-}
-
-/**
- * UDQI FINAL: submit-time normalization only.
- * - Reject empty, "-", or trailing dot.
- * - Clamp fraction digits already handled while typing; enforce again here.
- * - Return fixed-scale decimal-string by right-padding zeros to `scale`.
- * - scale=0 => integer string (no dot).
- */
-function normalizeQuantityForSubmit(
-	raw: string,
-	scale: number,
-): { ok: true; value: string | null } | { ok: false; message: string } {
-	const s0 = String(raw ?? "").trim();
-	if (!s0) return { ok: true, value: null };
-
-	if (/[eE,]/.test(s0)) return { ok: false, message: "Invalid number format." };
-	if (!/^\d+(\.\d*)?$/.test(s0)) return { ok: false, message: "Enter a valid quantity." };
-	if (s0.endsWith(".")) return { ok: false, message: "Quantity cannot end with a decimal point." };
-
-	const sc = Math.max(0, Math.trunc(Number(scale) || 0));
-
-	if (sc <= 0) {
-		// whole number only; strip any dot (shouldn't exist due to typing rules)
-		return { ok: true, value: s0.replace(/\./g, "") };
-	}
-
-	const [intRaw, fracRaw = ""] = s0.split(".");
-	if (fracRaw.length > sc) return { ok: false, message: `Max ${sc} decimals for this unit.` };
-
-	const intPart = intRaw.length ? intRaw : "0";
-	const frac = (fracRaw + "0".repeat(sc)).slice(0, sc);
-	return { ok: true, value: `${intPart}.${frac}` };
-}
-
-function normalizeQuantityForBlur(raw: string, scale: number, hardCap: number) {
-	const sanitized = sanitizeQuantityInput(raw, scale);
-	const capped = enforceUdiqCaps(sanitized, scale, hardCap);
-
-	const trimmed = capped.trim();
-	if (!trimmed || trimmed === "." || trimmed === "-") return "";
-
-	const normalized = normalizeQuantityForSubmit(capped, scale);
-	if (!normalized.ok) return capped;
-
-	return normalized.value ?? "";
 }
 
 /**
@@ -380,10 +333,13 @@ export default function InventoryProductCreateScreen({
 
 	// --- nav lock (mandatory)
 	const navLockRef = useRef(false);
+	const priceInputRef = useRef<any>(null);
+	const costInputRef = useRef<any>(null);
 	const [isNavLocked, setIsNavLocked] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [imageError, setImageError] = useState<string | null>(null);
 	const [confirmExitOpen, setConfirmExitOpen] = useState(false);
+	const [activeMoneyField, setActiveMoneyField] = useState<MoneyFieldKey | null>(null);
 
 	const lockNav = useCallback((ms = 650) => {
 		if (navLockRef.current) return false;
@@ -490,6 +446,11 @@ export default function InventoryProductCreateScreen({
 	const categoriesQuery = useQuery<{ items: { id: string; color?: string | null }[] }>({
 		queryKey: categoryKeys.list({ limit: 250 }),
 		queryFn: () => categoriesApi.list({ limit: 250 }),
+		staleTime: 30_000,
+	});
+	const modifierGroupsQuery = useQuery({
+		queryKey: modifierGroupSelectorKey,
+		queryFn: () => modifiersApi.listGroups(false),
 		staleTime: 30_000,
 	});
 
@@ -715,26 +676,6 @@ export default function InventoryProductCreateScreen({
 	// Hard cap for quantity-like inputs
 	const qtyMaxLen = HARD_QTY_CAP;
 
-	const quantityKeyboardType = useMemo(() => {
-		return effectiveScale > 0 ? ("decimal-pad" as const) : ("number-pad" as const);
-	}, [effectiveScale]);
-
-	const unitTokenForHelper = useMemo(() => {
-		const abbr = (effectiveUnit?.abbreviation ?? "").trim();
-		const cat = String(effectiveUnit?.category ?? "COUNT");
-		if (cat === "COUNT") return COUNT_DISPLAY_ABBR;
-		if (abbr) return abbr;
-		const nm = (effectiveUnit?.name ?? "").trim();
-		return nm || "unit";
-	}, [effectiveUnit]);
-
-	const precisionHelperText = useMemo(
-		() => buildUnitPrecisionHelper(effectiveScale, unitTokenForHelper),
-		[effectiveScale, unitTokenForHelper],
-	);
-
-	const quantityPlaceholder = useMemo(() => formatZeroPlaceholder(effectiveScale), [effectiveScale]);
-
 	// Keep quantity fields aligned with the selected Unit + UDQI precision.
 	const unitUdiqKey = `${effectiveUnitId}:${effectiveScale}`;
 	const previousUnitUdiqKeyRef = useRef(unitUdiqKey);
@@ -764,12 +705,11 @@ export default function InventoryProductCreateScreen({
 		if (hasValue(draft.priceText)) return true;
 		if (hasValue(draft.costText)) return true;
 		if (hasValue(draft.initialOnHandText)) return true;
-		if (hasValue(draft.reorderPointText)) return true;
+		if ((draft.selectedOptionSetIds?.length ?? 0) > 0) return true;
+		if ((draft.variations?.length ?? 0) > 0) return true;
 		if (hasValue(draft.categoryId) || hasValue(draft.categoryName)) return true;
 		if ((draft.modifierGroupIds?.length ?? 0) > 0) return true;
 		if (hasValue(draft.imageLocalUri)) return true;
-
-		if (!draft.trackInventory) return true;
 
 		if (effectiveUnitId && countUnit?.id && effectiveUnitId !== countUnit.id) return true;
 
@@ -782,13 +722,13 @@ export default function InventoryProductCreateScreen({
 		draft.costText,
 		draft.description,
 		draft.imageLocalUri,
-		draft.modifierGroupIds,
 		draft.initialOnHandText,
+		draft.modifierGroupIds,
 		draft.name,
 		draft.priceText,
-		draft.reorderPointText,
+		draft.selectedOptionSetIds,
 		draft.sku,
-		draft.trackInventory,
+		draft.variations,
 		effectiveUnitId,
 	]);
 
@@ -799,6 +739,7 @@ export default function InventoryProductCreateScreen({
 		const color = typeof category?.color === "string" ? category.color.trim() : "";
 		return color || null;
 	}, [categoriesQuery.data?.items, draft.categoryId]);
+	const hasAvailableModifierGroups = (modifierGroupsQuery.data?.length ?? 0) > 0;
 
 	/* ---------------- navigation ---------------- */
 
@@ -867,22 +808,124 @@ export default function InventoryProductCreateScreen({
 		unitProductType,
 	]);
 
-	const openModifierPicker = useCallback(() => {
+	const openOptionsVariations = useCallback(() => {
 		if (isUiDisabled) return;
 		if (!lockNav()) return;
 
 		router.replace({
-			pathname: MODIFIER_PICKER_ROUTE as any,
+			pathname: toScopedRoute(PRODUCT_SELECT_OPTIONS_ROUTE) as any,
+			params: {
+				[OPTION_DRAFT_ID_KEY]: draftId,
+				[OPTION_RETURN_TO_KEY]: thisRoute,
+			} as any,
+		});
+	}, [draftId, isUiDisabled, lockNav, router, thisRoute, toScopedRoute]);
+
+	const openAddVariation = useCallback(() => {
+		if (isUiDisabled) return;
+		if (!lockNav()) return;
+
+		router.replace({
+			pathname: toScopedRoute(PRODUCT_CREATE_VARIATIONS_ROUTE) as any,
+			params: {
+				[OPTION_DRAFT_ID_KEY]: draftId,
+				[OPTION_RETURN_TO_KEY]: thisRoute,
+			} as any,
+		});
+	}, [draftId, isUiDisabled, lockNav, router, thisRoute, toScopedRoute]);
+
+	const openCreateVariations = useCallback(() => {
+		if (isUiDisabled) return;
+		if (!lockNav()) return;
+
+		router.replace({
+			pathname: toScopedRoute(PRODUCT_CREATE_VARIATIONS_ROUTE) as any,
+			params: {
+				[OPTION_DRAFT_ID_KEY]: draftId,
+				[OPTION_RETURN_TO_KEY]: thisRoute,
+			} as any,
+		});
+	}, [draftId, isUiDisabled, lockNav, router, thisRoute, toScopedRoute]);
+
+	const openCreateModifierSet = useCallback(() => {
+		if (isUiDisabled) return;
+		if (!lockNav()) return;
+
+		router.push({
+			pathname: INVENTORY_MODIFIER_CREATE_ROUTE as any,
 			params: {
 				[MODIFIER_RETURN_TO_KEY]: thisRoute,
 				...buildModifierSelectionParams({
 					selectedModifierGroupIds: draft.modifierGroupIds,
-					selectionSource: draft.modifierGroupIds.length ? "existing" : "cleared",
+					selectionSource: draft.modifierGroupIds.length > 0 ? "existing" : "cleared",
 					draftId,
 				}),
 			} as any,
 		});
 	}, [draft.modifierGroupIds, draftId, isUiDisabled, lockNav, router, thisRoute]);
+
+	const openManageStock = useCallback(() => {
+		if (isUiDisabled) return;
+		if (!lockNav()) return;
+
+		router.replace({
+			pathname: toScopedRoute(INVENTORY_MANAGE_STOCK_ROUTE) as any,
+			params: {
+				draftId,
+				returnTo: thisRoute,
+			} as any,
+		});
+	}, [draftId, isUiDisabled, lockNav, router, thisRoute, toScopedRoute]);
+
+	const openMoneyKeyboard = useCallback(
+		(field: MoneyFieldKey) => {
+			if (isUiDisabled) return;
+			setActiveMoneyField(field);
+		},
+		[isUiDisabled],
+	);
+
+	const closeMoneyKeyboard = useCallback(() => {
+		if (activeMoneyField === "price") {
+			priceInputRef.current?.blur?.();
+		}
+		if (activeMoneyField === "cost") {
+			costInputRef.current?.blur?.();
+		}
+		setActiveMoneyField(null);
+	}, [activeMoneyField]);
+
+	const dismissMoneyKeyboardIfOpen = useCallback(() => {
+		if (activeMoneyField === null) return;
+		closeMoneyKeyboard();
+	}, [activeMoneyField, closeMoneyKeyboard]);
+
+	const priceMinor = useMemo(
+		() => moneyTextToMinorUnits(draft.priceText, MONEY_SCALE, MONEY_MAX_MINOR_DIGITS),
+		[draft.priceText],
+	);
+	const costMinor = useMemo(
+		() => moneyTextToMinorUnits(draft.costText, MONEY_SCALE, MONEY_MAX_MINOR_DIGITS),
+		[draft.costText],
+	);
+
+	const onMoneyKeyPress = useCallback(
+		(key: BAINumericBottomSheetKey) => {
+			if (!activeMoneyField) return;
+
+			const currentMinor = activeMoneyField === "price" ? priceMinor : costMinor;
+			const nextMinor = applyMoneyKeypadKey(currentMinor, key, MONEY_MAX_MINOR_DIGITS);
+			if (nextMinor === currentMinor) return;
+
+			const nextValue = minorUnitsToMoneyText(nextMinor, MONEY_SCALE);
+			if (activeMoneyField === "price") {
+				patch({ priceText: nextValue });
+				return;
+			}
+			patch({ costText: nextValue });
+		},
+		[activeMoneyField, costMinor, patch, priceMinor],
+	);
 
 	/* ---------------- save ---------------- */
 
@@ -919,41 +962,33 @@ export default function InventoryProductCreateScreen({
 					return;
 				}
 
-				const scale = effectiveScale;
+				const initialOnHandCheck = normalizeQuantityForSubmit(draft.initialOnHandText, effectiveScale);
+				if (!initialOnHandCheck.ok) {
+					setError(initialOnHandCheck.message);
+					return;
+				}
 
-				// UDQI FINAL: submit-time normalization only
-				let reorderNormalized: string | null = null;
-				let initialNormalized: string | null = null;
+				const selectedOptionSetIdSet = new Set(draft.selectedOptionSetIds);
+				const variationSelectionsForSave = draft.optionSelections
+					.filter((selection) => selectedOptionSetIdSet.has(selection.optionSetId))
+					.filter((selection) => selection.selectedValueIds.length > 0)
+					.map((selection) => ({
+						optionSetId: selection.optionSetId,
+						optionValueIds: selection.selectedValueIds,
+					}));
+				const hasSelectedOptionSetsForSave = draft.selectedOptionSetIds.length > 0;
+				const hasCompleteOptionSelectionsForSave =
+					hasSelectedOptionSetsForSave && variationSelectionsForSave.length === draft.selectedOptionSetIds.length;
 
-				if (draft.trackInventory) {
-					const initialRes = normalizeQuantityForSubmit(draft.initialOnHandText, scale);
-					if (!initialRes.ok) {
-						setError(initialRes.message);
-						return;
-					}
-					initialNormalized = initialRes.value;
-
-					const reorderRes = normalizeQuantityForSubmit(draft.reorderPointText, scale);
-					if (!reorderRes.ok) {
-						setError(reorderRes.message);
-						return;
-					}
-					reorderNormalized = reorderRes.value;
-
-					if (initialNormalized != null && countFractionDigits(initialNormalized) > scale) {
-						setError(`Initial on hand is invalid for this unit (max ${scale} decimals).`);
-						return;
-					}
-					if (reorderNormalized != null && countFractionDigits(reorderNormalized) > scale) {
-						setError(`Reorder point is invalid for this unit (max ${scale} decimals).`);
-						return;
-					}
+				if (hasSelectedOptionSetsForSave && !hasCompleteOptionSelectionsForSave) {
+					setError("Complete option values before saving.");
+					return;
 				}
 
 				const input: CreateProductInput = {
 					type: "PHYSICAL",
 					name: nameTrimmed,
-					trackInventory: draft.trackInventory,
+					trackInventory: true,
 					sku: draft.sku.trim() || undefined,
 					barcode: normalizedGtin || undefined,
 					categoryId: draft.categoryId.trim() || undefined,
@@ -961,9 +996,7 @@ export default function InventoryProductCreateScreen({
 
 					price: priceN ?? undefined,
 					cost: costN ?? undefined,
-
-					reorderPoint: draft.trackInventory ? (reorderNormalized ?? undefined) : undefined,
-					initialOnHand: draft.trackInventory ? (initialNormalized ?? undefined) : undefined,
+					initialOnHand: initialOnHandCheck.value ?? undefined,
 				};
 
 				const apiPayload = {
@@ -982,6 +1015,49 @@ export default function InventoryProductCreateScreen({
 						createdId = created.id;
 						createdProductIdRef.current = createdId;
 						invalidateInventoryAfterMutation(queryClient, { productId: createdId });
+					}
+
+					if (hasSelectedOptionSetsForSave && variationSelectionsForSave.length > 0) {
+						try {
+							await optionsApi.generateProductVariations(createdId, {
+								selections: variationSelectionsForSave,
+								selectedVariationKeys:
+									draft.variations.length > 0 ? draft.variations.map((variation) => variation.variationKey) : undefined,
+							});
+						} catch (e: any) {
+							const payload = e?.response?.data;
+							const message =
+								payload?.message ??
+								payload?.error ??
+								payload?.errorMessage ??
+								payload?.error?.message ??
+								"Item saved, but options and variations failed to sync. Tap save to retry.";
+							setError(String(message));
+							return;
+						}
+					} else if (!hasSelectedOptionSetsForSave && draft.variations.length > 0) {
+						try {
+							await optionsApi.syncManualProductVariations(createdId, {
+								variations: draft.variations.map((variation, idx) => ({
+									variationKey: variation.variationKey,
+									label: variation.label,
+									sortOrder:
+										typeof variation.sortOrder === "number" && Number.isFinite(variation.sortOrder)
+											? variation.sortOrder
+											: idx,
+								})),
+							});
+						} catch (e: any) {
+							const payload = e?.response?.data;
+							const message =
+								payload?.message ??
+								payload?.error ??
+								payload?.errorMessage ??
+								payload?.error?.message ??
+								"Item saved, but variations failed to sync. Tap save to retry.";
+							setError(String(message));
+							return;
+						}
 					}
 
 					const detailRoute = toScopedRoute(`/(app)/(tabs)/inventory/products/${encodeURIComponent(createdId)}`);
@@ -1063,7 +1139,53 @@ export default function InventoryProductCreateScreen({
 		return displayUnitValueInline(name, abbr, String(effectiveUnit.category));
 	}, [effectiveUnit]);
 
-	const saveDisabled = isUiDisabled || !draft.name.trim() || !effectiveUnitId;
+	const variationCount = draft.variations.length;
+	const selectedOptionRows = useMemo(() => {
+		return draft.selectedOptionSetIds
+			.map((optionSetId) => {
+				const selection = draft.optionSelections.find((row) => row.optionSetId === optionSetId);
+				if (!selection) return null;
+				return {
+					optionSetId,
+					name: selection.optionSetName,
+					selectedNames: selection.selectedValueNames,
+				};
+			})
+			.filter((row): row is NonNullable<typeof row> => !!row);
+	}, [draft.optionSelections, draft.selectedOptionSetIds]);
+	const hasSelectedOptionSets = draft.selectedOptionSetIds.length > 0;
+	const hasCompleteOptionSelections =
+		hasSelectedOptionSets &&
+		selectedOptionRows.length === draft.selectedOptionSetIds.length &&
+		selectedOptionRows.every((row) => row.selectedNames.length > 0);
+	const hasIncompleteOptionSelection = hasSelectedOptionSets && !hasCompleteOptionSelections;
+	const hasManualOnlyVariations = variationCount > 0 && !hasSelectedOptionSets;
+	const optionsVariationCta = hasSelectedOptionSets ? "Edit Options" : "Add Options";
+	const canCreateVariations = hasCompleteOptionSelections || !hasSelectedOptionSets;
+	const createVariationCta = variationCount > 0 ? "Add Variation" : "Create Variations";
+	const sortedVariations = useMemo(
+		() => draft.variations.slice().sort((a, b) => a.sortOrder - b.sortOrder),
+		[draft.variations],
+	);
+	const priceDisplay = useMemo(
+		() => formatMoneyFromMinor({ minorUnits: priceMinor, currencyCode, scale: MONEY_SCALE }),
+		[currencyCode, priceMinor],
+	);
+	const costDisplay = useMemo(
+		() => formatMoneyFromMinor({ minorUnits: costMinor, currencyCode, scale: MONEY_SCALE }),
+		[currencyCode, costMinor],
+	);
+	const priceInputDisplay = draft.priceText.trim() ? priceDisplay : "";
+	const costInputDisplay = draft.costText.trim() ? costDisplay : "";
+	const stockOnHandValue = useMemo(() => formatStockOnHandDisplay(draft.initialOnHandText), [draft.initialOnHandText]);
+	const reorderPointValue = useMemo(() => formatStockOnHandDisplay(draft.reorderPointText), [draft.reorderPointText]);
+	const isMoneyKeyboardOpen = activeMoneyField !== null;
+	const moneyKeyboardKey = useMemo(
+		() => `${draftId}:${currencyCode}:${activeMoneyField ?? "closed"}`,
+		[activeMoneyField, currencyCode, draftId],
+	);
+
+	const saveDisabled = isUiDisabled || !draft.name.trim() || !effectiveUnitId || hasIncompleteOptionSelection;
 
 	// Process cancel intent → go back to Add Item selector
 	const onExitToAddItems = useCallback(() => {
@@ -1098,9 +1220,6 @@ export default function InventoryProductCreateScreen({
 		setConfirmExitOpen(false);
 	}, [isUiDisabled]);
 
-	const tabBarHeight = useBottomTabBarHeight();
-	const screenBottomPad = tabBarHeight;
-
 	const headerOptions = useInventoryHeader("process", {
 		title: "Create Item",
 		disabled: isUiDisabled,
@@ -1117,12 +1236,12 @@ export default function InventoryProductCreateScreen({
 				}}
 			/>
 
-			<BAIScreen padded={false} safeTop={false} safeBottom={false} style={styles.root}>
+			<BAIScreen tabbed padded={false} safeTop={false} style={styles.root}>
 				<View
 					style={[
 						styles.screen,
 						styles.scroll,
-						{ backgroundColor: theme.colors.background, paddingBottom: screenBottomPad },
+						{ backgroundColor: theme.colors.background },
 					]}
 				>
 					<BAISurface style={[styles.card, { borderColor }]} padded={false}>
@@ -1200,6 +1319,7 @@ export default function InventoryProductCreateScreen({
 								label='Name'
 								value={draft.name}
 								onChangeText={(t) => patch({ name: sanitizeProductNameDraftInput(t) })}
+								onFocus={dismissMoneyKeyboardIfOpen}
 								onBlur={() => {
 									if (isUiDisabled) return;
 									patch({ name: sanitizeProductNameInput(draft.name) });
@@ -1213,6 +1333,7 @@ export default function InventoryProductCreateScreen({
 								label='Description (optional)'
 								value={draft.description}
 								onChangeText={(t) => patch({ description: sanitizeDescriptionDraftInput(t) })}
+								onFocus={dismissMoneyKeyboardIfOpen}
 								onBlur={() => {
 									if (isUiDisabled) return;
 									patch({ description: sanitizeDescriptionInput(draft.description) });
@@ -1222,149 +1343,308 @@ export default function InventoryProductCreateScreen({
 								disabled={isUiDisabled}
 							/>
 
-							<BAITextInput
-								label='GTIN (Barcode)'
-								value={draft.barcode}
-								onChangeText={(t) => patch({ barcode: sanitizeGtinInput(t) })}
-								maxLength={GTIN_MAX_LENGTH}
-								placeholder='Scan or enter UPC / EAN / ISBN'
-								keyboardType='number-pad'
-								disabled={isUiDisabled}
-								style={{ marginTop: 4 }}
-							/>
-
-							<BAITextInput
-								label='SKU is auto-generated if left blank'
-								value={draft.sku}
-								onChangeText={(t) => patch({ sku: sanitizeSkuInput(t) })}
-								maxLength={FIELD_LIMITS.sku}
-								placeholder='Optional'
-								disabled={isUiDisabled}
-							/>
-
 							<BAIPressableRow
 								label='Category'
 								value={draft.categoryName ? draft.categoryName : "None"}
 								showValueDot={Boolean(draft.categoryName?.trim())}
 								valueDotColor={selectedCategoryColor}
-								onPress={openCategoryPicker}
+								onPress={() => {
+									dismissMoneyKeyboardIfOpen();
+									openCategoryPicker();
+								}}
 								disabled={isUiDisabled}
 								style={{ marginTop: 10 }}
 							/>
 
-							{routeScope === "inventory" ? (
+							<View style={{ height: 20 }} />
+							<View style={[styles.sectionTopDivider, { backgroundColor: borderColor }]} />
+							<View style={styles.optionsSection}>
+								<BAIText variant='subtitle' style={{ marginBottom: 8 }}>
+									{hasManualOnlyVariations ? "Variations" : "Options setup"}
+								</BAIText>
+
+								{!hasManualOnlyVariations ? (
+									<>
+										<BAIText variant='body' style={{ marginBottom: 10, lineHeight: 28 }}>
+											Add a custom set of options to an item to create variations. For example, a size option set creates
+											variations small, medium, and large.
+										</BAIText>
+
+										<BAIButton
+											variant='solid'
+											shape='default'
+											onPress={() => {
+												dismissMoneyKeyboardIfOpen();
+												openOptionsVariations();
+											}}
+											disabled={isUiDisabled || !effectiveUnitId}
+											style={{ marginBottom: 8 }}
+										>
+											{optionsVariationCta}
+										</BAIButton>
+										{selectedOptionRows.length > 0 ? (
+											<View style={styles.optionSummaryWrap}>
+												{selectedOptionRows.map((row) => (
+													<View
+														key={row.optionSetId}
+														style={[
+															styles.optionSummaryRow,
+															{
+																borderColor,
+																backgroundColor: theme.colors.surfaceVariant ?? theme.colors.surface,
+															},
+														]}
+													>
+														<BAIText variant='subtitle'>{row.name}</BAIText>
+														<BAIText variant='caption' muted numberOfLines={1}>
+															{row.selectedNames.length > 0 ? row.selectedNames.join(", ") : "No options selected"}
+														</BAIText>
+													</View>
+												))}
+											</View>
+										) : null}
+									</>
+								) : (
+									<BAIText variant='caption' muted style={{ marginBottom: 8 }}>
+										Options are hidden while manual variations are active.
+									</BAIText>
+								)}
+
+								{sortedVariations.length > 0 ? (
+									<>
+										<View style={{ height: 12 }} />
+										<BAIText variant='subtitle' style={{ marginBottom: 8 }}>
+											Variations
+										</BAIText>
+										<View style={styles.variationRowsWrap}>
+											{sortedVariations.map((variation) => (
+												<Pressable
+													key={variation.variationKey}
+													onPress={() => {
+														dismissMoneyKeyboardIfOpen();
+														openManageStock();
+													}}
+													disabled={isUiDisabled}
+													style={({ pressed }) => [
+														styles.variationRow,
+														{
+															borderColor,
+															backgroundColor: theme.colors.surfaceVariant ?? theme.colors.surface,
+														},
+														pressed && !isUiDisabled ? styles.stockCardPressed : null,
+														isUiDisabled ? styles.stockCardDisabled : null,
+													]}
+												>
+													<View style={styles.variationRowText}>
+														<BAIText variant='subtitle'>{variation.label}</BAIText>
+														<BAIText variant='caption' muted>
+															Variable
+														</BAIText>
+													</View>
+													<View style={styles.stockCardActionWrap}>
+														<BAIText variant='subtitle' style={styles.stockCardAction}>
+															Manage Stock
+														</BAIText>
+													</View>
+												</Pressable>
+											))}
+										</View>
+									</>
+								) : null}
+							</View>
+
+							<View style={{ height: 20 }} />
+							<View style={[styles.sectionTopDivider, { backgroundColor: borderColor }]} />
+							<View style={styles.inventorySection}>
+								<BAIText variant='subtitle' style={{ marginBottom: 8 }}>
+									Price and Inventory
+								</BAIText>
+
+								<BAITextInput
+									label='SKU is auto-generated if left blank'
+									value={draft.sku}
+									onChangeText={(t) => patch({ sku: sanitizeSkuInput(t) })}
+									onFocus={dismissMoneyKeyboardIfOpen}
+									maxLength={FIELD_LIMITS.sku}
+									placeholder='Optional'
+									disabled={isUiDisabled}
+								/>
+
+								<BAITextInput
+									label='GTIN (Barcode)'
+									value={draft.barcode}
+									onChangeText={(t) => patch({ barcode: sanitizeGtinInput(t) })}
+									onFocus={dismissMoneyKeyboardIfOpen}
+									maxLength={GTIN_MAX_LENGTH}
+									placeholder='Scan or enter UPC / EAN / ISBN'
+									keyboardType='number-pad'
+									disabled={isUiDisabled}
+									style={{ marginTop: 4 }}
+								/>
+
 								<BAIPressableRow
-									label='Modifiers'
-									value={draft.modifierGroupIds.length > 0 ? `${draft.modifierGroupIds.length} selected` : "None"}
-									onPress={openModifierPicker}
+									label='Unit'
+									value={unitValueText}
+									onPress={() => {
+										dismissMoneyKeyboardIfOpen();
+										openUnitPicker();
+									}}
 									disabled={isUiDisabled}
 									style={{ marginTop: 10 }}
 								/>
-							) : null}
 
-							<BAIPressableRow
-								label='Unit'
-								value={unitValueText}
-								onPress={openUnitPicker}
-								disabled={isUiDisabled}
-								style={{ marginTop: 10 }}
-							/>
+								{!effectiveUnitId ? (
+									<BAIText variant='caption' muted>
+										Select a unit to continue.
+									</BAIText>
+								) : null}
 
-							{!effectiveUnitId ? (
-								<BAIText variant='caption' muted>
-									Select a unit to continue.
-								</BAIText>
-							) : null}
+								<View style={{ height: 8 }} />
 
-							<View style={{ height: 12 }} />
+								<BAITextInput
+									ref={priceInputRef}
+									label='Price'
+									value={priceInputDisplay}
+									placeholder={formatMoneyFromMinor({ minorUnits: 0, currencyCode, scale: MONEY_SCALE })}
+									showSoftInputOnFocus={false}
+									contextMenuHidden
+									caretHidden={false}
+									onFocus={() => openMoneyKeyboard("price")}
+									selection={{ start: priceInputDisplay.length, end: priceInputDisplay.length }}
+									disabled={isUiDisabled}
+								/>
 
-							<BAIText variant='subtitle'>Pricing</BAIText>
+								<View style={{ height: 0 }} />
 
-							<BAIMinorMoneyInput
-								label='Price'
-								value={draft.priceText}
-								onChangeText={(value) => patch({ priceText: value })}
-								currencyCode={currencyCode}
-								maxMinorDigits={11}
-								style={styles.moneyHalfInput}
-								contentStyle={styles.moneyValueInputContent}
-								disabled={isUiDisabled}
-							/>
+								<BAITextInput
+									ref={costInputRef}
+									label='Cost (optional)'
+									value={costInputDisplay}
+									placeholder={formatMoneyFromMinor({ minorUnits: 0, currencyCode, scale: MONEY_SCALE })}
+									showSoftInputOnFocus={false}
+									contextMenuHidden
+									caretHidden={false}
+									onFocus={() => openMoneyKeyboard("cost")}
+									selection={{ start: costInputDisplay.length, end: costInputDisplay.length }}
+									disabled={isUiDisabled}
+								/>
 
-							<View style={{ height: 0 }} />
+								<View style={{ height: 10 }} />
 
-							<BAIMinorMoneyInput
-								label='Cost (optional)'
-								value={draft.costText}
-								onChangeText={(value) => patch({ costText: value })}
-								currencyCode={currencyCode}
-								maxMinorDigits={11}
-								style={styles.moneyHalfInput}
-								contentStyle={styles.moneyValueInputContent}
-								disabled={isUiDisabled}
-							/>
+								<Pressable
+									onPress={() => {
+										dismissMoneyKeyboardIfOpen();
+										openManageStock();
+									}}
+									disabled={isUiDisabled}
+									style={({ pressed }) => [
+										styles.stockCard,
+										{
+											borderColor,
+											backgroundColor: theme.colors.surfaceVariant ?? theme.colors.surface,
+										},
+										pressed && !isUiDisabled ? styles.stockCardPressed : null,
+										isUiDisabled ? styles.stockCardDisabled : null,
+									]}
+								>
+									<View style={styles.stockCardText}>
+										<BAIText variant='caption' muted>
+											Stock on hand
+										</BAIText>
+										<BAIText variant='subtitle'>{stockOnHandValue || "None"}</BAIText>
+										<BAIText variant='caption' muted style={styles.stockCardMeta}>
+											Reorder point: {reorderPointValue || "None"}
+										</BAIText>
+									</View>
+									<View style={styles.stockCardActionWrap}>
+										<BAIText variant='subtitle' style={styles.stockCardAction}>
+											Manage Stock
+										</BAIText>
+										<MaterialCommunityIcons
+											name='chevron-right'
+											size={24}
+											color={theme.colors.onSurfaceVariant ?? theme.colors.onSurface}
+										/>
+									</View>
+								</Pressable>
 
-							<View style={{ height: 6 }} />
+								<View style={{ height: 10 }} />
+								{hasIncompleteOptionSelection ? (
+									<BAIText variant='caption' muted style={{ marginBottom: 8 }}>
+										Select at least one value in each option set to create variations.
+									</BAIText>
+								) : null}
+								<BAIButton
+									variant='solid'
+									shape='default'
+									onPress={() => {
+										dismissMoneyKeyboardIfOpen();
+										if (!canCreateVariations) {
+											return;
+										}
+										if (variationCount > 0) {
+											openAddVariation();
+											return;
+										}
+										openCreateVariations();
+									}}
+									disabled={isUiDisabled || !effectiveUnitId || !canCreateVariations}
+								>
+									{createVariationCta}
+								</BAIButton>
+							</View>
 
-							<BAIText variant='subtitle' style={{ marginBottom: 6 }}>
-								Inventory
-							</BAIText>
-
-							<BAISwitchRow
-								style={{ marginBottom: 6 }}
-								switchVariant='blue'
-								label='Track inventory'
-								description='If off, this item will not affect stock counts.'
-								value={draft.trackInventory}
-								onValueChange={(next: boolean) => patch({ trackInventory: next })}
-								disabled={isUiDisabled}
-							/>
-
-							{draft.trackInventory ? (
+							{routeScope === "inventory" ? (
 								<>
-									<BAITextInput
-										label='Initial on hand'
-										value={draft.initialOnHandText}
-										onChangeText={(t) => {
-											const s0 = sanitizeQuantityInput(t, effectiveScale);
-											const s1 = enforceUdiqCaps(s0, effectiveScale, qtyMaxLen);
-											patch({ initialOnHandText: s1 });
-										}}
-										onBlur={() => {
-											if (isUiDisabled) return;
-											patch({
-												initialOnHandText: normalizeQuantityForBlur(draft.initialOnHandText, effectiveScale, qtyMaxLen),
-											});
-										}}
-										maxLength={qtyMaxLen}
-										keyboardType={quantityKeyboardType}
-										placeholder={quantityPlaceholder}
-										disabled={isUiDisabled}
-										{...({ helperText: precisionHelperText } as any)}
-									/>
+									<View style={{ height: 20 }} />
+									<View style={[styles.sectionTopDivider, { backgroundColor: borderColor }]} />
+									<View style={styles.modifiersSection}>
+										<BAIText variant='subtitle' style={{ marginBottom: 8 }}>
+											Modifiers
+										</BAIText>
 
-									<BAITextInput
-										label='Reorder point (optional)'
-										value={draft.reorderPointText}
-										onChangeText={(t) => {
-											const s0 = sanitizeQuantityInput(t, effectiveScale);
-											const s1 = enforceUdiqCaps(s0, effectiveScale, qtyMaxLen);
-											patch({ reorderPointText: s1 });
-										}}
-										onBlur={() => {
-											if (isUiDisabled) return;
-											patch({
-												reorderPointText: normalizeQuantityForBlur(draft.reorderPointText, effectiveScale, qtyMaxLen),
-											});
-										}}
-										maxLength={qtyMaxLen}
-										keyboardType={quantityKeyboardType}
-										placeholder={quantityPlaceholder}
-										disabled={isUiDisabled}
-										{...({ helperText: precisionHelperText } as any)}
-									/>
+										<ModifierGroupSelector
+											selectedIds={draft.modifierGroupIds}
+											onChange={(modifierGroupIds) => patch({ modifierGroupIds })}
+											disabled={isUiDisabled}
+											showHeader={false}
+											useContainer={false}
+											showRowDividers
+											emptyMode='hidden'
+											groups={modifierGroupsQuery.data}
+											isLoading={modifierGroupsQuery.isLoading}
+											isError={modifierGroupsQuery.isError}
+											style={{ marginBottom: 10 }}
+										/>
+
+										{!hasAvailableModifierGroups && !modifierGroupsQuery.isLoading && !modifierGroupsQuery.isError ? (
+											<>
+												<BAIText variant='body' style={styles.modifiersHelperText}>
+													Add a custom set of modifiers to customize this item at checkout, such as toppings,
+													add-ons, or special requests.
+												</BAIText>
+												<BAIButton
+													variant='subtle'
+													intent='neutral'
+													shape='default'
+													onPress={() => {
+														dismissMoneyKeyboardIfOpen();
+														openCreateModifierSet();
+													}}
+													disabled={isUiDisabled}
+													style={styles.modifiersCreateButton}
+												>
+													Create Modifier Set
+												</BAIButton>
+											</>
+										) : null}
+
+										<View style={[styles.sectionBottomDivider, { backgroundColor: borderColor }]} />
+									</View>
 								</>
 							) : null}
+
+							<View style={{ height: 6 }} />
 
 							{error ? (
 								<BAIText variant='caption' style={{ color: theme.colors.error }}>
@@ -1372,17 +1652,7 @@ export default function InventoryProductCreateScreen({
 								</BAIText>
 							) : null}
 
-							<View style={styles.actions}>
-								<BAICTAPillButton
-									variant='outline'
-									onPress={guardedOnExitToAddItems}
-									disabled={isUiDisabled}
-									style={{ flex: 1 }}
-									intent='neutral'
-								>
-									Cancel
-								</BAICTAPillButton>
-
+							<View style={[styles.actions, isMoneyKeyboardOpen ? styles.actionsKeyboardOpen : null]}>
 								<BAICTAPillButton
 									intent='primary'
 									variant='solid'
@@ -1392,21 +1662,28 @@ export default function InventoryProductCreateScreen({
 								>
 									Save
 								</BAICTAPillButton>
+
+								<BAICTAPillButton
+									variant='solid'
+									onPress={onSaveAndAddAnother}
+									disabled={saveDisabled}
+									style={{ flex: 1 }}
+									intent='primary'
+								>
+									Save & Another
+								</BAICTAPillButton>
 							</View>
-							<View style={{ height: 10 }} />
-							<BAIButton
-								variant='solid'
-								onPress={onSaveAndAddAnother}
-								disabled={saveDisabled}
-								style={styles.saveAnotherButton}
-								intent='primary'
-							>
-								Save & Add Another
-							</BAIButton>
 						</ScrollView>
 					</BAISurface>
 				</View>
 			</BAIScreen>
+
+			<BAINumericBottomSheetKeyboard
+				visible={isMoneyKeyboardOpen}
+				onDismiss={closeMoneyKeyboard}
+				onKeyPress={onMoneyKeyPress}
+				sheetKey={moneyKeyboardKey}
+			/>
 
 			<ConfirmActionModal
 				visible={confirmExitOpen}
@@ -1427,32 +1704,27 @@ export default function InventoryProductCreateScreen({
 
 const styles = StyleSheet.create({
 	root: { flex: 1 },
-	screen: { paddingHorizontal: 10, paddingBottom: 0 },
+	screen: { flex: 1, paddingHorizontal: 10, paddingBottom: 0 },
 	scroll: { flex: 1 },
 	card: {
 		flex: 1,
 		minHeight: 0,
+		alignSelf: "stretch",
+		marginBottom: 8,
 		borderWidth: 1,
 		borderRadius: 24,
 		gap: 4,
 		paddingHorizontal: 0,
 		paddingTop: 10,
-		paddingBottom: 0,
+		paddingBottom: 12,
 	},
 	formScroll: {
 		flex: 1,
 	},
 	formContainer: {
+		flexGrow: 1,
 		paddingHorizontal: 12,
 		paddingBottom: 0,
-	},
-	moneyHalfInput: {
-		width: "50%",
-		alignSelf: "flex-start",
-	},
-	moneyValueInputContent: {
-		paddingLeft: 16,
-		paddingRight: 20,
 	},
 	imageSection: {
 		alignItems: "center",
@@ -1551,15 +1823,93 @@ const styles = StyleSheet.create({
 	actions: {
 		flexDirection: "row",
 		gap: 10,
+		marginTop: 16,
+		marginBottom: 8,
+	},
+	actionsKeyboardOpen: {
+		marginBottom: 250,
+	},
+	sectionTopDivider: {
+		height: 4,
+	},
+	optionsSection: {
 		marginTop: 10,
 	},
-	sectionDivider: {
-		height: 1,
+	optionSummaryWrap: {
+		gap: 8,
+	},
+	optionSummaryRow: {
+		paddingHorizontal: 12,
+		paddingVertical: 10,
+		borderWidth: 1,
+		borderRadius: 12,
+		gap: 2,
+	},
+	variationRowsWrap: {
+		gap: 8,
+	},
+	variationRow: {
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "space-between",
+		paddingHorizontal: 12,
+		paddingVertical: 10,
+		borderWidth: 1,
+		borderRadius: 12,
+		gap: 12,
+	},
+	variationRowText: {
+		flex: 1,
+		minWidth: 0,
+		gap: 2,
+	},
+	inventorySection: {
 		marginTop: 10,
+	},
+	stockCard: {
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "space-between",
+		paddingHorizontal: 14,
+		paddingVertical: 12,
+		gap: 12,
+		borderWidth: 1,
+		borderRadius: 12,
+	},
+	stockCardText: {
+		flex: 1,
+		minWidth: 0,
+		gap: 2,
+	},
+	stockCardMeta: {
+		marginTop: 2,
+	},
+	stockCardActionWrap: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 4,
+	},
+	stockCardPressed: {
+		opacity: 0.85,
+	},
+	stockCardDisabled: {
+		opacity: 0.55,
+	},
+	stockCardAction: {
+		fontWeight: "400",
+	},
+	modifiersSection: {
+		marginTop: 10,
+	},
+	modifiersHelperText: {
+		marginBottom: 10,
+		lineHeight: 28,
+	},
+	modifiersCreateButton: {
 		marginBottom: 10,
 	},
-	saveAnotherButton: {
+	sectionBottomDivider: {
+		height: 4,
 		marginTop: 10,
-		marginBottom: 250,
 	},
 });

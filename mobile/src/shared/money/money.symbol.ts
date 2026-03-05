@@ -1,6 +1,8 @@
 // BizAssist_mobile
 // path: src/shared/money/money.symbol.ts
 
+export type MoneyDisplayMode = "compact" | "explicit";
+
 const CURRENCY_SYMBOL_FALLBACK: Record<string, string> = {
 	PHP: "₱",
 	USD: "$",
@@ -15,6 +17,17 @@ const CURRENCY_SYMBOL_FALLBACK: Record<string, string> = {
 
 function normalizeCurrencyCode(code?: string | null): string {
 	return String(code ?? "").trim().toUpperCase();
+}
+
+export function normalizeMoneyDisplayMode(mode?: MoneyDisplayMode | null): MoneyDisplayMode {
+	return mode === "explicit" ? "explicit" : "compact";
+}
+
+export function normalizeDisplayCurrencySymbol(symbol?: string | null): string {
+	const raw = String(symbol ?? "").trim();
+	if (!raw) return "";
+	const withoutPrefix = raw.replace(/^[A-Z]{2,3}(?=\S)/, "").trim();
+	return withoutPrefix || raw;
 }
 
 function extractSymbolFromFormatter(formatter: Intl.NumberFormat, currencyCode: string): string {
@@ -49,7 +62,7 @@ export function resolveCurrencySymbol(currencyCode?: string | null): string {
 			currencyDisplay: "narrowSymbol",
 		});
 		const narrowSymbol = extractSymbolFromFormatter(narrowFormatter, code);
-		if (narrowSymbol) return narrowSymbol;
+		if (narrowSymbol) return normalizeDisplayCurrencySymbol(narrowSymbol);
 
 		const symbolFormatter = new Intl.NumberFormat(undefined, {
 			style: "currency",
@@ -57,10 +70,10 @@ export function resolveCurrencySymbol(currencyCode?: string | null): string {
 			currencyDisplay: "symbol",
 		});
 		const symbol = extractSymbolFromFormatter(symbolFormatter, code);
-		if (symbol) return symbol;
+		if (symbol) return normalizeDisplayCurrencySymbol(symbol);
 	} catch {
-		return CURRENCY_SYMBOL_FALLBACK[code] || code;
+		return normalizeDisplayCurrencySymbol(CURRENCY_SYMBOL_FALLBACK[code] || code);
 	}
 
-	return CURRENCY_SYMBOL_FALLBACK[code] || code;
+	return normalizeDisplayCurrencySymbol(CURRENCY_SYMBOL_FALLBACK[code] || code);
 }

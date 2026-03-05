@@ -11,6 +11,23 @@ export const INVENTORY_DISCOUNTS_CREATE_ROUTE = "/(app)/(tabs)/inventory/discoun
 export const SETTINGS_DISCOUNTS_LEDGER_ROUTE = "/(app)/(tabs)/settings/discounts" as const;
 export const SETTINGS_DISCOUNTS_CREATE_ROUTE = "/(app)/(tabs)/settings/discounts/create" as const;
 
+export type DiscountFlowMode = "settings" | "inventory";
+
+const DISCOUNT_LEDGER_ROUTE_BY_MODE: Record<DiscountFlowMode, string> = {
+	settings: SETTINGS_DISCOUNTS_LEDGER_ROUTE,
+	inventory: INVENTORY_DISCOUNTS_LEDGER_ROUTE,
+};
+
+const DISCOUNT_CREATE_ROUTE_BY_MODE: Record<DiscountFlowMode, string> = {
+	settings: SETTINGS_DISCOUNTS_CREATE_ROUTE,
+	inventory: INVENTORY_DISCOUNTS_CREATE_ROUTE,
+};
+
+const DISCOUNT_FLOW_EXIT_ROUTE_BY_MODE: Record<DiscountFlowMode, string> = {
+	settings: SETTINGS_DISCOUNTS_LEDGER_ROUTE,
+	inventory: INVENTORY_ROOT_ROUTE,
+};
+
 export function appendReturnToQuery(route: string, returnTo: string | null): string {
 	if (!returnTo) return route;
 	const encoded = encodeURIComponent(returnTo);
@@ -30,98 +47,171 @@ export function normalizeDiscountReturnTo(raw: unknown): string | null {
 	return normalizeReturnTo(raw);
 }
 
+export function buildDiscountLedgerRoute(mode: DiscountFlowMode, returnTo: string | null = null): string {
+	return appendReturnToQuery(DISCOUNT_LEDGER_ROUTE_BY_MODE[mode], returnTo);
+}
+
+export function buildDiscountCreateRoute(mode: DiscountFlowMode, returnTo: string | null = null): string {
+	return appendReturnToQuery(DISCOUNT_CREATE_ROUTE_BY_MODE[mode], returnTo);
+}
+
+export function buildDiscountDetailsRoute(
+	mode: DiscountFlowMode,
+	discountId: string,
+	returnTo: string | null = null,
+): string {
+	const id = String(discountId ?? "").trim();
+	if (!id) return buildDiscountLedgerRoute(mode, returnTo);
+
+	const base =
+		mode === "settings"
+			? `/(app)/(tabs)/settings/discounts/${encodeURIComponent(id)}`
+			: `/(app)/(tabs)/inventory/discounts/${encodeURIComponent(id)}`;
+	return appendReturnToQuery(base, returnTo);
+}
+
+export function buildDiscountEditRoute(mode: DiscountFlowMode, discountId: string, returnTo: string | null = null): string {
+	const id = String(discountId ?? "").trim();
+	if (!id) return buildDiscountLedgerRoute(mode, returnTo);
+
+	const base =
+		mode === "settings"
+			? `/(app)/(tabs)/settings/discounts/${encodeURIComponent(id)}/edit`
+			: `/(app)/(tabs)/inventory/discounts/${encodeURIComponent(id)}/edit`;
+	return appendReturnToQuery(base, returnTo);
+}
+
+export function buildDiscountArchiveRoute(
+	mode: DiscountFlowMode,
+	discountId: string,
+	returnTo: string | null = null,
+): string {
+	const id = String(discountId ?? "").trim();
+	if (!id) return buildDiscountLedgerRoute(mode, returnTo);
+
+	const base =
+		mode === "settings"
+			? `/(app)/(tabs)/settings/discounts/${encodeURIComponent(id)}/archive`
+			: `/(app)/(tabs)/inventory/discounts/${encodeURIComponent(id)}/archive`;
+	return appendReturnToQuery(base, returnTo);
+}
+
+export function buildDiscountRestoreRoute(
+	mode: DiscountFlowMode,
+	discountId: string,
+	returnTo: string | null = null,
+): string {
+	const id = String(discountId ?? "").trim();
+	if (!id) return buildDiscountLedgerRoute(mode, returnTo);
+
+	const base =
+		mode === "settings"
+			? `/(app)/(tabs)/settings/discounts/${encodeURIComponent(id)}/restore`
+			: `/(app)/(tabs)/inventory/discounts/${encodeURIComponent(id)}/restore`;
+	return appendReturnToQuery(base, returnTo);
+}
+
+export function resolveDiscountFlowExitRoute(mode: DiscountFlowMode, returnTo: string | null): string {
+	return returnTo ?? DISCOUNT_FLOW_EXIT_ROUTE_BY_MODE[mode];
+}
+
+export function resolveDiscountCreateExitRoute(mode: DiscountFlowMode, returnTo: string | null): string {
+	return returnTo ?? DISCOUNT_LEDGER_ROUTE_BY_MODE[mode];
+}
+
+export function resolveDiscountDetailBackFallbackRoute(mode: DiscountFlowMode, returnTo: string | null): string {
+	return buildDiscountLedgerRoute(mode, returnTo);
+}
+
+export function resolveDiscountDetailRoute(mode: DiscountFlowMode, discountId: string, returnTo: string | null): string {
+	return buildDiscountDetailsRoute(mode, discountId, returnTo);
+}
+
+export function resolveDiscountEditExitRoute(mode: DiscountFlowMode, returnTo: string | null, discountId: string): string {
+	return resolveDiscountDetailRoute(mode, discountId, returnTo);
+}
+
+export function resolveDiscountEditSaveRoute(mode: DiscountFlowMode, returnTo: string | null): string {
+	return buildDiscountLedgerRoute(mode, returnTo);
+}
+
+export function resolveDiscountCreateSuccessRoute(
+	mode: DiscountFlowMode,
+	discountId: string,
+	returnTo: string | null,
+): string {
+	if (returnTo) return resolveDiscountCreateExitRoute(mode, returnTo);
+	return buildDiscountDetailsRoute(mode, discountId, null);
+}
+
 export function buildSettingsDiscountLedgerRoute(returnTo: string | null = null): string {
-	return appendReturnToQuery(SETTINGS_DISCOUNTS_LEDGER_ROUTE, returnTo);
+	return buildDiscountLedgerRoute("settings", returnTo);
 }
 
 export function buildSettingsDiscountCreateRoute(returnTo: string | null = null): string {
-	return appendReturnToQuery(SETTINGS_DISCOUNTS_CREATE_ROUTE, returnTo);
+	return buildDiscountCreateRoute("settings", returnTo);
 }
 
 export function buildSettingsDiscountDetailsRoute(discountId: string, returnTo: string | null = null): string {
-	const id = String(discountId ?? "").trim();
-	if (!id) return buildSettingsDiscountLedgerRoute(returnTo);
-	const base = `/(app)/(tabs)/settings/discounts/${encodeURIComponent(id)}`;
-	return appendReturnToQuery(base, returnTo);
+	return buildDiscountDetailsRoute("settings", discountId, returnTo);
 }
 
 export function buildSettingsDiscountEditRoute(discountId: string, returnTo: string | null = null): string {
-	const id = String(discountId ?? "").trim();
-	if (!id) return buildSettingsDiscountLedgerRoute(returnTo);
-	const base = `/(app)/(tabs)/settings/discounts/${encodeURIComponent(id)}/edit`;
-	return appendReturnToQuery(base, returnTo);
+	return buildDiscountEditRoute("settings", discountId, returnTo);
 }
 
 export function buildSettingsDiscountArchiveRoute(discountId: string, returnTo: string | null = null): string {
-	const id = String(discountId ?? "").trim();
-	if (!id) return buildSettingsDiscountLedgerRoute(returnTo);
-	const base = `/(app)/(tabs)/settings/discounts/${encodeURIComponent(id)}/archive`;
-	return appendReturnToQuery(base, returnTo);
+	return buildDiscountArchiveRoute("settings", discountId, returnTo);
 }
 
 export function buildSettingsDiscountRestoreRoute(discountId: string, returnTo: string | null = null): string {
-	const id = String(discountId ?? "").trim();
-	if (!id) return buildSettingsDiscountLedgerRoute(returnTo);
-	const base = `/(app)/(tabs)/settings/discounts/${encodeURIComponent(id)}/restore`;
-	return appendReturnToQuery(base, returnTo);
+	return buildDiscountRestoreRoute("settings", discountId, returnTo);
 }
 
 export function resolveSettingsDiscountFlowExitRoute(returnTo: string | null): string {
-	return returnTo ?? SETTINGS_DISCOUNTS_LEDGER_ROUTE;
+	return resolveDiscountFlowExitRoute("settings", returnTo);
 }
 
 export function resolveSettingsDiscountDetailBackFallbackRoute(returnTo: string | null): string {
-	return buildSettingsDiscountLedgerRoute(returnTo);
+	return resolveDiscountDetailBackFallbackRoute("settings", returnTo);
 }
 
 export function buildInventoryDiscountLedgerRoute(returnTo: string | null = null): string {
-	return appendReturnToQuery(INVENTORY_DISCOUNTS_LEDGER_ROUTE, returnTo);
+	return buildDiscountLedgerRoute("inventory", returnTo);
 }
 
 export function buildInventoryDiscountCreateRoute(returnTo: string | null = null): string {
-	return appendReturnToQuery(INVENTORY_DISCOUNTS_CREATE_ROUTE, returnTo);
+	return buildDiscountCreateRoute("inventory", returnTo);
 }
 
 export function buildInventoryDiscountDetailsRoute(discountId: string, returnTo: string | null = null): string {
-	const id = String(discountId ?? "").trim();
-	if (!id) return buildInventoryDiscountLedgerRoute(returnTo);
-	const base = `/(app)/(tabs)/inventory/discounts/${encodeURIComponent(id)}`;
-	return appendReturnToQuery(base, returnTo);
+	return buildDiscountDetailsRoute("inventory", discountId, returnTo);
 }
 
 export function buildInventoryDiscountEditRoute(discountId: string, returnTo: string | null = null): string {
-	const id = String(discountId ?? "").trim();
-	if (!id) return buildInventoryDiscountLedgerRoute(returnTo);
-	const base = `/(app)/(tabs)/inventory/discounts/${encodeURIComponent(id)}/edit`;
-	return appendReturnToQuery(base, returnTo);
+	return buildDiscountEditRoute("inventory", discountId, returnTo);
 }
 
 export function buildInventoryDiscountArchiveRoute(discountId: string, returnTo: string | null = null): string {
-	const id = String(discountId ?? "").trim();
-	if (!id) return buildInventoryDiscountLedgerRoute(returnTo);
-	const base = `/(app)/(tabs)/inventory/discounts/${encodeURIComponent(id)}/archive`;
-	return appendReturnToQuery(base, returnTo);
+	return buildDiscountArchiveRoute("inventory", discountId, returnTo);
 }
 
 export function buildInventoryDiscountRestoreRoute(discountId: string, returnTo: string | null = null): string {
-	const id = String(discountId ?? "").trim();
-	if (!id) return buildInventoryDiscountLedgerRoute(returnTo);
-	const base = `/(app)/(tabs)/inventory/discounts/${encodeURIComponent(id)}/restore`;
-	return appendReturnToQuery(base, returnTo);
+	return buildDiscountRestoreRoute("inventory", discountId, returnTo);
 }
 
 export function resolveInventoryDiscountFlowExitRoute(returnTo: string | null): string {
-	return returnTo ?? INVENTORY_ROOT_ROUTE;
+	return resolveDiscountFlowExitRoute("inventory", returnTo);
 }
 
 export function resolveInventoryDiscountCreateExitRoute(returnTo: string | null): string {
-	return returnTo ?? INVENTORY_DISCOUNTS_LEDGER_ROUTE;
+	return resolveDiscountCreateExitRoute("inventory", returnTo);
 }
 
 export function resolveInventoryDiscountEditExitRoute(returnTo: string | null, discountId: string): string {
-	return returnTo ?? buildInventoryDiscountDetailsRoute(discountId);
+	return resolveDiscountEditExitRoute("inventory", returnTo, discountId);
 }
 
 export function resolveInventoryDiscountDetailBackFallbackRoute(returnTo: string | null): string {
-	return buildInventoryDiscountLedgerRoute(returnTo);
+	return resolveDiscountDetailBackFallbackRoute("inventory", returnTo);
 }

@@ -3,7 +3,7 @@ import { FlatList, InteractionManager, Modal, Pressable, StyleSheet, View, useWi
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { Switch, useTheme } from "react-native-paper";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 
 import { ConfirmActionModal } from "@/components/settings/ConfirmActionModal";
@@ -21,12 +21,12 @@ import { runGovernedProcessExit } from "@/modules/inventory/navigation.governanc
 import { useInventoryHeader } from "@/modules/inventory/useInventoryHeader";
 import { useAppHeader } from "@/modules/navigation/useAppHeader";
 import { modifiersApi } from "@/modules/modifiers/modifiers.api";
+import { updateModifierGroupArchiveState } from "@/modules/modifiers/modifiers.cache";
 import type { SharedModifierAvailabilityPreview } from "@/modules/modifiers/modifiers.types";
 import { useAppToast } from "@/providers/AppToastProvider";
 
 const HEADER_SIDE_PADDING_FALLBACK = 16;
 const HEADER_RAIL_SIZE = 56;
-const HEADER_EDIT_PILL_WIDTH = 90;
 const HEADER_TITLE_SAFETY_GAP = 28;
 const HEADER_TITLE_ESTIMATED_CHAR_WIDTH = 10;
 const HEADER_TITLE_HORIZONTAL_PADDING = 18;
@@ -47,10 +47,12 @@ export function ModifierGroupDetailScreen({ mode }: { mode: "settings" | "invent
 	const params = useLocalSearchParams<{ id?: string; returnTo?: string }>();
 	const groupId = String(params.id ?? "").trim();
 	const exitReturnTo = String(params.returnTo ?? "").trim();
+	const queryClient = useQueryClient();
 	const { countryCode } = useActiveBusinessMeta();
 	const { withBusy, busy } = useAppBusy();
 	const { showSuccess } = useAppToast();
-	const baseRoute = "/(app)/(tabs)/inventory/modifiers";
+	const baseRoute = mode === "settings" ? "/(app)/(tabs)/settings/modifiers" : "/(app)/(tabs)/inventory/modifiers";
+	const activeListRoute = `${baseRoute}?filter=active`;
 	const archivedListRoute = `${baseRoute}?filter=archived`;
 	const [sharedAvailabilityOpen, setSharedAvailabilityOpen] = useState(false);
 	const [confirmRestoreOpen, setConfirmRestoreOpen] = useState(false);
@@ -76,9 +78,13 @@ export function ModifierGroupDetailScreen({ mode }: { mode: "settings" | "invent
 	});
 
 	const group = query.data;
+	const visibleOptions = useMemo(
+		() => (group?.options ?? []).filter((option) => !option.isArchived),
+		[group?.options],
+	);
 	const headerHorizontalPadding = paddingX || HEADER_SIDE_PADDING_FALLBACK;
 	const headerTitleMaxLength = useMemo(() => {
-		const rightReservedWidth = Math.max(HEADER_RAIL_SIZE, HEADER_EDIT_PILL_WIDTH);
+		const rightReservedWidth = HEADER_RAIL_SIZE;
 		const availableWidth =
 			viewportWidth -
 			headerHorizontalPadding * 2 -
@@ -89,7 +95,7 @@ export function ModifierGroupDetailScreen({ mode }: { mode: "settings" | "invent
 		return Math.max(8, Math.floor(availableWidth / HEADER_TITLE_ESTIMATED_CHAR_WIDTH));
 	}, [headerHorizontalPadding, viewportWidth]);
 	const modifierHeaderTitle = useMemo(
-		() => truncateHeaderTitle(group?.name ?? "", headerTitleMaxLength) || "Modifier",
+		() => truncateHeaderTitle(group?.name ?? "", headerTitleMaxLength) || "Modifier Set",
 		[group?.name, headerTitleMaxLength],
 	);
 
@@ -172,11 +178,13 @@ export function ModifierGroupDetailScreen({ mode }: { mode: "settings" | "invent
 		if (!group?.id || !group.isArchived) return;
 		withBusy("Restoring modifier set...", async () => {
 			await modifiersApi.restoreGroup(group.id);
+			updateModifierGroupArchiveState(queryClient, group.id, false);
+			await queryClient.invalidateQueries({ queryKey: ["modifiers"] });
 			setConfirmRestoreOpen(false);
 			showSuccess("Modifier set restored");
-			runGovernedProcessExit(undefined, baseRoute, { router: router as any });
+			runGovernedProcessExit(undefined, activeListRoute, { router: router as any });
 		});
-	}, [baseRoute, group?.id, group?.isArchived, router, showSuccess, withBusy]);
+	}, [activeListRoute, group?.id, group?.isArchived, queryClient, router, showSuccess, withBusy]);
 
 	const headerBase = useAppHeader("detail", {
 		title: modifierHeaderTitle,
@@ -195,46 +203,15 @@ export function ModifierGroupDetailScreen({ mode }: { mode: "settings" | "invent
 					variant='back'
 					titleHorizontalPadding={HEADER_TITLE_HORIZONTAL_PADDING}
 					onLeftPress={onBackToList}
-					onRightPress={group?.isArchived ? undefined : onEditGroup}
-					rightDisabled={!group || !!group?.isArchived}
-					rightSlot={
-						group?.isArchived
-							? undefined
-							: ({ disabled }) => (
-									<View
-										style={[
-											styles.headerEditPill,
-											{ backgroundColor: disabled ? theme.colors.surfaceDisabled : theme.colors.primary },
-										]}
-									>
-										<BAIText
-											variant='body'
-											style={{
-												color: disabled ? theme.colors.onSurfaceDisabled : theme.colors.onPrimary,
-												fontSize: 16,
-												fontWeight: "600",
-											}}
-										>
-											Edit
-										</BAIText>
-									</View>
-								)
-					}
 				/>
 			),
 		}),
 		[
-			group,
 			headerBase,
 			inventoryHeaderBase,
 			mode,
 			modifierHeaderTitle,
 			onBackToList,
-			onEditGroup,
-			theme.colors.onPrimary,
-			theme.colors.onSurfaceDisabled,
-			theme.colors.primary,
-			theme.colors.surfaceDisabled,
 		],
 	);
 	const sharedAvailabilityGroupCountLabel = useMemo(
@@ -259,6 +236,30 @@ export function ModifierGroupDetailScreen({ mode }: { mode: "settings" | "invent
 								</View>
 							) : (
 								<>
+									{!group.isArchived ? (
+										<View style={styles.topActionRow}>
+											<BAIButton
+												variant='outline'
+												intent='neutral'
+												shape='pill'
+												widthPreset='standard'
+												style={styles.topActionButton}
+												onPress={onBackToList}
+												disabled={busy.isBusy}
+											>
+												Cancel
+											</BAIButton>
+											<BAIButton
+												shape='pill'
+												widthPreset='standard'
+												style={styles.topActionButton}
+												onPress={onEditGroup}
+												disabled={busy.isBusy}
+											>
+												Edit
+											</BAIButton>
+										</View>
+									) : null}
 									<View style={[styles.tableHead, { borderBottomColor: outline }]}>
 										<BAIText variant='subtitle'>Modifiers</BAIText>
 										<BAIText variant='subtitle'>Availability</BAIText>
@@ -266,7 +267,7 @@ export function ModifierGroupDetailScreen({ mode }: { mode: "settings" | "invent
 
 									<View style={styles.rowsListWrap}>
 										<FlatList
-											data={group.options}
+											data={visibleOptions}
 											keyExtractor={(item) => item.id}
 											style={styles.rowsList}
 											renderItem={({ item }) => (
@@ -300,6 +301,11 @@ export function ModifierGroupDetailScreen({ mode }: { mode: "settings" | "invent
 											contentContainerStyle={styles.listContent}
 											keyboardShouldPersistTaps='handled'
 											showsVerticalScrollIndicator={false}
+											ListEmptyComponent={
+												<BAIText variant='body' muted style={styles.emptyOptionsText}>
+													No active modifiers.
+												</BAIText>
+											}
 											ListFooterComponent={
 												group.isArchived
 													? () => (
@@ -388,7 +394,7 @@ export function ModifierGroupDetailScreen({ mode }: { mode: "settings" | "invent
 
 			<ConfirmActionModal
 				visible={confirmRestoreOpen}
-				title='Restore Modifier'
+				title='Restore Modifier Set'
 				message='Restored modifier sets become available for new product and service attachments.'
 				confirmLabel='Restore'
 				confirmIntent='primary'
@@ -408,18 +414,19 @@ const styles = StyleSheet.create({
 	wrap: { flex: 1, paddingHorizontal: 10 },
 	content: { flex: 1, width: "100%", maxWidth: 720, alignSelf: "center" },
 	card: { flex: 1, borderRadius: 18, gap: 8, marginTop: 0 },
-	headerEditPill: {
-		width: HEADER_EDIT_PILL_WIDTH,
-		height: 40,
-		paddingHorizontal: 16,
-		borderRadius: 20,
-		alignItems: "center",
-		justifyContent: "center",
+	topActionRow: {
+		flexDirection: "row",
+		gap: 8,
+		marginBottom: 6,
+	},
+	topActionButton: {
+		flex: 1,
 	},
 	stateWrap: { paddingTop: 8, alignItems: "flex-start" },
 	listContent: { gap: 0, paddingBottom: 6 },
 	rowsListWrap: { flex: 1, minHeight: 0 },
 	rowsList: { flex: 1, minHeight: 0 },
+	emptyOptionsText: { paddingTop: 8 },
 	restoreActionWrap: { paddingTop: 30 },
 	restoreActionLabel: { fontWeight: "400" },
 	restoreModalLabel: { fontWeight: "400" },

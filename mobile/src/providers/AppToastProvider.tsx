@@ -4,9 +4,15 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type ToastIntent = "success" | "error" | "info";
 
+type ToastAction = {
+	label: string;
+	onPress: () => void;
+};
+
 type ShowToastOptions = {
 	intent?: ToastIntent;
 	duration?: number;
+	action?: ToastAction;
 };
 
 type ToastState = {
@@ -14,6 +20,7 @@ type ToastState = {
 	message: string;
 	intent: ToastIntent;
 	duration: number;
+	action: ToastAction | null;
 };
 
 type AppToastContextValue = {
@@ -35,6 +42,7 @@ export function AppToastProvider({ children }: { children: ReactNode }) {
 		message: "",
 		intent: "info",
 		duration: DEFAULT_DURATION,
+		action: null,
 	});
 
 	const showToast = useCallback((message: string, options?: ShowToastOptions) => {
@@ -46,6 +54,7 @@ export function AppToastProvider({ children }: { children: ReactNode }) {
 			message: safeMessage,
 			intent: options?.intent ?? "info",
 			duration: options?.duration ?? DEFAULT_DURATION,
+			action: options?.action ?? null,
 		});
 	}, []);
 
@@ -74,6 +83,17 @@ export function AppToastProvider({ children }: { children: ReactNode }) {
 					visible={state.visible}
 					onDismiss={hideToast}
 					duration={state.duration}
+					action={
+						state.action
+							? {
+									label: state.action.label,
+									onPress: () => {
+										state.action?.onPress();
+										hideToast();
+									},
+								}
+							: undefined
+					}
 					wrapperStyle={{
 						position: "absolute",
 						top: insets.top + 8,

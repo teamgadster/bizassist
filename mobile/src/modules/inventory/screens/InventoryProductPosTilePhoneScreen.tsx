@@ -97,6 +97,7 @@ export default function PosTilePhoneScreen({ routeScope = "inventory" }: { route
 	const [tileMode, setTileMode] = useState<PosTileTab>(() => initialTileModeRef.current);
 	const [tileColor, setTileColor] = useState<string | null>(() => initialTileColorRef.current);
 	const [tileImageUri, setTileImageUri] = useState(() => initialTileImageUriRef.current);
+	const [deletedTileImageUri, setDeletedTileImageUri] = useState<string>("");
 	const [mediaError, setMediaError] = useState<string | null>(null);
 	const tileLabelPlaceholder = useMemo(() => `Optional, Up to ${FIELD_LIMITS.posTileLabel} Characters`, []);
 
@@ -108,6 +109,7 @@ export default function PosTilePhoneScreen({ routeScope = "inventory" }: { route
 	useEffect(() => {
 		if (!incomingLocalUri) return;
 		setTileImageUri(incomingLocalUri);
+		setDeletedTileImageUri("");
 		setTileMode("IMAGE");
 		(router as any).setParams?.({ [LOCAL_URI_KEY]: undefined });
 	}, [incomingLocalUri, router]);
@@ -253,12 +255,34 @@ export default function PosTilePhoneScreen({ routeScope = "inventory" }: { route
 
 	const onRemoveImage = useCallback(() => {
 		if (isUiDisabled) return;
+		const removedImageUri = tileImageUri.trim();
+		if (!removedImageUri) return;
+
 		setTileImageUri("");
-	}, [isUiDisabled]);
+		setDeletedTileImageUri(removedImageUri);
+	}, [isUiDisabled, tileImageUri]);
+
+	const onRestoreImage = useCallback(() => {
+		if (isUiDisabled) return;
+		const restoreImageUri = deletedTileImageUri.trim();
+		if (!restoreImageUri) return;
+
+		setTileImageUri((current) => (current.trim() ? current : restoreImageUri));
+		setDeletedTileImageUri("");
+	}, [deletedTileImageUri, isUiDisabled]);
 
 	const hasImage = !!tileImageUri;
-	const removePhotoDisabled = isUiDisabled || !hasImage;
-	const removePhotoIconColor = (theme.colors as any).onError ?? "#FFFFFF";
+	const hasDeletedImage = deletedTileImageUri.trim().length > 0;
+	const imageActionDisabled = isUiDisabled || (!hasImage && !hasDeletedImage);
+	const isUndoState = hasDeletedImage && !hasImage;
+	const imageActionIcon = isUndoState ? "undo-variant" : "trash-can-outline";
+	const imageActionLabel = isUndoState ? "Undo remove photo" : "Remove photo";
+	const imageActionIconColor = isUndoState
+		? (theme.colors.onPrimary ?? "#FFFFFF")
+		: ((theme.colors as any).onError ?? "#FFFFFF");
+	const imageActionBackgroundColor = isUndoState
+		? theme.colors.primary
+		: theme.colors.error;
 	const isTileLabelValid = useMemo(() => {
 		const trimmed = tileLabel.trim();
 		if (!trimmed) return true;
@@ -349,14 +373,14 @@ export default function PosTilePhoneScreen({ routeScope = "inventory" }: { route
 									<View style={styles.previewContainer}>
 										<View style={styles.previewAnchor}>
 											<BAIIconButton
-												icon='trash-can-outline'
-												accessibilityLabel='Remove photo'
+												icon={imageActionIcon}
+												accessibilityLabel={imageActionLabel}
 												variant='filled'
 												size='lg'
-												iconColor={removePhotoIconColor}
-												onPress={onRemoveImage}
-												disabled={removePhotoDisabled}
-												style={[styles.previewDeleteButton, { backgroundColor: theme.colors.error }]}
+												iconColor={imageActionIconColor}
+												onPress={isUndoState ? onRestoreImage : onRemoveImage}
+												disabled={imageActionDisabled}
+												style={[styles.previewDeleteButton, { backgroundColor: imageActionBackgroundColor }]}
 											/>
 
 											<View

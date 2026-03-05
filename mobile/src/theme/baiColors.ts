@@ -396,6 +396,11 @@ const neutralThemeLight: Record<BAIButtonVariant, BAIButtonColorConfig> = {
 		border: baiColors.neutral[600],
 		text: baiSemanticColors.text.onPrimary,
 	},
+	subtle: {
+		background: baiColors.neutral[200],
+		border: baiColors.neutral[200],
+		text: baiColors.neutral[900],
+	},
 	outline: {
 		background: "transparent",
 		border: baiSemanticColors.neutral.main,
@@ -405,6 +410,11 @@ const neutralThemeLight: Record<BAIButtonVariant, BAIButtonColorConfig> = {
 
 const neutralThemeDark: Record<BAIButtonVariant, BAIButtonColorConfig> = {
 	...buildIntentTheme(baiSemanticColors.neutral, baiSemanticColors.text.onPrimary),
+	subtle: {
+		background: baiSemanticColors.surfacesDark.surfaceElevated,
+		border: baiSemanticColors.surfacesDark.borderSubtle,
+		text: baiSemanticColors.textDark.primary,
+	},
 	outline: {
 		background: "transparent",
 		border: baiSemanticColors.neutral.main,

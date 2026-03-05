@@ -2,7 +2,6 @@
 import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { Image as ExpoImage } from "expo-image";
 import { Pressable, StyleSheet, View } from "react-native";
-import { FontAwesome6 } from "@expo/vector-icons";
 import { useTheme } from "react-native-paper";
 
 import { BAIText } from "@/components/ui/BAIText";
@@ -93,6 +92,7 @@ function InventoryRowBase({
 	const theme = useTheme();
 	const { currencyCode } = useActiveBusinessMeta();
 	const borderColor = theme.colors.outlineVariant ?? theme.colors.outline;
+	const disabledThumbBorderColor = theme.dark ? "#F5F5F5" : "#111111";
 	const surfaceAlt = theme.colors.surfaceVariant ?? theme.colors.surface;
 	const pressedBg = theme.dark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)";
 
@@ -169,10 +169,14 @@ function InventoryRowBase({
 		isServiceItem && normalizedTileColor.length > 0 && normalizedTileColor === DEFAULT_SERVICE_TILE_COLOR;
 	const showColorTile = item.posTileMode === "COLOR" && !!posTileColor && !isDefaultServiceTile;
 	const showPlaceholder = !showImageTile && !showColorTile;
-	const placeholderBg = theme.colors.surfaceVariant ?? theme.colors.surface;
-	const placeholderIcon = theme.colors.onSurfaceVariant ?? theme.colors.onSurface;
+	const placeholderBg = theme.colors.surfaceDisabled ?? theme.colors.surfaceVariant ?? theme.colors.surface;
+	const placeholderTextColor = theme.colors.onSurfaceVariant ?? theme.colors.onSurface;
 	const [thumbLoaded, setThumbLoaded] = useState(false);
 	const lastImageKeyRef = useRef<string | null>(null);
+	const thumbnailInitials = String(item.name ?? "")
+		.trim()
+		.slice(0, 2)
+		.toUpperCase();
 
 	// For image Testing
 
@@ -214,7 +218,7 @@ function InventoryRowBase({
 	}, [imageUri]);
 
 	const showLoadingPlaceholder = showImageTile && !thumbLoaded;
-	const showPlaceholderIcon = showPlaceholder || showLoadingPlaceholder;
+	const showThumbnailInitials = (!showImageTile || showLoadingPlaceholder) && thumbnailInitials.length > 0;
 
 	return (
 		<Pressable
@@ -231,7 +235,7 @@ function InventoryRowBase({
 				<View
 					style={[
 						styles.thumbnail,
-						{ borderColor },
+						{ borderColor: disabled ? disabledThumbBorderColor : borderColor },
 						showColorTile && { backgroundColor: posTileColor },
 						(showPlaceholder || showLoadingPlaceholder) && { backgroundColor: placeholderBg },
 					]}
@@ -249,7 +253,11 @@ function InventoryRowBase({
 							onError={() => setThumbLoaded(false)}
 						/>
 					) : null}
-					{showPlaceholderIcon ? <FontAwesome6 name='image' size={30} color={placeholderIcon} /> : null}
+					{showThumbnailInitials ? (
+						<BAIText variant='body' style={{ color: placeholderTextColor }}>
+							{thumbnailInitials}
+						</BAIText>
+					) : null}
 				</View>
 
 				<View style={styles.left}>

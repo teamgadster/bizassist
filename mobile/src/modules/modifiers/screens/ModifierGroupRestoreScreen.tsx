@@ -3,6 +3,7 @@ import { StyleSheet, View } from "react-native";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { useTheme } from "react-native-paper";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { BAIButton } from "@/components/ui/BAIButton";
 import { BAIScreen } from "@/components/ui/BAIScreen";
@@ -14,6 +15,7 @@ import { useInventoryHeader } from "@/modules/inventory/useInventoryHeader";
 import { useAppHeader } from "@/modules/navigation/useAppHeader";
 import { useProcessExitGuard } from "@/modules/navigation/useProcessExitGuard";
 import { modifiersApi } from "@/modules/modifiers/modifiers.api";
+import { updateModifierGroupArchiveState } from "@/modules/modifiers/modifiers.cache";
 
 export function ModifierGroupRestoreScreen({ mode }: { mode: "settings" | "inventory" }) {
 	const router = useRouter();
@@ -22,8 +24,10 @@ export function ModifierGroupRestoreScreen({ mode }: { mode: "settings" | "inven
 	const params = useLocalSearchParams<{ id?: string; returnTo?: string }>();
 	const groupId = String(params.id ?? "").trim();
 	const exitReturnTo = String(params.returnTo ?? "").trim();
+	const queryClient = useQueryClient();
 	const { withBusy } = useAppBusy();
-	const baseRoute = "/(app)/(tabs)/inventory/modifiers";
+	const baseRoute = mode === "settings" ? "/(app)/(tabs)/settings/modifiers" : "/(app)/(tabs)/inventory/modifiers";
+	const activeListRoute = `${baseRoute}?filter=active`;
 	const detailRoute = `${baseRoute}/${encodeURIComponent(groupId)}`;
 	const exitFallbackRoute = groupId ? detailRoute : baseRoute;
 
@@ -48,17 +52,19 @@ export function ModifierGroupRestoreScreen({ mode }: { mode: "settings" | "inven
 		if (!groupId) return;
 		withBusy("Restoring modifier set...", async () => {
 			await modifiersApi.restoreGroup(groupId);
-			runGovernedProcessExit(exitReturnTo || undefined, detailRoute, { router: router as any });
+			updateModifierGroupArchiveState(queryClient, groupId, false);
+			await queryClient.invalidateQueries({ queryKey: ["modifiers"] });
+			runGovernedProcessExit(undefined, activeListRoute, { router: router as any });
 		});
-	}, [detailRoute, exitReturnTo, groupId, router, withBusy]);
+	}, [activeListRoute, groupId, queryClient, router, withBusy]);
 
 	const appHeader = useAppHeader("process", {
-		title: "Restore Modifier",
+		title: "Restore Modifier Set",
 		onExit: guardedExit,
 		exitFallbackRoute,
 	});
 	const inventoryHeader = useInventoryHeader("process", {
-		title: "Restore Modifier",
+		title: "Restore Modifier Set",
 		onExit: guardedExit,
 		exitFallbackRoute,
 	});
@@ -71,7 +77,7 @@ export function ModifierGroupRestoreScreen({ mode }: { mode: "settings" | "inven
 					<View style={styles.content}>
 						<BAISurface bordered padded style={[styles.card, surfaceInteractive]}>
 							<View style={styles.header}>
-								<BAIText variant='title'>Restore Modifier</BAIText>
+								<BAIText variant='title'>Restore Modifier Set</BAIText>
 							</View>
 							<BAIText variant='body'>
 								Restored modifier sets become available for new product and service attachments.

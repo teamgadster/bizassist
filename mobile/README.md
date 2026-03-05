@@ -23,6 +23,38 @@ In the output, you'll find options to open the app in a
 - [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
 - [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
 
+## Dev Client workflow (recommended)
+
+For full native module behavior (including media permissions), use a development build instead of Expo Go.
+
+### First time setup per platform
+
+```bash
+npm run dev:build:ios
+npm run dev:build:android
+```
+
+### Daily run (with Metro)
+
+```bash
+npm run dev:ios
+npm run dev:android
+```
+
+Use cache-clear variants when needed:
+
+```bash
+npm run dev:ios:clear
+npm run dev:android:clear
+```
+
+One-command build + run flows:
+
+```bash
+npm run dev:bootstrap:ios
+npm run dev:bootstrap:android
+```
+
 You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
 
 ## Get a fresh project

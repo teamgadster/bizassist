@@ -14,7 +14,12 @@ import {
 	zSanitizedString,
 } from "@/shared/validators/zod.shared";
 import { FIELD_LIMITS } from "@/shared/fieldLimits.server";
-import { CATALOG_LIST_MAX_LIMIT, MAX_MODIFIER_GROUPS_PER_PRODUCT } from "@/shared/catalogLimits";
+import {
+	CATALOG_LIST_MAX_LIMIT,
+	MAX_MODIFIER_GROUPS_PER_PRODUCT,
+	MAX_OPTION_VALUES_PER_SET,
+	MAX_VARIATIONS_PER_PRODUCT,
+} from "@/shared/catalogLimits";
 
 const nonNegativeDecimalString = zSanitizedString(
 	z
@@ -266,4 +271,27 @@ export const updateProductSchema = updateProductBodyBase.superRefine((val, ctx) 
 	if (!shouldValidateAsService) return;
 
 	validateServiceDurationRules({ ...val, initialOnHand: null }, ctx, { isCreate: false });
+});
+
+const variationSelectionSchema = z.object({
+	optionSetId: uuidSchema,
+	optionValueIds: z.array(uuidSchema).min(1).max(MAX_OPTION_VALUES_PER_SET),
+});
+
+export const previewProductVariationsSchema = z.object({
+	selections: z.array(variationSelectionSchema).min(1).max(MAX_MODIFIER_GROUPS_PER_PRODUCT),
+});
+
+export const generateProductVariationsSchema = previewProductVariationsSchema.extend({
+	selectedVariationKeys: z.array(trimmedStringBase().min(1).max(400)).max(MAX_VARIATIONS_PER_PRODUCT).optional(),
+});
+
+const manualVariationItemSchema = z.object({
+	variationKey: trimmedStringBase().min(1).max(400),
+	label: trimmedStringBase().min(1).max(120),
+	sortOrder: z.number().int().min(0).optional(),
+});
+
+export const syncManualProductVariationsSchema = z.object({
+	variations: z.array(manualVariationItemSchema).min(1).max(MAX_VARIATIONS_PER_PRODUCT),
 });
